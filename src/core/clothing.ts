@@ -453,6 +453,21 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
   }
 
   buildMilitary({ rc, sk, body, out, e });
+
+  // torn garments: rebuild every shell of that slot with jagged hems
+  const rag = 0.035 * d.u;
+  for (let j = 0; j < out.length; j++) {
+    const p = out[j];
+    const slot = p.material.split('.')[0] as SlotId;
+    if (!o[slot]?.torn) continue;
+    const sp = p.spec;
+    if (sp && !sp.body && (sp.o.cuffEnd || sp.o.cuffStart)) {
+      out[j] = { ...shell(p.name, { id: sp.src, rings: sp.rings, lod: p.lod }, sp.k0, sp.k1, { ...sp.o, ragged: rag }, sp.f0, sp.f1), vertexWeights: p.vertexWeights };
+    } else if (p.vertexWeights) {
+      // skirts and coats: tear the bottom ring
+      out[j] = { ...p, ragged: { end: rag * 1.5, seed: j } };
+    }
+  }
   return out;
 }
 

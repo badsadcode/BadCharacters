@@ -7,7 +7,7 @@
  */
 
 export type EarShape = 'round' | 'pointed' | 'elf' | 'wide' | 'bat';
-export type RaceId = 'human' | 'orc' | 'elf' | 'dwarf' | 'hobbit' | 'goblin' | 'gremlin';
+export type RaceId = 'human' | 'orc' | 'elf' | 'dwarf' | 'hobbit' | 'goblin' | 'gremlin' | 'mutant';
 
 export interface Race {
   label: string;
@@ -42,6 +42,8 @@ export interface Race {
   /** relative size of eyes and mouth on the face texture */
   face: number;
   skins: string[];
+  /** seeded asymmetry, growths and maybe horns */
+  mutant?: boolean;
 }
 
 export const RACES: Record<RaceId, Race> = {
@@ -86,6 +88,13 @@ export const RACES: Record<RaceId, Race> = {
     height: [0.8, 1.0], headsTall: 0.48, headW: 1.1, torso: 0.92, arm: 1.0, leg: 1.0, legFrac: 0.96, armFrac: 1.2, shoulders: 0.88, hand: 1.6, foot: 1.4,
     neckLen: 0.9, neckThick: 0.7, jaw: 0.8, nose: 1.2, ears: 'bat', earScale: 2.1, muscle: -0.15, fat: -0.25, belly: 0, hunch: 0.55, face: 1.3,
     skins: ['#c58a63', '#b07a58', '#8f8a62', '#a39070', '#7f8a6a', '#b59a7a'],
+  },
+  mutant: {
+    label: 'Mutant', blurb: 'One arm went to the gym. The rest of it went to the reactor.',
+    height: [1.7, 2.1], headsTall: 1.02, headW: 1.05, torso: 1.12, arm: 1.1, leg: 1.08, legFrac: 0.97, armFrac: 1.06, shoulders: 1.15, hand: 1.15, foot: 1.1,
+    neckLen: 0.6, neckThick: 1.3, jaw: 1.2, nose: 1.1, ears: 'round', earScale: 0.9, muscle: 0.25, fat: 0.05, belly: 0, hunch: 0.5, face: 1,
+    skins: ['#8a9a7a', '#9a8aa0', '#7a8a8a', '#a0947a', '#8fa08a', '#b08a8a'],
+    mutant: true,
   },
 };
 

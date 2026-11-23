@@ -10,6 +10,7 @@
 import { add, clamp, lerp, norm, scale, V3 } from './math';
 import { CharacterRecipe, STYLES } from './recipe';
 import { EarShape, RACES, sv } from './races';
+import { Rng, subSeed } from './rng';
 
 export interface Bone {
   name: string;
@@ -84,6 +85,10 @@ export interface Dims {
   eyeSize: number;
   eyeSpacing: number;
   mouthWidth: number;
+  /** per-side arm bulk (mutants: one arm went to the gym) */
+  armL: number;
+  armR: number;
+  mutant: boolean;
 }
 
 export interface Skeleton {
@@ -199,6 +204,8 @@ export function computeDims(rc: CharacterRecipe): Dims {
     eyeSize: k('eyeSize', 0.45),
     eyeSpacing: k('eyeSpacing', 0.3),
     mouthWidth: k('mouthWidth', 0.4),
+    ...mutantArms(rc, !!race.mutant),
+    mutant: !!race.mutant,
   };
 }
 
@@ -260,4 +267,11 @@ export function buildSkeleton(rc: CharacterRecipe): Skeleton {
     sockets.push({ name: `Socket_${side}Hip`, bone: 'Hips', world: [s * d.hipHW * 1.05, d.hipY + 0.05 * tl, 0] });
   }
   return { bones, sockets, dims: d, index };
+}
+
+function mutantArms(rc: CharacterRecipe, mutant: boolean) {
+  if (!mutant) return { armL: 1, armR: 1 };
+  const r = new Rng(subSeed(rc.seed, 'mutant.arm'));
+  const big = 1.45 + r.next() * 0.45;
+  return r.chance(0.5) ? { armL: big, armR: 0.92 } : { armL: 0.92, armR: big };
 }

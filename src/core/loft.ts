@@ -51,6 +51,8 @@ export interface Part {
   id?: string;
   /** how this part was cut, so hidden stretches can be culled */
   spec?: ShellSpec;
+  /** torn edges: jag the first/last ring along the direction of travel (metres, seeded) */
+  ragged?: { start?: number; end?: number; seed: number };
 }
 
 export interface MeshData {
@@ -218,12 +220,24 @@ export function loftPart(part: Part, K: number, m: MeshData) {
   for (let i = 1; i < rings.length; i++) cum.push(cum[i - 1] + len(sub(rings[i].c, rings[i - 1].c)));
   const total = cum[cum.length - 1] || 1;
 
+  // torn edges: a seeded saw-tooth pulled back along the travel direction
+  const tdir = norm(travel);
+  const jag = (i: number, k: number) => {
+    const rg = part.ragged;
+    if (!rg) return 0;
+    const amt = i === 0 ? rg.start ?? 0 : i === rings.length - 1 ? rg.end ?? 0 : 0;
+    if (!amt) return 0;
+    const kk = k % K;
+    const h = Math.sin(kk * 12.9898 + rg.seed * 78.233 + i * 3.1) * 43758.5453;
+    const r01 = h - Math.floor(h);
+    return (i === 0 ? 1 : -1) * amt * (kk % 2 ? r01 : 0.25 * r01);
+  };
   rings.forEach((r, i) => {
     const pts: V3[] = [];
     for (let k = 0; k <= K; k++) {
       const th = th0 + (2 * Math.PI * k) / K;
       const [x, y] = pointAt(r, th);
-      pts.push(add(r.c, add(scale(r.p, x), scale(r.q, y))));
+      pts.push(add(add(r.c, add(scale(r.p, x), scale(r.q, y))), scale(tdir, jag(i, k))));
     }
     // u: arc length around the ring, starting at the back (-q) so the front sits at u = 0.5
     const arc = [0];
@@ -312,7 +326,8 @@ export function computeNormals(m: MeshData) {
   }
   for (let i = 0; i < n; i++) {
     const g = groups.get(keys[i])!;
-    const nn = norm(g as V3);
+    // degenerate spots (zero-area fans, collapsed tips) still need a unit normal
+    const nn: V3 = Math.hypot(g[0], g[1], g[2]) > 1e-12 ? norm(g as V3) : [0, 1, 0];
     m.normals[i * 3] = nn[0];
     m.normals[i * 3 + 1] = nn[1];
     m.normals[i * 3 + 2] = nn[2];
@@ -325,7 +340,8 @@ export function unweld(m: MeshData): MeshData {
   for (let t = 0; t < m.indices.length; t += 3) {
     const tri = [m.indices[t], m.indices[t + 1], m.indices[t + 2]];
     const P = tri.map((i) => [m.positions[i * 3], m.positions[i * 3 + 1], m.positions[i * 3 + 2]] as V3);
-    const fn = norm(cross(sub(P[1], P[0]), sub(P[2], P[0])));
+    const cr = cross(sub(P[1], P[0]), sub(P[2], P[0]));
+    const fn: V3 = Math.hypot(...cr) > 1e-14 ? norm(cr) : [0, 1, 0];
     for (const i of tri) {
       o.indices.push(o.positions.length / 3);
       o.positions.push(m.positions[i * 3], m.positions[i * 3 + 1], m.positions[i * 3 + 2]);

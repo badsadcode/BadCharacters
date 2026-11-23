@@ -25,6 +25,8 @@ export interface ShellOpts {
   /** make the cross-section boxier (armour); negative = rounder */
   nBoost?: number;
   lod?: Part['lod'];
+  /** torn hem depth in metres (no inward lip at a torn end) */
+  ragged?: number;
 }
 
 export interface ShellSpec {
@@ -50,10 +52,11 @@ export function shell(name: string, src: Part | { id?: string; rings: Ring[]; lo
   const fAt = (i: number) => (N > 1 ? f0 + ((f1 - f0) * (ks[i] - k0)) / Math.max(1e-9, k1 - k0) : f0);
   let out: Ring[] = rings.map((r, i) => inflateRing(r, o.inflate + flare * fAt(i), { n: r.n + (o.nBoost ?? 0) }));
   const lip = (r: Ring): Ring => ({ ...r, a: Math.max(r.a - o.inflate * 0.85 - flare, r.a * 0.5), b: Math.max(r.b - o.inflate * 0.85 - flare, r.b * 0.5) });
-  if (o.cuffStart) out = [lip(out[0]), ...out];
-  if (o.cuffEnd) out = [...out, lip(out[out.length - 1])];
+  if (o.cuffStart && !o.ragged) out = [lip(out[0]), ...out];
+  if (o.cuffEnd && !o.ragged) out = [...out, lip(out[out.length - 1])];
   // a shell is never finer than what it wraps (gloves on 8-sided hands get 8 sides)
   const part: Part = { name, material: o.material, rings: out, capStart: o.capStart, capEnd: o.capEnd, lod: o.lod ?? src.lod };
+  if (o.ragged) part.ragged = { start: o.cuffStart ? o.ragged : 0, end: o.cuffEnd ? o.ragged : 0, seed: (name.length * 7919 + Math.round(k0 * 1000)) % 997 };
   if (src.id) part.spec = { src: src.id, rings: src.rings, k0, k1, o, f0, f1 };
   return part;
 }
@@ -85,7 +88,9 @@ export function cullHidden(parts: Part[]): Part[] {
       if (q === p || !t || t.src !== s.src || t.body) continue;
       if (OPAQUE_EXCLUDE.has(q.material) || (t.o.nBoost ?? 0) < 0) continue;
       if (t.o.inflate + Math.min(0, t.o.flare ?? 0) <= mine + 1e-4) continue;
-      cover.push([t.k0, t.k1]);
+      // torn hems leave a bigger safety margin, so the jagged edge never reveals a culled gap
+      const rag = t.o.ragged ? 0.6 : 0;
+      cover.push([t.k0 + (t.o.cuffStart ? rag : 0), t.k1 - (t.o.cuffEnd ? rag : 0)]);
     }
     if (!cover.length) {
       out.push(p);

@@ -5,6 +5,7 @@
  */
 import { Part, ring, Ring, Weights } from './loft';
 import { bodySpec } from './shell';
+import { Rng, subSeed } from './rng';
 import { add, clamp, cross, dot, lerp, norm, scale, sub, V3 } from './math';
 import type { Skeleton } from './skeleton';
 import { COVERS_NOSE, STYLES, type CharacterRecipe } from './recipe';
@@ -239,6 +240,9 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
   // ───────────────────────────────────────────────────────────────── arms
   for (const s of [1, -1]) {
     const side = s > 0 ? 'Left' : 'Right';
+    const am = s > 0 ? d.armL : d.armR;
+    // per-side arm bulk (mutants); lengths stay with the skeleton
+    const D = { ...d, deltR: d.deltR * am, upperArmR: d.upperArmR * am, elbowR: d.elbowR * am ** 0.8, foreArmR: d.foreArmR * am, wristR: d.wristR * am ** 0.8, handHW: d.handHW * am ** 0.7, handHT: d.handHT * am ** 0.7 };
     const dir: V3 = [d.armDir[0] * s, d.armDir[1], 0];
     const { p, q } = limbFrame(dir);
     const SH = `${side}Shoulder`;
@@ -259,24 +263,24 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
       capStart: true,
       capEnd: true,
       rings: [
-        A(at(sh, -d.deltR * 1.15), d.deltR * 0.85, d.deltR * 0.85, W([SH, 1]), 'top'),
-        A(sh, d.deltR, d.deltR * 1.04, W([SH, 0.35], [UA, 0.65]), 'shoulder'),
-        A(at(sh, 0.3 * ua), lerp(d.deltR, d.upperArmR, 0.6), lerp(d.deltR, d.upperArmR, 0.5), W([UA, 1]), 'deltoid'),
-        A(at(sh, 0.62 * ua), d.upperArmR, d.upperArmR * 0.97, W([UA, 1]), 'bicep'),
-        A(at(el, -0.12 * ua), d.elbowR * 1.05, d.elbowR * 1.02, W([UA, 0.85], [LA, 0.15]), 'aboveElbow'),
-        A(el, d.elbowR, d.elbowR, W([UA, 0.5], [LA, 0.5]), 'elbow'),
-        A(at(el, 0.13 * fa), d.foreArmR * 0.98, d.foreArmR * 0.92, W([LA, 0.85], [UA, 0.15]), 'belowElbow'),
-        A(at(el, 0.36 * fa), d.foreArmR, d.foreArmR * 0.88, W([LA, 1]), 'forearm'),
-        A(at(wr, -0.12 * fa), d.wristR * 1.08, d.wristR * 0.86, W([LA, 0.9], [HA, 0.1]), 'wristUp'),
-        A(wr, d.wristR, d.wristR * 0.82, W([LA, 0.5], [HA, 0.5]), 'wrist'),
-        A(at(wr, 0.12 * d.handLen), d.wristR * 0.95, d.wristR * 0.8, W([HA, 1]), 'end'),
+        A(at(sh, -D.deltR * 1.15), D.deltR * 0.85, D.deltR * 0.85, W([SH, 1]), 'top'),
+        A(sh, D.deltR, D.deltR * 1.04, W([SH, 0.35], [UA, 0.65]), 'shoulder'),
+        A(at(sh, 0.3 * ua), lerp(D.deltR, D.upperArmR, 0.6), lerp(D.deltR, D.upperArmR, 0.5), W([UA, 1]), 'deltoid'),
+        A(at(sh, 0.62 * ua), D.upperArmR, D.upperArmR * 0.97, W([UA, 1]), 'bicep'),
+        A(at(el, -0.12 * ua), D.elbowR * 1.05, D.elbowR * 1.02, W([UA, 0.85], [LA, 0.15]), 'aboveElbow'),
+        A(el, D.elbowR, D.elbowR, W([UA, 0.5], [LA, 0.5]), 'elbow'),
+        A(at(el, 0.13 * fa), D.foreArmR * 0.98, D.foreArmR * 0.92, W([LA, 0.85], [UA, 0.15]), 'belowElbow'),
+        A(at(el, 0.36 * fa), D.foreArmR, D.foreArmR * 0.88, W([LA, 1]), 'forearm'),
+        A(at(wr, -0.12 * fa), D.wristR * 1.08, D.wristR * 0.86, W([LA, 0.9], [HA, 0.1]), 'wristUp'),
+        A(wr, D.wristR, D.wristR * 0.82, W([LA, 0.5], [HA, 0.5]), 'wrist'),
+        A(at(wr, 0.12 * d.handLen), D.wristR * 0.95, D.wristR * 0.8, W([HA, 1]), 'end'),
       ],
     };
 
     // mitten hand — fingers would triple the triangle count for very little in a low-poly game
     const hl = d.handLen;
-    const hw = d.handHW;
-    const ht = d.handHT;
+    const hw = D.handHW;
+    const ht = D.handHT;
     const down = scale(q, -ht * 0.2);
     const Hd = (t: number, a: number, b: number, tag: string) => ring(add(at(wr, t * hl), down), p, q, a, b, Math.max(n, 2.6), W([HA, 1]), { tag });
     parts[s > 0 ? 'hand.L' : 'hand.R'] = {
@@ -285,7 +289,7 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
       capStart: true,
       capEnd: true,
       rings: [
-        Hd(-0.02, d.wristR * 0.92, d.wristR * 0.75, 'wrist'),
+        Hd(-0.02, D.wristR * 0.92, D.wristR * 0.75, 'wrist'),
         Hd(0.16, hw * 0.9, ht * 1.1, 'palm'),
         Hd(0.46, hw, ht, 'knuckles'),
         Hd(0.76, hw * 0.94, ht * 0.82, 'fingers'),
@@ -309,6 +313,49 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
       capEnd: true,
       rings: [Tm(-0.35, tr * 0.9, W([HA, 1])), Tm(0.05, tr, W([HA, 0.4], [TH, 0.6])), Tm(0.6, tr * 0.88, W([TH, 1])), Tm(0.95, tr * 0.62, W([TH, 1])), Tm(1.02, tr * 0.3, W([TH, 1]))],
     };
+  }
+  if (d.mutant) {
+    const mr = new Rng(subSeed(rc.seed, 'mutant.growths'));
+    const anchors: [string, V3][] = [
+      ['UpperChest', [mr.range(-1, 1) * d.shoulderHW * 0.7, d.neckBaseY - 0.12 * tl, -d.chestHD * 0.9]],
+      ['UpperChest', [mr.chance(0.5) ? d.shoulderHW * 0.8 : -d.shoulderHW * 0.8, d.neckBaseY - 0.02 * tl, -d.chestHD * 0.3]],
+      ['Spine', [mr.range(-0.6, 0.6) * d.waistHW, d.hipY + 0.4 * tl, -d.waistHD * 0.95]],
+      ['Head', [mr.range(-1, 1) * d.headHW * 0.8, d.chinY + 0.8 * d.headH, -d.headHD * 0.6]],
+      ['Chest', [(mr.chance(0.5) ? 1 : -1) * d.chestHW * 0.98, d.hipY + 0.55 * tl, -d.chestHD * 0.1]], // side of the ribs (front-centre read as… something else)
+    ];
+    const count = mr.int(3, 5);
+    for (let i = 0; i < count; i++) {
+      const [bone, c] = anchors[i];
+      const r0 = (0.035 + mr.next() * 0.035) * d.u;
+      const blob: Part = {
+        name: `growth.${i}`,
+        material: 'growth',
+        capStart: true,
+        capEnd: true,
+        lod: 'small',
+        rings: [[-1, 0.3], [-0.5, 0.92], [0.2, 1], [0.75, 0.7], [1, 0.15]].map(([t, w]) => ring([c[0], c[1] + t * r0, c[2]], X, Z, r0 * w * mr.range(0.9, 1.15), r0 * w, 2.3, W([bone, 1]))),
+      };
+      parts[`growth.${i}`] = blob;
+    }
+    if (mr.chance(0.5)) {
+      for (const s of [1, -1]) {
+        const base: V3 = [s * d.headHW * 0.55, d.chinY + 0.92 * d.headH, d.headHD * 0.2];
+        const hdir = norm([s * 0.55, 1, 0.25]);
+        const { p, q } = limbFrame(hdir);
+        const L = 0.28 * d.headH;
+        parts[`horn.${s > 0 ? 'L' : 'R'}`] = {
+          name: 'horn',
+          material: 'horn',
+          capStart: true,
+          capEnd: true,
+          lod: 'small',
+          rings: [[-0.15, 1], [0.4, 0.7], [0.8, 0.35], [1, 0.04]].map(([t, w]) => {
+            const bend = scale([0, 0, -1], t * t * 0.35 * L);
+            return ring(add(add(base, scale(hdir, t * L)), bend), p, q, 0.07 * d.headH * w, 0.07 * d.headH * w, 2.4, W(['Head', 1]));
+          }),
+        };
+      }
+    }
   }
   for (const [id, p] of Object.entries(parts)) bodySpec(id, p);
   // small parts get fewer sides around

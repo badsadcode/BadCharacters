@@ -204,6 +204,7 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     chestrig: { label: 'Chest rig', kind: 'cloth' },
     platecarrier: { label: 'Plate carrier (modern)', kind: 'cloth' },
     exo: { label: 'Exo armour (future)', kind: 'plastic' },
+    scrap: { label: 'Scrap armour (wasteland)', kind: 'metal' },
   },
   belt: {
     none: { label: 'None', kind: 'leather' },
@@ -244,6 +245,8 @@ export interface Garment {
   color2: string;
   /** fabric pattern (camo etc.) using color + color2; default solid */
   pattern?: PatternId;
+  /** torn, jagged hems (survivors, zombies) */
+  torn?: boolean;
 }
 
 // ──────────────────────────────────────────────────────────────── themes ──
@@ -261,6 +264,10 @@ interface Theme {
   patterns?: Partial<Record<SlotId, Partial<Record<PatternId, number>>>>;
   /** palette per slot, overriding `palette` */
   slotPalette?: Partial<Record<SlotId, string[]>>;
+  /** chance that each garment is torn */
+  torn?: number;
+  /** face overrides for the theme (zombies) */
+  face?: Partial<FaceParams>;
 }
 
 export const SKIN_TONES = ['#f3d2b8', '#e8b896', '#d29b74', '#b57b55', '#8d5a3b', '#6b4029', '#4a2c1d'];
@@ -524,22 +531,80 @@ export const THEMES: Record<string, Theme> = {
     genre: 'Horror / survival',
     slots: {
       head: { none: 1 },
-      top: { tee: 2, longsleeve: 1, tank: 1 },
-      bottom: { pants: 2, shorts: 1 },
-      feet: { none: 2, sneakers: 1 },
+      top: { tee: 2, longsleeve: 1, tank: 1, fieldjacket: 1, hoodie: 1 },
+      bottom: { pants: 2, shorts: 1, cargo: 1 },
+      feet: { none: 2, sneakers: 1, boots: 1 },
     },
     palette: ['#4a4a3a', '#5a3a3a', '#3a4a5a', '#6a5a4a', '#454545'],
     accents: ['#2a2a22', '#3a2a22'],
     skins: ['#8fa37a', '#9aa58c', '#7f9474', '#a3a890', '#879e88'],
+    patterns: { top: { bloody: 3, grime: 2 }, bottom: { grime: 3, bloody: 1 } },
+    torn: 0.85,
+    face: { eyes: 'zombie', mouth: 'teeth', scars: true, blush: false, brows: 'none' },
+  },
+  survivor: {
+    label: 'Survivor',
+    genre: 'Survival / open world',
+    slots: {
+      head: { none: 3, beanie: 2, cap: 1, bandana: 1, boonie: 1 },
+      mask: { none: 5, respirator: 1, bandanamask: 1, goggles: 1 },
+      top: { hoodie: 3, jacket: 2, longsleeve: 2, fieldjacket: 1 },
+      bottom: { cargo: 3, pants: 2 },
+      legs: { none: 4, kneepads: 1 },
+      feet: { boots: 3, hikers: 2, sneakers: 1 },
+      hands: { gloves: 2, none: 1 },
+      belt: { utility: 2, belt: 1 },
+      back: { rucksack: 2, backpack: 2, assault: 1 },
+      prop: { none: 2, crossbow: 1, bow: 1, rifle: 1 },
+    },
+    palette: ['#5a5a4a', '#6a4a3a', '#3e4a52', '#4a5a3a', '#7a6a52', '#2f3236', '#7a3a2a'],
+    accents: ['#2a2a22', '#8a7a5a', '#c9b48a'],
+    patterns: { top: { solid: 2, grime: 3, patched: 1 }, bottom: { solid: 1, grime: 3, patched: 1 } },
+    torn: 0.25,
+  },
+  raider: {
+    label: 'Wasteland raider',
+    genre: 'Post-apocalyptic',
+    slots: {
+      hair: { none: 2, mohawk: 2 },
+      mask: { gasmask: 2, goggles: 2, respirator: 1, none: 1 },
+      top: { jacket: 3, tank: 2, none: 1 },
+      bottom: { cargo: 2, pants: 2 },
+      feet: { boots: 2, tallboots: 1 },
+      hands: { gloves: 2, none: 1 },
+      armor: { scrap: 4, bandolier: 1 },
+      belt: { utility: 1, belt: 1 },
+      back: { none: 2, rucksack: 1 },
+      prop: { none: 1, crossbow: 1, rifle: 1 },
+    },
+    palette: ['#3a2a22', '#5a3a2a', '#2f2f2f', '#6a5a4a', '#4a3a2a'],
+    accents: ['#c96a1a', '#b8a24a', '#8a8a8a', '#a33b1f'],
+    patterns: { top: { grime: 3, solid: 1 }, bottom: { grime: 3, patched: 1 } },
+    torn: 0.5,
+  },
+  mutant: {
+    label: 'Mutant',
+    genre: 'Post-apocalyptic horror',
+    slots: {
+      top: { none: 2, tank: 1, tee: 1 },
+      bottom: { pants: 2, shorts: 1, cargo: 1 },
+      feet: { none: 3, boots: 1 },
+      belt: { none: 2, belt: 1 },
+    },
+    palette: ['#4a4a3a', '#5a4a3a', '#3a3a3a'],
+    accents: ['#2a2a22'],
+    patterns: { top: { grime: 2, bloody: 1 }, bottom: { grime: 2, bloody: 1 } },
+    torn: 0.9,
+    face: { scars: true, brows: 'none' },
   },
 };
 
 // ─────────────────────────────────────────────────────────────── recipe ──
-export type EyeStyle = 'square' | 'dot' | 'round' | 'tall' | 'sleepy' | 'wide';
-export type MouthStyle = 'line' | 'smile' | 'grin' | 'open' | 'frown' | 'small';
+export type EyeStyle = 'square' | 'dot' | 'round' | 'tall' | 'sleepy' | 'wide' | 'zombie' | 'triple';
+export type MouthStyle = 'line' | 'smile' | 'grin' | 'open' | 'frown' | 'small' | 'teeth';
 export type BrowStyle = 'none' | 'thin' | 'thick' | 'angry';
-export const EYE_STYLES: EyeStyle[] = ['square', 'dot', 'round', 'tall', 'sleepy', 'wide'];
-export const MOUTH_STYLES: MouthStyle[] = ['line', 'smile', 'grin', 'open', 'frown', 'small'];
+export const EYE_STYLES: EyeStyle[] = ['square', 'dot', 'round', 'tall', 'sleepy', 'wide', 'zombie', 'triple'];
+export const MOUTH_STYLES: MouthStyle[] = ['line', 'smile', 'grin', 'open', 'frown', 'small', 'teeth'];
 export const BROW_STYLES: BrowStyle[] = ['none', 'thin', 'thick', 'angry'];
 
 export interface BodyParams {
@@ -572,6 +637,8 @@ export interface FaceParams {
   /** modelled nose and ears (the rest of the face is texture) */
   nose: boolean;
   ears: boolean;
+  /** stitches, scars and grime painted on the face */
+  scars?: boolean;
 }
 
 export interface CharacterRecipe {
@@ -626,9 +693,9 @@ export function randomFace(seed: number, style: StyleId): FaceParams {
   const r = new Rng(subSeed(seed, 'face'));
   const blocky = style === 'blocky';
   return {
-    eyes: blocky ? r.pick(['square', 'square', 'dot', 'wide'] as EyeStyle[]) : style === 'chibi' ? r.pick(['tall', 'round', 'tall'] as EyeStyle[]) : r.pick(EYE_STYLES),
+    eyes: blocky ? r.pick(['square', 'square', 'dot', 'wide'] as EyeStyle[]) : style === 'chibi' ? r.pick(['tall', 'round', 'tall'] as EyeStyle[]) : r.pick(EYE_STYLES.slice(0, 6)),
     iris: r.pick(IRIS),
-    mouth: r.pick(MOUTH_STYLES),
+    mouth: r.pick(MOUTH_STYLES.slice(0, 6)),
     // the brief asked for no hair: brows are an opt-in extra, off by default
     brows: 'none',
     browColor: r.pick(BROW_COLORS),
@@ -655,7 +722,9 @@ export function randomOutfit(seed: number, theme: string): Record<SlotId, Garmen
     if (slot === 'head' && id === 'hardhat') color = r.pick(['#f2c200', '#ffffff', '#ff7a00', '#2e86c1']);
     const pw = th.patterns?.[slot];
     const pattern = pw ? (r.weighted(pw as Record<string, number>) as PatternId) : undefined;
-    out[slot] = pattern && pattern !== 'solid' ? { id, color, color2: pattern === 'snow' ? color2 : r.pick(th.palette.filter((c) => c !== color).concat(color2)), pattern } : { id, color, color2 };
+    const torn = (th.torn ?? 0) > 0 && r.chance(th.torn ?? 0);
+    const gg = pattern && pattern !== 'solid' ? { id, color, color2: pattern === 'snow' ? color2 : r.pick(th.palette.filter((c) => c !== color).concat(color2)), pattern } : { id, color, color2 };
+    out[slot] = torn ? { ...gg, torn } : gg;
   }
   return out;
 }
@@ -676,6 +745,12 @@ export function randomRecipe(seed: number, style: StyleId = 'blocky', theme = 'c
   const face = randomFace(seed, style);
   const body = randomBody(seed, style, theme, race);
   if (RACES[race].ears !== 'round') face.ears = true;
+  Object.assign(face, THEMES[theme]?.face ?? {});
+  if (race === 'mutant') {
+    const mr = new Rng(subSeed(seed, 'mutant'));
+    face.scars = true;
+    if (mr.chance(0.4)) face.eyes = 'triple';
+  }
   if (race !== 'human' && style !== 'blocky') face.nose = true;
   // hair that matches the skin reads as a bald lump: push it lighter or darker
   if (Math.abs(luma(outfit.hair.color) - luma(body.skin)) < 45) {

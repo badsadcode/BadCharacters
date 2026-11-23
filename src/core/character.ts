@@ -68,6 +68,9 @@ function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
     face: { name: 'Face', color: '#ffffff', metallic: 0, roughness: 0.75, textured: true },
     visor: { name: 'Visor', color: '#0b0b0d', metallic: 0.2, roughness: 0.6 },
     tusk: { name: 'Tusk', color: '#ece2c6', metallic: 0, roughness: 0.5 },
+    tyre: { name: 'Tyre', color: '#1c1c1c', metallic: 0, roughness: 0.85 },
+    growth: { name: 'Growth', color: mutantGrowth(rc.body.skin), metallic: 0, roughness: 0.6 },
+    horn: { name: 'Horn', color: '#d8cfb4', metallic: 0, roughness: 0.55 },
     visorglow: { name: 'VisorGlow', color: '#0a1a22', metallic: 0.3, roughness: 0.2, emissive: rc.outfit.head?.color2 ?? '#00d0ff' },
     armorglow: { name: 'ArmorGlow', color: '#0a1a22', metallic: 0.3, roughness: 0.3, emissive: rc.outfit.armor?.color2 ?? '#00d0ff' },
     glass: { name: 'Glass', color: '#bfe6ff', ...KIND.glass, alpha: 0.28 },
@@ -91,6 +94,12 @@ function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
   return m;
 }
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+/** growths: the skin tone, angrier */
+function mutantGrowth(skin: string) {
+  const n = parseInt(skin.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v * [1.05, 0.8, 0.85][i]));
+  return '#' + c.map((v) => Math.min(255, v).toString(16).padStart(2, '0')).join('');
+}
 
 /** every part, before culling and simplification */
 export function buildRawParts(rc: CharacterRecipe, sk: Skeleton): Part[] {

@@ -23,6 +23,8 @@ export const PATTERNS = {
   plaid: 'Plaid',
   stripes: 'Stripes',
   grime: 'Grimy / worn',
+  bloody: 'Bloodstained',
+  patched: 'Patched',
 } as const;
 export type PatternId = keyof typeof PATTERNS;
 
@@ -167,6 +169,33 @@ export function paintPattern(id: PatternId, color: string, color2: string, seed 
         const c = mix(base, [62, 50, 36], Math.min(0.75, dirt));
         return (x * 13 + y * 7) % 17 === 0 ? mix(c, black, 0.3) : c;
       });
+      break;
+    }
+    case 'bloody': {
+      const a = fbm(seed, 3);
+      const b = fbm(seed + 3, 5);
+      each((x, y) => {
+        const dirt = mix(base, [62, 50, 36], Math.min(0.6, Math.max(0, a(x, y) - 0.45) * 1.4));
+        const blood = b(x, y);
+        return blood > 0.66 ? [96, 14, 12] : blood > 0.6 ? mix(dirt, [120, 22, 18], 0.6) : dirt;
+      });
+      break;
+    }
+    case 'patched': {
+      const g = fbm(seed, 4);
+      each((x, y) => mix(base, [50, 44, 36], Math.max(0, g(x, y) - 0.5)));
+      for (let i = 0; i < 3; i++) {
+        const px = r.int(0, N - 1);
+        const py = r.int(0, N - 1);
+        const w = r.int(10, 18);
+        const h = r.int(8, 14);
+        const pc = i % 2 ? c2 : mix(c2, base, 0.5);
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++) {
+            const stitch = (x === 0 || y === 0 || x === w - 1 || y === h - 1) && (x + y) % 2 === 0;
+            set((px + x) % N, (py + y) % N, stitch ? [230, 220, 190] : pc);
+          }
+      }
       break;
     }
     default:

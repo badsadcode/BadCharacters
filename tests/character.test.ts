@@ -133,7 +133,7 @@ describe('animation', () => {
   it('ships the standard clip set', () => {
     expect(clips.map((c) => c.name)).toEqual([
       'Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight',
-      'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'RestPose',
+      'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'ZombieWalk', 'RestPose',
     ]);
   });
   it('a punch goes forward, not sideways', () => {
@@ -301,5 +301,24 @@ describe('material names never collide', () => {
       const ch = generateCharacter(randomRecipe(328, 'faceted', theme));
       expect(ch.materials.face.textured, theme).toBe(true);
     }
+  });
+});
+
+describe('apocalypse', () => {
+  it('survivor, raider, zombie and mutant themes build valid GLBs with torn clothes', async () => {
+    for (const [theme, race] of [['survivor', 'human'], ['raider', 'human'], ['zombie', 'human'], ['mutant', 'mutant']] as const) {
+      for (const seed of [1, 2, 3]) {
+        const rc = randomRecipe(seed, 'stylized', theme, race);
+        const ch = generateCharacter(rc);
+        const r = await validator.validateBytes(exportGlb(ch));
+        expect(r.issues.numErrors, `${theme} ${seed}`).toBe(0);
+        expect(ch.stats.triangles).toBeLessThan(5000);
+      }
+    }
+  });
+  it('mutants are lopsided: one arm is much bigger than the other', () => {
+    const rc = randomRecipe(17, 'stylized', 'mutant', 'mutant');
+    const sk = buildSkeleton(rc);
+    expect(Math.max(sk.dims.armL, sk.dims.armR) / Math.min(sk.dims.armL, sk.dims.armR)).toBeGreaterThan(1.5);
   });
 });

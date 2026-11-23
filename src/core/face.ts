@@ -115,6 +115,16 @@ export function paintFace(face: FaceParams, skinHex: string, d: Dims, head: Part
         rect(ex - 1, ey - 1, ew + 2, eh + 2, white);
         rect(Math.round(cx + s * eyeDX - 1), ey, 2, Math.max(1, eh), dark);
         break;
+      case 'zombie':
+        // sunken: dark rings, milky eye, pin-prick pupil
+        rect(ex - 1, ey - 1, ew + 2, eh + 2, mix(skin, [40, 20, 30], 0.55));
+        rect(ex, ey, ew, eh, [222, 220, 196]);
+        set(Math.round(cx + s * eyeDX), ey + Math.floor(eh / 2), [120, 20, 20]);
+        break;
+      case 'triple':
+        rect(ex, ey, ew, eh, white);
+        rect(inner, ey, Math.ceil(ew / 2), eh, iris);
+        break;
     }
     // brows (opt-in: the brief was "no facial hair", so default is none)
     const bc = hexRgb(face.browColor);
@@ -125,6 +135,34 @@ export function paintFace(face: FaceParams, skinHex: string, d: Dims, head: Part
       for (let i = 0; i < ew + 1; i++) set(ex + i - (s > 0 ? 0 : 1), by + (s > 0 ? Math.floor((ew - i) / 2) : Math.floor(i / 2)) - 1, bc);
     }
     if (face.blush) rect(Math.round(cx + s * (eyeDX + 1) - ew / 2), ey + eh + 1, ew, 1, [235, 110, 120], 0.45);
+  }
+
+  if (face.eyes === 'triple') {
+    // the third eye, centred on the forehead, vertical
+    const tx = Math.round(cx - ew / 2 + 0.5);
+    const ty = Math.round(eyeY - eh / 2 - Math.max(3, 0.16 * d.headH * pxY));
+    rect(tx, ty, Math.max(2, ew - 1), eh + 1, white);
+    rect(tx + Math.floor((ew - 1) / 2) - 0, ty, 1, eh + 1, [170, 30, 30]);
+  }
+  if (face.scars) {
+    // stitched cut across one cheek, a scar over the brow, grime blotches
+    const sc = mix(skin, [70, 20, 25], 0.55);
+    const cy0 = Math.round(eyeY + eh + 2);
+    for (let i = 0; i < Math.max(5, ew * 2); i++) {
+      const x = Math.round(cx + eyeDX - ew + i);
+      const y = cy0 + Math.floor(i / 3);
+      set(x, y, sc);
+      if (i % 2 === 0) {
+        set(x, y - 1, [210, 205, 190]);
+        set(x, y + 1, [210, 205, 190]);
+      }
+    }
+    for (let i = 0; i < ew + 2; i++) set(Math.round(cx - eyeDX - ew / 2 + i), Math.round(eyeY - eh - 3 + i * 0.5), sc);
+    for (let i = 0; i < 40; i++) {
+      const x = (i * 37 + 11) % W;
+      const y = (i * 23 + 5) % H;
+      set(x, y, mix(skin, [50, 40, 30], 0.35), 0.6);
+    }
   }
 
   // nose shading when there is no modelled nose
@@ -157,6 +195,11 @@ export function paintFace(face: FaceParams, skinHex: string, d: Dims, head: Part
       rect(mx + 1, my - 1, mw - 2, 1, lips);
       set(mx, my, lips);
       set(mx + mw - 1, my, lips);
+      break;
+    case 'teeth':
+      rect(mx - 1, my - 2, mw + 2, 3, [40, 12, 14]);
+      for (let i = 0; i < mw; i += 2) set(mx + i, my - 2, [215, 205, 170]);
+      for (let i = 1; i < mw; i += 3) set(mx + i, my, [200, 190, 150]);
       break;
   }
   return { width: W, height: H, rgba };

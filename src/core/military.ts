@@ -349,6 +349,30 @@ export function buildMilitary(c: WardrobeCtx) {
     }
   }
 
+  if (ar === 'scrap') {
+    // road-sign chestplate (tilted), car-tyre pauldron, spikes and straps
+    const f = frontZ(tk('chest', -0.3), 0.1, 6 * e);
+    out.push(box('armor.sign', mat('armor'), [f.x, f.y, f.z + 0.012 * d.u], [d.chestHW * 0.62, d.chestHW * 0.55, 0.008 * d.u], chestW));
+    out.push(box('armor.sign.stripe', mat('armor', true), [f.x, f.y, f.z + 0.022 * d.u], [d.chestHW * 0.62, d.chestHW * 0.1, 0.004 * d.u], chestW));
+    const A = body['arm.L'];
+    const sr = sampleRing(A.rings, KTag(A, 'shoulder', 0.3));
+    const R = Math.max(sr.a, sr.b) + 6 * e;
+    const tyre: V3[] = [];
+    for (let i = 0; i <= 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      tyre.push(add(sr.c, add(scale(sr.p, Math.cos(a) * R), scale(sr.q, Math.sin(a) * R))));
+    }
+    out.push({ name: 'armor.tyre', material: 'tyre', capStart: true, capEnd: true, lod: 'small', rings: tyre.map((P, i) => { const tan = norm(sub(tyre[Math.min(i + 1, 10)], tyre[Math.max(i - 1, 0)])); const fr = limbFrame(tan, norm(sub(P, sr.c))); return ring(P, fr.p, fr.q, 0.03 * d.u, 0.022 * d.u, 4, sr.w); }) });
+    for (let i = 0; i < 3; i++) {
+      const P = add(sr.c, scale(sr.q, R + 0.02 * d.u));
+      out.push(tube(`armor.spike.${i}`, mat('armor', true), add(P, scale(sr.d, (i - 1) * 0.04 * d.u)), sr.q, 0.012 * d.u, 0.07 * d.u, sr.w));
+    }
+    for (const s of [1, -1]) {
+      const fTop = frontZ(tk('armpit', 0.5), s * 0.55, 6.5 * e);
+      out.push(box(`armor.strap.${s}`, mat('armor', true), [fTop.x, fTop.y - 0.05 * d.u, fTop.z], [0.012 * d.u, 0.07 * d.u, 0.004 * d.u], chestW));
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────── belts
   if (id('belt') === 'utility') {
     out.push(shell('belt.band', torso, tk('lowWaist', -0.08), tk('lowWaist', 0.12), { material: mat('belt'), inflate: 4.5 * e, cuffStart: true, cuffEnd: true }));

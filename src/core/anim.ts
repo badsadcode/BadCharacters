@@ -454,7 +454,37 @@ export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
   const rifleAim: Clip = { name: 'RifleAim', duration: 3, loop: true, sample: (t) => riflePose(0, t, 3) };
   const rifleReady: Clip = { name: 'RifleReady', duration: 3, loop: true, sample: (t) => riflePose(1, t, 3) };
 
-  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot, rifleAim, rifleReady];
+  /** the classic shamble: arms reaching, one leg dragging, head lolling */
+  const zT = 1.9 * stride;
+  const zombieWalk: Clip = {
+    name: 'ZombieWalk',
+    duration: zT,
+    loop: true,
+    sample: (t) => {
+      const ph = (TAU * t) / zT;
+      const rot: Record<string, Quat> = {};
+      const good = (p: number) => {
+        const th = 20 * sin(p);
+        const kn = 6 + 40 * pos(cos(p + 0.35)) ** 1.6;
+        return leg(th, kn, -(th - kn) * 0.6);
+      };
+      const drag = (p: number) => {
+        const th = 9 * sin(p) - 4;
+        const kn = 4 + 10 * pos(cos(p + 0.35));
+        return [qChain(qz(-4 * DEG), qx(-th * DEG)), qx(kn * DEG), qx(28 * DEG)] as [Quat, Quat, Quat];
+      };
+      setLegs(rot, good(ph), drag(ph + Math.PI));
+      const reach = (s: number, p: number) => armTo(s, [s * 0.18, -0.05 + 0.06 * sin(p), 1], 14 + 8 * sin(p * 2));
+      setArms(rot, reach(1, ph), reach(-1, ph + 1.3));
+      rot.Hips = qChain(qz(6 * sin(ph) * DEG), qy(8 * sin(ph) * DEG));
+      rot.Spine = qChain(qx(14 * DEG), qz(-5 * sin(ph) * DEG));
+      rot.Neck = qChain(qz(16 * DEG), qx(10 * DEG));
+      rot.Head = qChain(qz((8 + 6 * sin(ph * 0.5)) * DEG), qy(10 * sin(ph * 0.7) * DEG));
+      return { rot, hips: [0.02 * legLen * sin(ph), -0.04 * legLen - 0.03 * legLen * (0.5 + 0.5 * cos(2 * ph)), 0] };
+    },
+  };
+
+  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot, rifleAim, rifleReady, zombieWalk];
 
   const tpose: Clip = {
     name: 'RestPose',
