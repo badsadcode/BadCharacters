@@ -8,6 +8,7 @@
  */
 import { add, cross, dot, len, lerp, lerp3, norm, scale, sub, V3 } from './math';
 import type { ShellSpec } from './shell';
+import { PATTERN_TILE } from './patterns';
 
 /** [boneIndex, weight] pairs */
 export type Weights = [number, number][];
@@ -234,7 +235,10 @@ export function loftPart(part: Part, K: number, m: MeshData) {
       m.normals.push(0, 0, 0);
       const uvMode = part.uv?.mode ?? 'arc';
       const v = uvMode === 'head' ? (p[1] - (part.uv as { y0: number }).y0) / (part.uv as { h: number }).h : cum[i] / total;
-      m.uvs.push(arc[k] / per, 1 - v);
+      // head: normalized cylinder for the face texture; everything else: metres / tile, so
+      // fabric patterns keep the same scale on every part
+      if (uvMode === 'head') m.uvs.push(arc[k] / per, 1 - v);
+      else m.uvs.push(arc[k] / PATTERN_TILE, (cum[i] / PATTERN_TILE));
       const th = th0 + (2 * Math.PI * k) / K;
       const w = part.vertexWeights ? part.vertexWeights(i, Math.cos(th), Math.sin(th), r) : r.w;
       const [j, ww] = finishWeights(w);
@@ -259,7 +263,7 @@ export function loftPart(part: Part, K: number, m: MeshData) {
     m.positions.push(...r.c);
     m.normals.push(0, 0, 0);
     const v = part.uv?.mode === 'head' ? (r.c[1] - part.uv.y0) / part.uv.h : cum[ri] / total;
-    m.uvs.push(0.5, 1 - v);
+    m.uvs.push(part.uv?.mode === 'head' ? 0.5 : 0, part.uv?.mode === 'head' ? 1 - v : cum[ri] / PATTERN_TILE);
     const [j, ww] = finishWeights(r.w);
     m.joints.push(...j);
     m.weights.push(...ww);

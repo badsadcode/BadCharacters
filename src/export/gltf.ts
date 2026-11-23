@@ -168,9 +168,16 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
     (json.nodes[bi].children ??= []).push(idx);
   }
 
-  // ── materials
+  // ── materials & textures (the face plus one small tile per patterned garment)
   const matIndex = new Map<string, number>();
-  let textureUsed = false;
+  const images: any[] = [];
+  const textures: any[] = [];
+  const NEAREST_PATTERNS = new Set(['digital', 'plaid', 'stripes', 'flecktarn']);
+  const addTexture = (name: string, png: Uint8Array, sampler: number) => {
+    images.push({ name, mimeType: 'image/png', bufferView: bb.view(png) });
+    textures.push({ sampler, source: images.length - 1 });
+    return textures.length - 1;
+  };
   for (const p of ch.primitives) {
     if (matIndex.has(p.material)) continue;
     const m = ch.materials[p.material] ?? { name: p.material, color: '#ff00ff', metallic: 0, roughness: 1 };
@@ -178,10 +185,9 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
       name: m.name,
       pbrMetallicRoughness: { baseColorFactor: [...linear(m.color), m.alpha ?? 1], metallicFactor: m.metallic, roughnessFactor: m.roughness },
     };
-    if (m.textured) {
-      gm.pbrMetallicRoughness.baseColorTexture = { index: 0 };
-      textureUsed = true;
-    }
+    // samplers: 0 = face (NEAREST, wraps around the head), 1 = smooth tiling, 2 = crisp tiling
+    if (m.textured) gm.pbrMetallicRoughness.baseColorTexture = { index: addTexture('Face', encodePng(ch.texture), 0) };
+    else if (m.texture) gm.pbrMetallicRoughness.baseColorTexture = { index: addTexture(m.name, encodePng(m.texture), NEAREST_PATTERNS.has(m.pattern ?? '') ? 2 : 1) };
     if (m.alpha !== undefined) {
       gm.alphaMode = 'BLEND';
       gm.doubleSided = true;
@@ -190,12 +196,14 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
     matIndex.set(p.material, json.materials.length);
     json.materials.push(gm);
   }
-  if (textureUsed) {
-    const png = encodePng(ch.texture);
-    json.images = [{ name: 'Face', mimeType: 'image/png', bufferView: bb.view(png) }];
-    // NEAREST: crisp pixel-art face. Repeat horizontally (it wraps around the head).
-    json.samplers = [{ magFilter: 9728, minFilter: 9728, wrapS: 10497, wrapT: 33071 }];
-    json.textures = [{ sampler: 0, source: 0 }];
+  if (textures.length) {
+    json.images = images;
+    json.textures = textures;
+    json.samplers = [
+      { magFilter: 9728, minFilter: 9728, wrapS: 10497, wrapT: 33071 },
+      { magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 },
+      { magFilter: 9728, minFilter: 9984, wrapS: 10497, wrapT: 10497 },
+    ];
   }
 
   // ── skinned mesh

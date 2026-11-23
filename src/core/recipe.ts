@@ -5,6 +5,7 @@
  */
 import { Rng, subSeed } from './rng';
 import { RaceId, RACES, Shape } from './races';
+import type { PatternId } from './patterns';
 
 // ─────────────────────────────────────────────────────────────── styles ──
 export type StyleId = 'blocky' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky';
@@ -191,6 +192,8 @@ export interface Garment {
   color: string;
   /** trim / accent colour (soles, stripes, buckles, visors) */
   color2: string;
+  /** fabric pattern (camo etc.) using color + color2; default solid */
+  pattern?: PatternId;
 }
 
 // ──────────────────────────────────────────────────────────────── themes ──

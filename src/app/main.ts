@@ -11,6 +11,7 @@ import {
 import { exportGlb } from '../export/gltf';
 import { PRESETS } from '../core/presets';
 import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
+import { PATTERNS, PatternId } from '../core/patterns';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -448,8 +449,16 @@ function buildUI() {
     const c2 = colorInput(() => recipe.outfit[slot].color2, (v) => (recipe.outfit[slot].color2 = v));
     const wrap = document.createElement('div');
     wrap.className = 'colors';
-    wrap.append(c1.el, c2.el);
-    syncers.push(c1.sync, c2.sync);
+    const pat = document.createElement('select');
+    pat.className = 'pattern';
+    pat.title = 'Fabric pattern (uses both colours)';
+    pat.innerHTML = Object.entries(PATTERNS).map(([id, l]) => `<option value="${id}">${l}</option>`).join('');
+    pat.addEventListener('change', () => {
+      recipe.outfit[slot].pattern = pat.value as PatternId;
+      changed();
+    });
+    wrap.append(c1.el, c2.el, pat);
+    syncers.push(c1.sync, c2.sync, () => (pat.value = recipe.outfit[slot].pattern ?? 'solid'));
     syncers.push(
       select(oc, slot[0].toUpperCase() + slot.slice(1), Object.entries(GARMENTS[slot]).map(([id, g]) => [id, g.label]), () => recipe.outfit[slot].id, (v) => (recipe.outfit[slot].id = v), wrap),
     );

@@ -6,6 +6,8 @@ import { buildClips, Clip } from './anim';
 import { buildBody } from './body';
 import { buildClothing } from './clothing';
 import { paintFace, Texture } from './face';
+import { paintPattern } from './patterns';
+import { subSeed } from './rng';
 import { appendMesh, computeNormals, emptyMesh, loftPart, MeshData, Part, simplifyRings, unweld } from './loft';
 import { cullHidden } from './shell';
 import { addPropBones } from './props';
@@ -19,6 +21,10 @@ export interface MaterialDef {
   roughness: number;
   /** uses the face texture */
   textured?: boolean;
+  /** its own fabric pattern texture */
+  texture?: Texture;
+  /** pattern id, to pick the texture filter */
+  pattern?: string;
   alpha?: number;
   emissive?: string;
 }
@@ -68,6 +74,9 @@ function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
     const g = rc.outfit[slot];
     const kind = GARMENTS[slot][g.id]?.kind ?? 'cloth';
     m[slot] = { name: `${cap(slot)}_${g.id}`, color: g.color, ...KIND[kind] };
+    if (g.pattern && g.pattern !== 'solid') {
+      m[slot] = { ...m[slot], name: `${m[slot].name}_${g.pattern}`, color: '#ffffff', texture: paintPattern(g.pattern, g.color, g.color2, subSeed(rc.seed, `pattern.${slot}`)), pattern: g.pattern };
+    }
     const accentKind: MaterialKind = kind === 'metal' ? 'metal' : slot === 'feet' ? 'rubber' : kind;
     m[`${slot}.2`] = { name: `${cap(slot)}_${g.id}_accent`, color: g.color2, ...KIND[accentKind] };
     if (slot === 'armor' && g.id === 'hivis') m[`${slot}.2`].roughness = 0.25;

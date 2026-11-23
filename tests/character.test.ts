@@ -279,3 +279,18 @@ describe('props export toggle', () => {
     expect(generateCharacter(rc).primitives.some((p) => p.material.startsWith('prop'))).toBe(true);
   });
 });
+
+describe('fabric patterns', () => {
+  it('every pattern exports a valid textured GLB', async () => {
+    const pats = ['woodland', 'desert', 'tiger', 'erdl', 'flecktarn', 'digital', 'urban', 'splinter', 'snow', 'plaid', 'stripes', 'grime'] as const;
+    const rc = randomRecipe(4, 'stylized', 'soldier');
+    pats.forEach((p, i) => {
+      const slot = (['top', 'bottom', 'armor', 'head', 'back', 'hands'] as const)[i % 6];
+      rc.outfit[slot] = { ...rc.outfit[slot], pattern: p };
+    });
+    const ch = generateCharacter(rc);
+    const r = await validator.validateBytes(exportGlb(ch));
+    expect(r.issues.numErrors).toBe(0);
+    expect(r.issues.numWarnings).toBe(0);
+  });
+});
