@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BadCharacters Devlog</title>
+    <meta name="description" content="The mostly true story of teaching boxes to have knees. A Bad Ideas Works devlog." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%231b1726'/><rect x='20' y='8' width='24' height='20' rx='4' fill='%23f2b880'/><rect x='25' y='15' width='4' height='4' fill='%231b1726'/><rect x='35' y='15' width='4' height='4' fill='%231b1726'/><rect x='18' y='30' width='28' height='16' rx='3' fill='%237c5cff'/><rect x='21' y='46' width='9' height='12' rx='2' fill='%232e3a59'/><rect x='34' y='46' width='9' height='12' rx='2' fill='%232e3a59'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #15121f;
+        --card: #1e1a2c;
+        --card2: #272238;
+        --line: #3a3352;
+        --text: #ece8f6;
+        --dim: #a79fc2;
+        --violet: #7c5cff;
+        --orange: #ffb35c;
+        --pink: #ff6fa8;
+        --green: #5fd39a;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 500 17px/1.65 Nunito, system-ui, sans-serif; }
+      a { color: var(--orange); }
+      .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+      header.hero { position: relative; overflow: hidden; padding: 56px 0 28px; background: radial-gradient(ellipse at 50% 0%, #2e2546 0%, var(--bg) 70%); text-align: center; }
+      .kicker { font: 400 13px Bungee, sans-serif; letter-spacing: 2px; color: var(--violet); }
+      h1 { font: 400 clamp(34px, 7vw, 64px)/1.05 Bungee, sans-serif; margin: 10px 0 8px; color: var(--orange); }
+      h1 span { color: var(--violet); }
+      .sub { color: var(--dim); font-size: 19px; margin: 0 auto 26px; max-width: 600px; }
+      .hero img { width: 100%; max-width: 1100px; display: block; margin: 0 auto; border-radius: 18px; border: 1px solid var(--line); }
+      .cta { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 22px 0 0; }
+      .btn { display: inline-block; padding: 10px 18px; border-radius: 10px; background: var(--violet); color: #fff; text-decoration: none; font-weight: 800; }
+      .btn.ghost { background: var(--card2); border: 1px solid var(--line); color: var(--text); }
+      .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 34px 0 10px; }
+      .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; }
+      .stat b { display: block; font: 400 28px Bungee, sans-serif; color: var(--orange); }
+      .stat small { color: var(--dim); font-size: 13.5px; }
+      .day { margin: 48px 0 6px; display: flex; align-items: center; gap: 12px; }
+      .day .badge { font: 400 13px Bungee, sans-serif; background: var(--violet); color: #fff; padding: 5px 11px; border-radius: 8px; white-space: nowrap; }
+      .day hr { flex: 1; border: 0; border-top: 1px dashed var(--line); }
+      article.entry { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; margin: 18px 0; }
+      .time { font: 400 12px Bungee, sans-serif; color: var(--violet); letter-spacing: 1px; }
+      h2 { font: 400 24px/1.2 Bungee, sans-serif; margin: 6px 0 12px; color: var(--text); }
+      article p { margin: 0 0 12px; }
+      figure { margin: 16px 0 4px; }
+      figure img { width: 100%; display: block; border-radius: 12px; border: 1px solid var(--line); }
+      figcaption { color: var(--dim); font-size: 14.5px; font-style: italic; margin-top: 8px; text-align: center; }
+      blockquote { margin: 14px 0; padding: 12px 16px; background: var(--card2); border-left: 4px solid var(--orange); border-radius: 0 12px 12px 0; font-style: italic; }
+      blockquote footer { font-style: normal; color: var(--dim); font-size: 14px; margin-top: 6px; }
+      .bloopers { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 10px; }
+      .bloopers li { background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 12px 52px; position: relative; }
+      .bloopers li::before { content: attr(data-e); position: absolute; left: 14px; top: 10px; font-size: 24px; }
+      .bloopers b { color: var(--pink); }
+      .bloopers em { color: var(--green); font-style: normal; font-weight: 700; }
+      .pill { display: inline-block; background: var(--card2); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; margin: 3px 2px; font-size: 14px; }
+      .score { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; background: var(--card2); border-radius: 12px; padding: 14px 16px; font-size: 15.5px; }
+      .score span:nth-child(even) { color: var(--orange); font-weight: 800; text-align: right; }
+      footer.end { text-align: center; color: var(--dim); padding: 50px 0 70px; font-size: 15px; }
+      footer.end .motto { font: 400 15px Bungee, sans-serif; color: var(--orange); margin-bottom: 8px; }
+      @media (max-width: 560px) {
+        body { font-size: 16px; }
+        article.entry { padding: 18px 16px; }
+        h2 { font-size: 20px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="kicker">BAD IDEAS WORKS · DEVLOG</div>
+        <h1>Boxes Learn<br /><span>To Have Knees</span></h1>
+        <p class="sub">The mostly true story of BadCharacters: a machine that makes little people out of rounded boxes, then makes them walk, wave and occasionally punch the scenery.</p>
+      </div>
+      <img src="./devlog/crowd.webp" alt="A crowd of nine generated characters walking: a casual dude, a chibi astronaut, a knight, Alden the explorer, a builder, a tiny wizard, a pirate, an athlete and a voxel soldier" />
+      <div class="wrap">
+        <div class="cta">
+          <a class="btn" href="./index.html">🎲 Make a character</a>
+          <a class="btn ghost" href="#day1">📖 Read the log</a>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>6</b><small>body styles</small></div>
+          <div class="stat"><b>12</b><small>outfit themes</small></div>
+          <div class="stat"><b>25</b><small>bones each</small></div>
+          <div class="stat"><b>6</b><small>animations</small></div>
+          <div class="stat"><b>0</b><small>hairs (by default)</small></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="day" id="day1"><span class="badge">DAY 1</span><hr /></div>
+
+      <article class="entry">
+        <div class="time">☕ THE BRIEF</div>
+        <h2>"Like Minecraft, but with elbows"</h2>
+        <p>The asset-generator shelf at Bad Ideas Works is getting crowded. There's a gun factory, a mech garage, a building yard, a ship dock. What it didn't have was <em>people</em>. Every world we generated was suspiciously empty, like a town where everyone went to a very long meeting.</p>
+        <p>Tom's brief was refreshingly specific:</p>
+        <blockquote>
+          Low-poly, but more articulated. Knees and elbows. Bald head, no hair, no facial hair. Eyes and mouth are a texture. Not rectangular, but a little bit rounder. Oh, and muscle, fat, height and gender sliders. And clothes. And make it game-ready. And animated.
+          <footer>— Tom, adding requirements at roughly the speed of light</footer>
+        </blockquote>
+        <p>Sage (that's me, the one holding the wrench) nodded calmly and then quietly panicked about the word "elbows".</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🍩 THE BIG IDEA</div>
+        <h2>Every person is a stack of donuts</h2>
+        <p>Here's the secret recipe. A BadCharacter isn't sculpted. It's a pile of <strong>rounded-square donuts</strong>, stacked along every arm, leg and torso, and skinned together like a sausage. One slider decides how round the donuts are: turn it down and you get proper voxel-game blocks, turn it up and everyone becomes a friendly pebble.</p>
+        <p>Because each donut knows which bone it belongs to, and the donuts at a knee belong half to the thigh and half to the shin, the knee <em>bends</em> instead of two boxes awkwardly kissing at the corner. Elbows: achieved. Panic: reduced.</p>
+        <p>Then came the trick I'm proudest of: <strong>clothes are just slightly bigger you.</strong> A sleeve is literally "the arm's donuts from the shoulder to the elbow, a few millimetres fatter". So sleeves bend exactly where arms bend, trousers never tear at the knee, and nobody needs a cloth simulation (which is good, because a cloth simulation would need a cloth simulation budget).</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">👨‍🦲 THE BALD BRIEF</div>
+        <h2>Six body types walk into a bar</h2>
+        <p>Different games want different people, so there are six body styles. They're all the same skeleton underneath, just with wildly different opinions about head size.</p>
+        <figure>
+          <img src="./devlog/styles.webp" alt="Six bald base bodies in a row: blocky, chibi, stylized, realistic, heroic and stocky" loading="lazy" />
+          <figcaption>Left to right: Blocky, Chibi, Stylized, Realistic, Heroic, Stocky. All bald, as the contract demands.</figcaption>
+        </figure>
+        <p>
+          <span class="pill">🧱 Blocky: advanced voxel hero</span>
+          <span class="pill">🍡 Chibi: mostly head</span>
+          <span class="pill">🎮 Stylized: classic low-poly</span>
+          <span class="pill">🧍 Realistic: human-shaped</span>
+          <span class="pill">🦸 Heroic: eight heads tall, zero doubts</span>
+          <span class="pill">🧔 Stocky: a fridge with legs</span>
+        </p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🎚️ THE SLIDER SITUATION</div>
+        <h2>Muscle, fat, build: pick a number</h2>
+        <p>Build is a slider, not a switch, so you can land anywhere between "lumberjack" and "ballerina". Muscle widens shoulders, arms and calves. Fat goes where fat actually goes: belly, hips, thighs and a slightly rounder face.</p>
+        <figure>
+          <img src="./devlog/bodies.webp" alt="Six bodies: lean, muscular and heavy versions of a masculine and a feminine build" loading="lazy" />
+          <figcaption>Same person, six settings. The underwear is load-bearing.</figcaption>
+        </figure>
+        <p>The fun bonus: muscle and fat are <em>also</em> exported as live sliders inside the 3D file, so a game can let players bulk up or eat too much cake <strong>at runtime</strong> without generating a new character.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🎬 BLOOPER REEL</div>
+        <h2>Things that went gloriously wrong</h2>
+        <p>No devlog is honest without these. In order of appearance:</p>
+        <ul class="bloopers">
+          <li data-e="🥊"><b>The punch that punched the scenery.</b> The first punch animation twisted the whole body the wrong way, so the fist sailed off sideways like a confused weathervane. <em>Fixed:</em> the hips now turn into the punch, like a person who has been in at least one fight.</li>
+          <li data-e="🫡"><b>The wave that became a salute.</b> The elbow bent a bit too enthusiastically and every friendly wave turned into a military salute. Charming, but the pirate kept getting promoted. <em>Fixed.</em></li>
+          <li data-e="👗"><b>The escaping skirt.</b> One skirt was so eager to be seen that it poked straight through the shirt above it. <em>Fixed:</em> skirts now politely wait below the hem.</li>
+          <li data-e="👃"><b>Gnome Mode.</b> Chibi characters have giant heads, and their noses grew to match. Every chibi looked like a garden ornament with opinions. <em>Fixed:</em> big heads get proportionally small noses.</li>
+          <li data-e="🫃"><b>The vanishing arms.</b> Heavy characters' arms hung straight down into their own bellies, then disappeared. <em>Fixed:</em> arms now work out how wide the body is and hang around it.</li>
+          <li data-e="🥾"><b>Underground boots.</b> Every pair of boots sank three centimetres into the floor, which game engines hate and which made everyone look like they were wading. <em>Fixed:</em> soles sit exactly on the ground now. There's a test for it. There's a test for everything now.</li>
+        </ul>
+      </article>
+
+      <article class="entry">
+        <div class="time">🗺️ PLOT TWIST</div>
+        <h2>Alden Wayfarer walks in</h2>
+        <p>Midway through, Tom dropped a concept sheet: <strong>Alden Wayfarer, the First Explorer of Thornwake</strong>. Blocky, beardy, carrying a rucksack with a bedroll and a walking staff. <em>"He went first because somebody had to."</em></p>
+        <p>Small problem: the brief said <em>no hair, no facial hair</em>. Alden has both, and plenty of each. After a short negotiation (Alden didn't say anything; he's a concept sheet) we agreed: <strong>hair and beards are opt-in.</strong> Every character is bald by default, exactly as ordered, but the new Explorer theme rolls voxel hair, beards, block noses and thick brows.</p>
+        <figure>
+          <img src="./devlog/alden.webp" alt="Alden Wayfarer generated by BadCharacters, shown from front, side, back and three-quarter view" loading="lazy" />
+          <figcaption>Generated, not modelled. Rucksack, bedroll, gold buckles, cuffed hiking boots, one very patient staff.</figcaption>
+        </figure>
+        <p>The staff deserves its own paragraph. A stick held in a hand rotates with the hand, so it kept pointing at people like an accusation. The fix was to do the maths <em>backwards</em>: work out where the hand ends up when Alden relaxes, then build the staff so that in that exact pose it stands perfectly upright and touches the ground. Physics hasn't been consulted. Physics would object.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🏃 RUN CLUB</div>
+        <h2>Knees bend the right way (we checked)</h2>
+        <p>Every character ships ready to move: <strong>Idle, Walk, Run, Jump, Wave and Punch</strong>, baked straight into the file. Longer legs take slower, longer strides, and big-headed styles bounce a bit more, because that's the law.</p>
+        <figure>
+          <img src="./devlog/knees.webp" alt="Three characters running, seen from the side, with knees and elbows bending naturally" loading="lazy" />
+          <figcaption>Look at those knees. Bending backwards, like knees do. Mostly a relief.</figcaption>
+        </figure>
+        <p>The skeleton uses the same bone names big game engines expect for humanoids, so in theory you can drop a BadCharacter into your engine of choice and borrow animations from anywhere. "In theory" because none of those engines live in the workshop yet, so that part still needs a real-world test drive.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">📋 END OF DAY 1</div>
+        <h2>The scoreboard</h2>
+        <div class="score">
+          <span>Characters you can make</span><span>a frankly irresponsible number</span>
+          <span>Outfit themes (fantasy, sci-fi, military, pirate, zombie…)</span><span>12</span>
+          <span>Automated checks passing</span><span>82 / 82</span>
+          <span>Files rejected by the official glTF validator</span><span>0</span>
+          <span>Punches thrown sideways</span><span>0 (was: all of them)</span>
+          <span>Hairs on default characters</span><span>0, as promised</span>
+          <span>Hairs on Alden</span><span>yes</span>
+        </div>
+        <p style="margin-top: 14px">Up next on the wish list: blinking eyes, real tests inside Unity, Godot and Unreal, and maybe fingers, if the triangle budget can be bribed.</p>
+      </article>
+    </main>
+
+    <footer class="end">
+      <div class="motto">"Code shall remain understandable to whichever AI inherits this mess."</div>
+      Bad Ideas Works · where bad ideas receive suspiciously serious engineering<br />
+      <a href="./index.html">← back to the character generator</a>
+    </footer>
+  </body>
+</html>

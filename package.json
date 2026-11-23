@@ -1,0 +1,27 @@
+{
+  "name": "badcharacters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BadCharacters: procedural generator of low-poly, articulated, skinned, rigged and animated game characters.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "cli": "tsx tools/cli.ts"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/three": "^0.170.0",
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8"
+  }
+}

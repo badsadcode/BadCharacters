@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BadCharacters</title>
+    <meta name="description" content="BadCharacters: procedural low-poly, articulated, skinned, rigged and animated game characters by Bad Ideas Works." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%231b1726'/><rect x='20' y='8' width='24' height='20' rx='4' fill='%23f2b880'/><rect x='25' y='15' width='4' height='4' fill='%231b1726'/><rect x='35' y='15' width='4' height='4' fill='%231b1726'/><rect x='18' y='30' width='28' height='16' rx='3' fill='%237c5cff'/><rect x='21' y='46' width='9' height='12' rx='2' fill='%232e3a59'/><rect x='34' y='46' width='9' height='12' rx='2' fill='%232e3a59'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo">BAD<b>CHARACTERS</b></span>
+          <span class="tag">Bad Ideas Works · people with knees, elbows and no hair</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./devlog.html" title="The (mostly true) story of how this was built">📓 Devlog</a>
+          <button id="btn-random" class="btn accent" title="Random style, theme and seed (R)">🎲 Surprise me</button>
+          <button id="btn-lineup" class="btn" title="A whole crowd, walking (L)">👥 Lineup</button>
+          <button id="btn-save" class="btn" title="Save the editable recipe (.badchar.json)">💾 Save</button>
+          <label class="btn" title="Load a .badchar.json recipe">📂 Load<input id="file-load" type="file" accept=".json" hidden /></label>
+          <button id="btn-export" class="btn accent" title="Skinned, rigged, animated GLB">📦 Export GLB</button>
+        </div>
+      </header>
+
+      <aside class="panel left" id="left">
+        <section>
+          <h2>Presets</h2>
+          <div class="chips" id="presets"></div>
+        </section>
+        <section>
+          <h2>Style</h2>
+          <div class="chips" id="styles"></div>
+          <p class="hint" id="style-blurb"></p>
+        </section>
+        <section>
+          <h2>Basics</h2>
+          <div class="row"><label>Name</label><input id="in-name" type="text" /></div>
+          <div class="row"><label>Theme</label><select id="in-theme"></select></div>
+          <div class="row"><label>Seed</label><input id="in-seed" type="number" /><button class="mini" id="btn-seed" title="New seed">🎲</button></div>
+        </section>
+        <section>
+          <h2>Body <button class="mini" data-reroll="body" title="Re-roll body only">🎲</button></h2>
+          <div id="body-sliders"></div>
+          <div class="row"><label>Skin</label><div class="swatches" id="skins"></div></div>
+        </section>
+        <section>
+          <h2>Face <button class="mini" data-reroll="face" title="Re-roll face only">🎲</button></h2>
+          <div id="face-controls"></div>
+          <canvas id="face-preview" width="128" height="64"></canvas>
+        </section>
+        <section>
+          <h2>Outfit <button class="mini" data-reroll="outfit" title="Re-roll outfit only">🎲</button></h2>
+          <div id="outfit"></div>
+        </section>
+        <section>
+          <h2>Export settings</h2>
+          <div class="row"><label>Rest pose</label><select id="in-pose"><option value="T">T-pose</option><option value="A">A-pose</option></select></div>
+          <div class="row"><label>Detail</label><select id="in-detail"><option value="low">Low (8 sides)</option><option value="medium">Medium (12)</option><option value="high">High (20)</option></select></div>
+          <div class="row"><label>Shading</label><select id="in-shading"><option value="smooth">Smooth</option><option value="flat">Flat / faceted</option></select></div>
+          <div class="row"><label>Morphs</label><input id="in-morphs" type="checkbox" /><span class="hint">Fat± / Muscle± blend shapes</span></div>
+        </section>
+      </aside>
+
+      <main class="viewport" id="viewport">
+        <canvas id="canvas"></canvas>
+        <div class="hud top">
+          <div class="seg" id="clips"></div>
+          <div class="seg" id="toggles">
+            <button data-t="skeleton" title="Show bones">🦴 Bones</button>
+            <button data-t="wire" title="Wireframe">🕸 Wire</button>
+            <button data-t="sockets" title="Attachment sockets">📌 Sockets</button>
+            <button data-t="turn" class="on" title="Turntable">🔄 Spin</button>
+          </div>
+        </div>
+        <div class="hud morphs" id="morphs"></div>
+        <div class="hud bottom" id="stats"></div>
+        <div class="toast" id="toast"></div>
+      </main>
+    </div>
+    <script type="module" src="/src/app/main.ts"></script>
+  </body>
+</html>
