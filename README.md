@@ -25,7 +25,7 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 | Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 6 sockets |
 | Animations | Idle, Walk, Run, Jump, Wave, Punch (+ RestPose) |
 | Export | GLB (validator-clean), editable `.badchar.json` recipe, share links |
-| Budget | ~3k–9k triangles depending on outfit and detail level |
+| Budget | low 1.5k–2.8k · medium 1.7k–4.0k (median 2.7k) · high 2.5k–6.7k triangles; Alden is 2,880 |
 
 ## How it works (short version)
 
@@ -38,6 +38,13 @@ Clothing is the same rings again, **inflated by a layer thickness**. A sleeve is
 rings from the shoulder to the elbow, plus 8 mm", so it inherits the arm's skinning and can't
 tear at the joint.
 
+**Polygon diet.** Every body part and garment remembers which rings it was cut from, so the
+generator knows exactly which stretches are fully wrapped by a thicker layer (legs in trousers,
+feet in boots, a shirt under a chestplate, a scalp under hair) and deletes them. Rings that are a
+straight interpolation of their neighbours (within ~2 mm and 0.08 skin weight) are dropped, voxel
+bits are true 12-triangle boxes with hard edges, small parts get fewer sides, and near-boxy
+cross-sections get 8 sides instead of 12. Tests enforce the budget.
+
 The viewer **renders the exported GLB**, not an in-memory approximation, so what you see is
 what your engine gets.
 
@@ -45,7 +52,7 @@ what your engine gets.
 
 ```bash
 npm run dev                                       # the app
-npm test                                          # 82 tests: every style × theme validates clean, feet on floor, normals outward, animation sanity
+npm test                                          # 86 tests: every style × theme validates clean, polygon budgets, feet on floor, normals outward, animation sanity
 npm run cli -- export blocky explorer 42 out/     # one character → GLB + recipe
 npm run cli -- samples out/samples                # a sample per style
 ```

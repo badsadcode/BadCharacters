@@ -4,6 +4,7 @@
  * nothing shows a gap, and whose weights blend across joints, so in motion nothing tears.
  */
 import { Part, ring, Ring, Weights } from './loft';
+import { bodySpec } from './shell';
 import { add, clamp, cross, dot, lerp, norm, scale, sub, V3 } from './math';
 import type { Skeleton } from './skeleton';
 import { STYLES, type CharacterRecipe } from './recipe';
@@ -266,5 +267,8 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
       rings: [Tm(-0.35, tr * 0.9, W([HA, 1])), Tm(0.05, tr, W([HA, 0.4], [TH, 0.6])), Tm(0.6, tr * 0.88, W([TH, 1])), Tm(0.95, tr * 0.62, W([TH, 1])), Tm(1.02, tr * 0.3, W([TH, 1]))],
     };
   }
+  for (const [id, p] of Object.entries(parts)) bodySpec(id, p);
+  // small parts get fewer sides around
+  for (const id of Object.keys(parts)) if (/^(nose|ear|thumb|hand|foot)/.test(id)) parts[id].lod = 'small';
   return parts;
 }

@@ -7,6 +7,7 @@
  * bend as one continuous surface instead of two boxes kissing.
  */
 import { add, cross, dot, len, lerp, lerp3, norm, scale, sub, V3 } from './math';
+import type { ShellSpec } from './shell';
 
 /** [boneIndex, weight] pairs */
 export type Weights = [number, number][];
@@ -40,6 +41,15 @@ export interface Part {
   uv?: { mode: 'arc' } | { mode: 'head'; y0: number; h: number };
   /** per-vertex weight override (skirts that follow both legs) */
   vertexWeights?: (ring: number, xn: number, yn: number, r: Ring) => Weights;
+  /**
+   * resolution class: 'full' parts get the detail level's side count, 'small' parts (thumbs,
+   * noses, straps, knobs) get fewer, 'box' parts are true 4-sided boxes with hard edges
+   */
+  lod?: 'full' | 'small' | 'box';
+  /** body part id ('leg.L', …) */
+  id?: string;
+  /** how this part was cut, so hidden stretches can be culled */
+  spec?: ShellSpec;
 }
 
 export interface MeshData {
@@ -94,12 +104,58 @@ export function anchor(rings: Ring[], tag: string): number {
   return i;
 }
 
+/** Ring indices of a slice from fractional k0 to k1: the ends plus every whole ring in between. */
+export function sliceKs(k0: number, k1: number): number[] {
+  const ks = [k0];
+  for (let i = Math.floor(k0) + 1; i < k1; i++) if (i > k0 + 1e-3 && i < k1 - 1e-3) ks.push(i);
+  ks.push(k1);
+  return ks;
+}
+
 /** Rings from fractional index k0 to k1, including every original ring in between. */
 export function sliceRings(rings: Ring[], k0: number, k1: number): Ring[] {
-  const out = [sampleRing(rings, k0)];
-  for (let i = Math.floor(k0) + 1; i < k1; i++) if (i > k0 + 1e-3 && i < k1 - 1e-3) out.push({ ...rings[i] });
-  out.push(sampleRing(rings, k1));
-  return out;
+  return sliceKs(k0, k1).map((k) => (Number.isInteger(k) ? { ...rings[k] } : sampleRing(rings, k)));
+}
+
+/**
+ * Ring simplification: drop rings that are (within `tol` metres, and within 0.08 of skin
+ * weight) a straight interpolation of their kept neighbours. Blocky limbs are nearly straight,
+ * so they lose most of their rings; a realistic calf keeps its bulge. Returns kept indices.
+ */
+export function simplifyRings(rings: Ring[], tol: number): number[] {
+  const n = rings.length;
+  if (n <= 2) return rings.map((_, i) => i);
+  const cum = [0];
+  for (let i = 1; i < n; i++) cum.push(cum[i - 1] + len(sub(rings[i].c, rings[i - 1].c)));
+  const fits = (s: number, j: number) => {
+    for (let i = s + 1; i < j; i++) {
+      const span = cum[j] - cum[s];
+      const t = span > 1e-9 ? (cum[i] - cum[s]) / span : (i - s) / (j - s);
+      const L = lerpRing(rings[s], rings[j], t);
+      const r = rings[i];
+      const ext = Math.max(r.a, r.b);
+      const dev =
+        len(sub(r.c, L.c)) + Math.abs(r.a - L.a) + Math.abs(r.b - L.b) + Math.abs((r.fb ?? 0) - (L.fb ?? 0)) + Math.abs((r.bb ?? 0) - (L.bb ?? 0)) +
+        (len(sub(r.p, L.p)) + len(sub(r.q, L.q))) * ext;
+      if (dev > tol) return false;
+      const wm = new Map<number, number>();
+      for (const [b, w] of r.w) wm.set(b, w);
+      for (const [b, w] of L.w) wm.set(b, (wm.get(b) ?? 0) - w);
+      let wd = 0;
+      for (const v of wm.values()) wd += Math.abs(v);
+      if (wd > 0.08) return false;
+    }
+    return true;
+  };
+  const keep = [0];
+  let s = 0;
+  while (s < n - 1) {
+    let j = s + 1;
+    while (j + 1 < n && fits(s, j + 1)) j++;
+    keep.push(j);
+    s = j;
+  }
+  return keep;
 }
 
 export function inflateRing(r: Ring, by: number, extra: Partial<Ring> = {}): Ring {
@@ -144,8 +200,14 @@ function finishWeights(w: Weights): [number[], number[]] {
  * first with u = 1 so textures wrap without a smear.
  */
 export function loftPart(part: Part, K: number, m: MeshData) {
+  // (K may be overridden for boxes below)
   const rings = part.rings;
   const base = m.positions.length / 3;
+  const isBox = part.lod === 'box';
+  if (isBox) K = 4;
+  // boxes put their 4 vertices on the corners, everything else puts one mid-side
+  const th0 = isBox ? -Math.PI / 2 + Math.PI / 4 : -Math.PI / 2;
+  const pointAt = (r: Ring, th: number): [number, number] => (isBox ? [r.a * Math.sign(Math.cos(th)), r.b * Math.sign(Math.sin(th))] : ringPoint(r, th));
   const R = K + 1;
   // winding: with p×q pointing along the direction of travel, (A,B,C) faces outward
   const travel = rings.length > 1 ? sub(rings[rings.length - 1].c, rings[0].c) : rings[0].d;
@@ -158,8 +220,8 @@ export function loftPart(part: Part, K: number, m: MeshData) {
   rings.forEach((r, i) => {
     const pts: V3[] = [];
     for (let k = 0; k <= K; k++) {
-      const th = -Math.PI / 2 + (2 * Math.PI * k) / K;
-      const [x, y] = ringPoint(r, th);
+      const th = th0 + (2 * Math.PI * k) / K;
+      const [x, y] = pointAt(r, th);
       pts.push(add(r.c, add(scale(r.p, x), scale(r.q, y))));
     }
     // u: arc length around the ring, starting at the back (-q) so the front sits at u = 0.5
@@ -173,7 +235,7 @@ export function loftPart(part: Part, K: number, m: MeshData) {
       const uvMode = part.uv?.mode ?? 'arc';
       const v = uvMode === 'head' ? (p[1] - (part.uv as { y0: number }).y0) / (part.uv as { h: number }).h : cum[i] / total;
       m.uvs.push(arc[k] / per, 1 - v);
-      const th = -Math.PI / 2 + (2 * Math.PI * k) / K;
+      const th = th0 + (2 * Math.PI * k) / K;
       const w = part.vertexWeights ? part.vertexWeights(i, Math.cos(th), Math.sin(th), r) : r.w;
       const [j, ww] = finishWeights(w);
       m.joints.push(...j);
@@ -209,6 +271,17 @@ export function loftPart(part: Part, K: number, m: MeshData) {
   };
   if (part.capStart) cap(0, true);
   if (part.capEnd) cap(rings.length - 1, false);
+}
+
+/** Append mesh b onto a. */
+export function appendMesh(a: MeshData, b: MeshData) {
+  const off = a.positions.length / 3;
+  a.positions.push(...b.positions);
+  a.normals.push(...b.normals);
+  a.uvs.push(...b.uvs);
+  a.joints.push(...b.joints);
+  a.weights.push(...b.weights);
+  for (const i of b.indices) a.indices.push(i + off);
 }
 
 /** Smooth normals, welded by position so u-seams and cap edges don't show. */

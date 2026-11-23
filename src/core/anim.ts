@@ -40,7 +40,13 @@ const keys = (k: [number, number][], t: number) => {
   return k[k.length - 1][1];
 };
 
-export function buildClips(sk: Skeleton): Clip[] {
+export interface ClipOptions {
+  /** something long in the right hand (a staff): keep that arm calm so it stays upright */
+  rightHandProp?: string;
+}
+
+export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
+  const holding = !!opts.rightHandProp && opts.rightHandProp !== 'none';
   const d = sk.dims;
   const restElev = Math.atan2(d.armDir[1], d.armDir[0]) / DEG; // 0 for T-pose, -38 for A-pose
   const legLen = d.hipY;
@@ -96,7 +102,10 @@ export function buildClips(sk: Skeleton): Clip[] {
       return leg(th, knee, -foot);
     };
     setLegs(rot, L(ph), L(ph + Math.PI));
-    const a = (p: number, s: number) => arm(s, hang + 4, -armAmp * sin(p), elbowBase + 10 * pos(-sin(p)));
+    const a = (p: number, s: number) =>
+      holding && s < 0
+        ? arm(s, hang + 2, -Math.min(armAmp, 14) * 0.5 * sin(p), 8) // staff hand: small, straight swing
+        : arm(s, hang + 4, -armAmp * sin(p), elbowBase + 10 * pos(-sin(p)));
     setArms(rot, a(ph, 1), a(ph + Math.PI, -1));
     rot.Hips = qChain(qy(6 * sin(ph) * DEG), qz(2.5 * sin(ph) * DEG));
     rot.Spine = qChain(qx(lean * 0.5 * DEG), qy(-4 * sin(ph) * DEG));

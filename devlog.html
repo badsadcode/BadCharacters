@@ -87,6 +87,7 @@
           <div class="stat"><b>12</b><small>outfit themes</small></div>
           <div class="stat"><b>25</b><small>bones each</small></div>
           <div class="stat"><b>6</b><small>animations</small></div>
+          <div class="stat"><b>~2.7k</b><small>triangles each</small></div>
           <div class="stat"><b>0</b><small>hairs (by default)</small></div>
         </div>
       </div>
@@ -187,13 +188,37 @@
         <div class="score">
           <span>Characters you can make</span><span>a frankly irresponsible number</span>
           <span>Outfit themes (fantasy, sci-fi, military, pirate, zombie…)</span><span>12</span>
-          <span>Automated checks passing</span><span>82 / 82</span>
+          <span>Automated checks passing</span><span>82 / 82 (86 after Day 2)</span>
           <span>Files rejected by the official glTF validator</span><span>0</span>
           <span>Punches thrown sideways</span><span>0 (was: all of them)</span>
           <span>Hairs on default characters</span><span>0, as promised</span>
           <span>Hairs on Alden</span><span>yes</span>
         </div>
         <p style="margin-top: 14px">Up next on the wish list: blinking eyes, real tests inside Unity, Godot and Unreal, and maybe fingers, if the triangle budget can be bribed.</p>
+      </article>
+
+      <div class="day" id="day2"><span class="badge">DAY 2</span><hr /></div>
+
+      <article class="entry">
+        <div class="time">🥗 THE GREAT POLYGON DIET</div>
+        <h2>We were drawing legs inside trousers</h2>
+        <p>Tom's next note was short: <em>"make it more precise and watch the poly count."</em> So I counted. Every triangle. It was worse than expected.</p>
+        <p>Alden weighed in at <strong>8,052 triangles</strong>. A low-poly character. Where were they all going? Mostly to things <strong>nobody could ever see</strong>: full naked legs inside his trousers, complete feet inside his boots, an entire scalp under his hair. Every voxel tuft of hair was a 96-triangle sausage pretending to be a cube. His fringe alone cost 672 triangles. That's a haircut with a mortgage.</p>
+        <p>The fix was a three-step diet:</p>
+        <ul class="bloopers">
+          <li data-e="🙈"><b>Out of sight, out of the file.</b> Every piece of clothing now remembers exactly which bit of the body it wraps. If something is completely covered by a thicker layer, it gets deleted. Legs in trousers? Gone. Feet in boots? Gone. A shirt under a knight's chestplate? Believe it or not, gone. The cut edges stay tucked under the clothes, which move with them, so nothing ever peeks out, even mid-somersault. <em>(Not that we have somersaults. Yet.)</em></li>
+          <li data-e="🧊"><b>Cubes are cubes now.</b> Hair chunks, buckles and straps are proper 12-triangle boxes with sharp edges. Cheaper <em>and</em> crisper, which is the best kind of fix.</li>
+          <li data-e="📏"><b>No pointless donuts.</b> If a ring of the body is just a straight line between its neighbours, it goes. Blocky arms are basically straight, so they lost most of theirs. Realistic calves keep their curves, because calves deserve respect.</li>
+        </ul>
+        <div class="score" style="margin-top: 16px">
+          <span>Alden Wayfarer</span><span>8,052 → 2,880</span>
+          <span>Sir Clanksalot (full plate)</span><span>8,028 → 3,736</span>
+          <span>Typical character, medium detail</span><span>~2,700</span>
+          <span>Typical character, low detail</span><span>~2,000</span>
+          <span>Visible difference</span><span>none (we checked, in motion)</span>
+        </div>
+        <p style="margin-top: 14px">Bonus precision fix: Alden used to wield his walking staff like a jousting lance whenever he ran, because his elbow bent and the staff came along for the ride. His staff arm now stays calm, and the staff stays upright. He's an explorer, not a knight. Different union.</p>
+        <p>The budget is now enforced by automated tests, so if a future feature (fingers? <em>fingers</em>) tries to sneak the count back up, the build goes red and someone has to explain themselves.</p>
       </article>
     </main>
 

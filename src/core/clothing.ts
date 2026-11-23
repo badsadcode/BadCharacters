@@ -8,7 +8,8 @@
  * Layering (inner → outer): underwear/suit 1 · trousers 2 · shirt 3 · footwear/gloves 4 ·
  * belt 4.5 · vest 5–6 · armour 7+. Each layer is `e` metres thicker than the one below.
  */
-import { anchor, inflateRing, lerpRing, mergeWeights, Part, ring, Ring, sampleRing, sliceRings, Weights } from './loft';
+import { anchor, inflateRing, lerpRing, mergeWeights, Part, ring, Ring, sampleRing, Weights } from './loft';
+import { shell, ShellOpts } from './shell';
 import { add, clamp, lerp, norm, qRotate, Quat, scale, sub, V3 } from './math';
 import { buildClips, worldPose } from './anim';
 import type { PartMap } from './body';
@@ -19,30 +20,6 @@ import { Rng, subSeed } from './rng';
 
 const X: V3 = [1, 0, 0];
 const Z: V3 = [0, 0, 1];
-
-interface ShellOpts {
-  material: string;
-  inflate: number;
-  /** extra inflate added linearly toward the end (bell sleeves, flared trousers) */
-  flare?: number;
-  capStart?: boolean;
-  capEnd?: boolean;
-  /** close an open end against the body with an inward lip so you never see inside */
-  cuffStart?: boolean;
-  cuffEnd?: boolean;
-  /** make the cross-section boxier (armour) */
-  nBoost?: number;
-}
-
-function shell(name: string, src: Part, k0: number, k1: number, o: ShellOpts): Part {
-  const rings = sliceRings(src.rings, k0, k1);
-  const N = rings.length;
-  let out: Ring[] = rings.map((r, i) => inflateRing(r, o.inflate + (o.flare ?? 0) * (N > 1 ? i / (N - 1) : 0), { n: r.n + (o.nBoost ?? 0) }));
-  const lip = (r: Ring): Ring => ({ ...r, a: Math.max(r.a - o.inflate * 0.85 - (o.flare ?? 0), r.a * 0.5), b: Math.max(r.b - o.inflate * 0.85 - (o.flare ?? 0), r.b * 0.5) });
-  if (o.cuffStart) out = [lip(out[0]), ...out];
-  if (o.cuffEnd) out = [...out, lip(out[out.length - 1])];
-  return { name, material: o.material, rings: out, capStart: o.capStart, capEnd: o.capEnd };
-}
 
 /** tag lookup with a fractional offset in ring units */
 const K = (p: Part, tag: string, off = 0) => anchor(p.rings, tag) + off;
@@ -118,7 +95,9 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
         material: mat(slot, true),
         capStart: true,
         capEnd: true,
-        rings: f.rings.map((r) => ({ ...r, c: [r.c[0], thick / 2 + 0.0005, r.c[2]] as V3, a: r.a + inflate + 0.002, b: thick / 2, n: Math.max(r.n, 4) })),
+        lod: 'small',
+        // a sole only needs its outline: heel, instep, ball, toe
+        rings: [0, 2, 4, 6].map((k) => f.rings[k]).map((r) => ({ ...r, c: [r.c[0], thick / 2 + 0.0005, r.c[2]] as V3, a: r.a + inflate + 0.002, b: thick / 2, n: Math.max(r.n, 4) })),
       });
     }
   };
@@ -237,7 +216,7 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
         const z = sampleRing(torso.rings, K(torso, 'waist', 0.5)).b + 6 * e;
         const x = s * d.waistHW * 0.45;
         const pw = d.waistHW * 0.18;
-        out.push(box(`armor.pouch.${s}`, mat('armor', true), [x, y, z + pw * 0.4], [pw, pw * 1.2, pw * 0.5], W(['Spine', 0.5], ['Chest', 0.5])));
+        out.push(box(`armor.pouch.${s}`, mat('armor', true), [x, y, z + pw * 0.4], [pw, pw * 1.2, pw * 0.5], W(['Spine', 0.5], ['Chest', 0.5]), 3));
       }
     }
   } else if (a === 'chestplate' || a === 'plate') {
@@ -290,17 +269,17 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
     const hgt = (d.neckBaseY - d.hipY) * 0.55;
     const dep = d.chestHD * 0.6;
     const yc = d.hipY + (d.neckBaseY - d.hipY) * 0.58;
-    out.push(box('back.pack', mat('back'), [0, yc, backZ - dep], [d.chestHW * 0.72, hgt / 2, dep], bw, 3.5));
-    out.push(box('back.flap', mat('back', true), [0, yc + hgt * 0.32, backZ - dep * 1.05], [d.chestHW * 0.74, hgt * 0.2, dep * 1.03], bw, 3.5));
+    out.push(box('back.pack', mat('back'), [0, yc, backZ - dep], [d.chestHW * 0.72, hgt / 2, dep], bw, 3));
+    out.push(box('back.flap', mat('back', true), [0, yc + hgt * 0.32, backZ - dep * 1.05], [d.chestHW * 0.74, hgt * 0.2, dep * 1.03], bw, 3));
     out.push(box('back.pocket', mat('back', true), [0, yc - hgt * 0.2, backZ - dep * 2], [d.chestHW * 0.45, hgt * 0.17, dep * 0.25], bw, 3));
   } else if (back === 'rucksack') {
     const hgt = (d.neckBaseY - d.hipY) * 0.68;
     const dep = d.chestHD * 0.75;
     const yc = d.hipY + (d.neckBaseY - d.hipY) * 0.52;
     const pw = d.chestHW * 0.82;
-    out.push(box('back.pack', mat('back'), [0, yc, backZ - dep], [pw, hgt / 2, dep], bw, 5));
-    out.push(box('back.flap', mat('back'), [0, yc + hgt * 0.36, backZ - dep * 1.02], [pw * 1.02, hgt * 0.17, dep * 1.04], bw, 5));
-    out.push(box('back.pocket', mat('back'), [0, yc - hgt * 0.18, backZ - dep * 2.05], [pw * 0.62, hgt * 0.2, dep * 0.28], bw, 5));
+    out.push(box('back.pack', mat('back'), [0, yc, backZ - dep], [pw, hgt / 2, dep], bw));
+    out.push(box('back.flap', mat('back'), [0, yc + hgt * 0.36, backZ - dep * 1.02], [pw * 1.02, hgt * 0.17, dep * 1.04], bw));
+    out.push(box('back.pocket', mat('back'), [0, yc - hgt * 0.18, backZ - dep * 2.05], [pw * 0.62, hgt * 0.2, dep * 0.28], bw));
     // bedroll across the top, plus a smaller roll on the side
     const rollR = Math.min(dep * 0.75, hgt * 0.2);
     out.push(tube('back.bedroll', mat('back', true), [0, yc + hgt / 2 + rollR * 0.9, backZ - dep], [1, 0, 0], rollR, pw * 2.3, bw));
@@ -308,14 +287,14 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
     // gold buckles and the shoulder straps that wrap over to the chest
     const bs = pw * 0.12;
     for (const s of [1, -1]) {
-      out.push(box(`back.buckle.${s}`, mat('belt', true), [s * pw * 0.45, yc + hgt * 0.25, backZ - dep * 2.05], [bs, bs * 0.8, bs * 0.25], bw, 6));
+      out.push(box(`back.buckle.${s}`, mat('belt', true), [s * pw * 0.45, yc + hgt * 0.25, backZ - dep * 2.05], [bs, bs * 0.8, bs * 0.25], bw));
       const sx = s * d.chestHW * 0.48;
       const front = sampleRing(torso.rings, K(torso, 'chest'));
       const fz = front.b + (front.fb ?? 0) * 0.3 + 4.5 * e;
       const topY = sampleRing(torso.rings, K(torso, 'shoulderTop')).c[1];
       const sw = d.chestHW * 0.11;
-      out.push(box(`back.strap.front.${s}`, mat('back'), [sx, lerp(d.hipY + 0.6 * (d.neckBaseY - d.hipY), topY, 0.5), fz], [sw, (topY - (d.hipY + 0.6 * (d.neckBaseY - d.hipY))) / 2, 0.012 * d.u], W(['UpperChest', 1]), 6));
-      out.push(box(`back.strap.top.${s}`, mat('back'), [sx, topY + 0.01 * d.u, (fz + backZ) / 2], [sw, 0.014 * d.u, (fz - backZ) / 2], W(['UpperChest', 1]), 6));
+      out.push(box(`back.strap.front.${s}`, mat('back'), [sx, lerp(d.hipY + 0.6 * (d.neckBaseY - d.hipY), topY, 0.5), fz], [sw, (topY - (d.hipY + 0.6 * (d.neckBaseY - d.hipY))) / 2, 0.012 * d.u], W(['UpperChest', 1])));
+      out.push(box(`back.strap.top.${s}`, mat('back'), [sx, topY + 0.01 * d.u, (fz + backZ) / 2], [sw, 0.014 * d.u, (fz - backZ) / 2], W(['UpperChest', 1])));
     }
   } else if (back === 'jetpack') {
     const hgt = (d.neckBaseY - d.hipY) * 0.6;
@@ -379,15 +358,15 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
       cone.push(ring([0, y0 + tt * hh * 1.3, -lean], X, Z, r.a * rad, r.b * rad, 2.4, hw));
     }
     out.push({ name: 'head.cone', material: mat('head'), rings: cone, capStart: true, capEnd: true });
-    out.push(shell('head.hatband', { ...head, rings: cone.map((c) => ({ ...c })) }, 0.05, 0.45, { material: mat('head', true), inflate: 0.004 * d.u, cuffStart: true, cuffEnd: true }));
+    out.push(shell('head.hatband', { rings: cone.map((c) => ({ ...c })) }, 0.05, 0.45, { material: mat('head', true), inflate: 0.004 * d.u, cuffStart: true, cuffEnd: true }));
   } else if (hd === 'greathelm') {
     const hr = head.rings.map((r) => ({ ...r }));
     const ext: Ring = { ...hr[0], c: [hr[0].c[0], hr[0].c[1] - 0.12 * hh, hr[0].c[2]] as V3, a: hr[1].a, b: hr[1].b };
-    const helm: Part = { ...head, rings: [ext, { ...hr[1] }, ...hr.slice(2)] };
+    const helm: Part = { ...head, id: undefined, spec: undefined, rings: [ext, { ...hr[1] }, ...hr.slice(2)] };
     out.push(shell('head.greathelm', helm, 0, helm.rings.length - 1, { material: mat('head'), inflate: 5 * e + 0.05 * hh, capStart: true, capEnd: true, nBoost: 3 }));
     const fz = ring0(d.eyeLine).b + 5 * e + 0.05 * hh;
-    out.push(box('head.visor', 'visor', [0, d.chinY + d.eyeLine * hh, fz], [d.headHW * 0.78, 0.035 * hh, 0.006 * d.u + 0.004], hw, 8));
-    out.push(box('head.crest', mat('head', true), [0, d.chinY + 0.55 * hh, fz], [0.035 * hh, 0.4 * hh, 0.01 * d.u], hw, 8));
+    out.push(box('head.visor', 'visor', [0, d.chinY + d.eyeLine * hh, fz], [d.headHW * 0.78, 0.035 * hh, 0.006 * d.u + 0.004], hw));
+    out.push(box('head.crest', mat('head', true), [0, d.chinY + 0.55 * hh, fz], [0.035 * hh, 0.4 * hh, 0.01 * d.u], hw));
   } else if (hd === 'crown') {
     headShell('head.crown', mat('head'), 0.8, 0.94, 3 * e, { capEnd: false, cuffEnd: true });
     const r = ring0(0.94);
@@ -415,10 +394,12 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
 
 // ─────────────────────────────────────────────────────────── primitives
 /** an axis-aligned rounded box, as a loft along +Y */
-export function box(name: string, material: string, c: V3, half: V3, w: Weights, n = 4): Part {
+/** an axis-aligned box: 8 corners, hard edges. `n` < 4 makes a rounded block instead (buns, pouches). */
+export function box(name: string, material: string, c: V3, half: V3, w: Weights, n = 40): Part {
   const [hx, hy, hz] = half;
   const R = (y: number, s: number): Ring => ring([c[0], c[1] + y, c[2]], X, Z, hx * s, hz * s, n, w);
-  return { name, material, capStart: true, capEnd: true, rings: [R(-hy, 0.85), R(-hy * 0.88, 1), R(hy * 0.88, 1), R(hy, 0.85)] };
+  if (n >= 4) return { name, material, capStart: true, capEnd: true, lod: 'box', rings: [R(-hy, 1), R(hy, 1)] };
+  return { name, material, capStart: true, capEnd: true, lod: 'small', rings: [R(-hy, 0.85), R(-hy * 0.88, 1), R(hy * 0.88, 1), R(hy, 0.85)] };
 }
 
 /** flat disc / brim on the XZ plane */
@@ -428,18 +409,18 @@ function slab(name: string, material: string, c: V3, a: number, b: number, thick
 
 function capsuleY(name: string, material: string, c: V3, r: number, h: number, w: Weights): Part {
   const R = (y: number, s: number) => ring([c[0], c[1] + y, c[2]], X, Z, r * s, r * s, 2.3, w);
-  return { name, material, capStart: true, capEnd: true, rings: [R(-h / 2, 0.55), R(-h / 2 + r * 0.25, 0.95), R(h / 2 - r * 0.25, 0.95), R(h / 2, 0.55)] };
+  return { name, material, capStart: true, capEnd: true, lod: 'small', rings: [R(-h / 2, 0.55), R(-h / 2 + r * 0.25, 0.95), R(h / 2 - r * 0.25, 0.95), R(h / 2, 0.55)] };
 }
 
 function tube(name: string, material: string, c: V3, dir: V3, r: number, h: number, w: Weights): Part {
   const { p, q } = limbFrame(dir, Z);
   const R = (t: number, s: number) => ring(add(c, scale(dir, t)), p, q, r * s, r * s, 2.4, w);
-  return { name, material, capStart: true, capEnd: true, rings: [R(-h / 2, 0.9), R(-h / 2 + r * 0.2, 1), R(h / 2, 1), R(h / 2 + 0.001, 0.85)] };
+  return { name, material, capStart: true, capEnd: true, lod: 'small', rings: [R(-h / 2, 0.9), R(-h / 2 + r * 0.2, 1), R(h / 2, 1), R(h / 2 + 0.001, 0.85)] };
 }
 
 function spike(name: string, material: string, base: V3, r: number, h: number, w: Weights): Part {
   const R = (t: number, s: number) => ring([base[0], base[1] + t * h, base[2]], X, Z, r * s, r * s, 2.2, w);
-  return { name, material, capStart: true, capEnd: true, rings: [R(-0.2, 1), R(0.3, 0.75), R(1, 0.05)] };
+  return { name, material, capStart: true, capEnd: true, lod: 'small', rings: [R(-0.2, 1), R(0.3, 0.75), R(1, 0.05)] };
 }
 
 /** a band whose ring index k is already resolved */
@@ -472,11 +453,11 @@ function buildHair(rc: CharacterRecipe, d: Skeleton['dims'], head: Part, w: Weig
   // back block, from crown down to the nape (or the shoulders for long hair)
   const lowT = id === 'long' ? -0.25 : 0.4;
   const backZ = -(back.b + th * 0.5);
-  out.push(box('hair.back', m, [0, Y0 + ((0.86 + lowT) / 2) * hh, backZ], [back.a + th * 0.6, ((0.86 - lowT) / 2) * hh, th * 0.9], w, 6));
+  out.push(box('hair.back', m, [0, Y0 + ((0.86 + lowT) / 2) * hh, backZ], [back.a + th * 0.6, ((0.86 - lowT) / 2) * hh, th * 0.9], w));
   // sideburns / side panels
   for (const s of [1, -1]) {
     const sideLow = id === 'long' ? -0.15 : 0.45;
-    out.push(box(`hair.side.${s}`, m, [s * (back.a + th * 0.25), Y0 + ((0.84 + sideLow) / 2) * hh, -back.b * 0.4], [th * 0.45, ((0.84 - sideLow) / 2) * hh, back.b * 0.6], w, 6));
+    out.push(box(`hair.side.${s}`, m, [s * (back.a + th * 0.25), Y0 + ((0.84 + sideLow) / 2) * hh, -back.b * 0.4], [th * 0.45, ((0.84 - sideLow) / 2) * hh, back.b * 0.6], w));
   }
   if (hatted) return out;
   if (id === 'messy' || id === 'short') {
@@ -486,25 +467,25 @@ function buildHair(rc: CharacterRecipe, d: Skeleton['dims'], head: Part, w: Weig
       const fx = lerp(-1, 1, (i + 0.5) / n) * top.a * 0.85 + r.range(-0.03, 0.03) * hh;
       const sz = r.range(0.07, id === 'messy' ? 0.14 : 0.1) * hh;
       const fy = Y0 + r.range(0.84, 0.94) * hh;
-      out.push(box(`hair.fringe.${i}`, m, [fx, fy, top.b * 0.82], [sz, sz * r.range(0.8, 1.3), sz * 0.9], w, 6));
+      out.push(box(`hair.fringe.${i}`, m, [fx, fy, top.b * 0.82], [sz, sz * r.range(0.8, 1.3), sz * 0.9], w));
     }
     const tufts = id === 'messy' ? 5 : 2;
     for (let i = 0; i < tufts; i++) {
       const sz = r.range(0.07, 0.12) * hh;
-      out.push(box(`hair.tuft.${i}`, m, [r.range(-0.7, 0.7) * top.a, Y0 + hh + th + sz * 0.3, r.range(-0.6, 0.5) * top.b], [sz * 1.2, sz * 0.6, sz], w, 6));
+      out.push(box(`hair.tuft.${i}`, m, [r.range(-0.7, 0.7) * top.a, Y0 + hh + th + sz * 0.3, r.range(-0.6, 0.5) * top.b], [sz * 1.2, sz * 0.6, sz], w));
     }
   } else if (id === 'mohawk') {
     for (let i = 0; i < 6; i++) {
       const z = lerp(0.85, -0.95, i / 5) * top.b;
       const hgt = (0.16 + 0.06 * Math.sin(i * 1.7)) * hh;
-      out.push(box(`hair.mohawk.${i}`, m, [0, Y0 + hh + hgt / 2, z], [0.07 * hh, hgt / 2 + th, top.b * 0.18], w, 6));
+      out.push(box(`hair.mohawk.${i}`, m, [0, Y0 + hh + hgt / 2, z], [0.07 * hh, hgt / 2 + th, top.b * 0.18], w));
     }
   } else if (id === 'bun') {
-    out.push(box('hair.bun', m, [0, Y0 + hh + th + 0.08 * hh, -top.b * 0.35], [0.14 * hh, 0.1 * hh, 0.14 * hh], w, 3.2));
+    out.push(box('hair.bun', m, [0, Y0 + hh + th + 0.08 * hh, -top.b * 0.35], [0.14 * hh, 0.1 * hh, 0.14 * hh], w, 3));
   } else if (id === 'long') {
     for (let i = 0; i < 4; i++) {
       const fx = lerp(-1, 1, (i + 0.5) / 4) * top.a * 0.85;
-      out.push(box(`hair.fringe.${i}`, m, [fx, Y0 + 0.9 * hh, top.b * 0.85], [top.a * 0.24, 0.08 * hh, 0.07 * hh], w, 6));
+      out.push(box(`hair.fringe.${i}`, m, [fx, Y0 + 0.9 * hh, top.b * 0.85], [top.a * 0.24, 0.08 * hh, 0.07 * hh], w));
     }
   }
   return out;
@@ -522,13 +503,13 @@ function buildBeard(rc: CharacterRecipe, d: Skeleton['dims'], head: Part, w: Wei
   const th = 0.05 * hh;
   const fz = front.b + (front.fb ?? 0);
   // mustache sits just above the mouth line
-  out.push(box('beard.mustache', m, [0, Y0 + (mt + 0.065) * hh, fz + th * 0.4], [front.a * 0.48, 0.04 * hh, th * 0.6], w, 6));
+  out.push(box('beard.mustache', m, [0, Y0 + (mt + 0.065) * hh, fz + th * 0.4], [front.a * 0.48, 0.04 * hh, th * 0.6], w));
   if (id === 'full') {
     out.push(shell('beard.jaw', head, 0, headK(mt - 0.03), { material: m, inflate: th, capStart: true, cuffEnd: true, nBoost: 1.5 }));
-    out.push(box('beard.chin', m, [0, Y0 - 0.06 * hh, front.b * 0.45], [front.a * 0.82, 0.08 * hh, front.b * 0.6], w, 6));
-    for (const s of [1, -1]) out.push(box(`beard.cheek.${s}`, m, [s * (front.a + th * 0.2), Y0 + (mt + 0.08) * hh, front.b * 0.2], [th * 0.45, 0.12 * hh, front.b * 0.6], w, 6));
+    out.push(box('beard.chin', m, [0, Y0 - 0.06 * hh, front.b * 0.45], [front.a * 0.82, 0.08 * hh, front.b * 0.6], w));
+    for (const s of [1, -1]) out.push(box(`beard.cheek.${s}`, m, [s * (front.a + th * 0.2), Y0 + (mt + 0.08) * hh, front.b * 0.2], [th * 0.45, 0.12 * hh, front.b * 0.6], w));
   } else if (id === 'goatee') {
-    out.push(box('beard.goatee', m, [0, Y0 + (mt - 0.1) * hh, fz + th * 0.2], [front.a * 0.3, 0.09 * hh, th * 0.7], w, 6));
+    out.push(box('beard.goatee', m, [0, Y0 + (mt - 0.1) * hh, fz + th * 0.2], [front.a * 0.3, 0.09 * hh, th * 0.7], w));
   }
   return out;
 }

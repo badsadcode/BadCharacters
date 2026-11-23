@@ -42,10 +42,36 @@ describe('every style × every theme', () => {
         }
         expect(minY).toBeGreaterThan(-0.001); // nothing below the floor
         expect(minY).toBeLessThan(0.02); // …and nobody hovers
-        expect(ch.stats.triangles).toBeLessThan(25000);
+        // polygon budget (medium detail, any outfit)
+        expect(ch.stats.triangles).toBeLessThan(rc.mesh.detail === 'medium' ? 5000 : 8000);
       });
     }
   }
+});
+
+describe('polygon budget', () => {
+  const tris = (rc: ReturnType<typeof randomRecipe>) => generateCharacter(rc).stats.triangles;
+  it('the bald base body is under 2,600 triangles at medium detail in every style', () => {
+    for (const style of styles) expect(tris(randomRecipe(1, style, 'base')), style).toBeLessThan(2600);
+  });
+  it('low detail stays under 3,000 triangles even in full plate', () => {
+    for (const style of styles) {
+      const rc = randomRecipe(3, style, 'knight');
+      rc.mesh.detail = 'low';
+      expect(tris(rc), style).toBeLessThan(3000);
+    }
+  });
+  it('Alden is under 3,000 triangles', () => {
+    expect(tris(PRESETS.find((p) => p.id === 'alden')!.recipe())).toBeLessThan(3000);
+  });
+  it('culling removes body hidden under clothes but never a visible bald head', () => {
+    const rc = randomRecipe(8, 'realistic', 'soldier');
+    rc.outfit.hands = { id: 'gloves', color: '#333333', color2: '#222222' };
+    const names = buildParts(rc, buildSkeleton(rc)).parts.map((p) => p.name);
+    expect(names).not.toContain('foot'); // inside boots
+    expect(names).not.toContain('hand'); // inside gloves
+    expect(names.some((n) => n.startsWith('head'))).toBe(true);
+  });
 });
 
 describe('determinism', () => {
@@ -76,7 +102,7 @@ describe('body', () => {
   it('every closed body part faces outward (positive volume)', () => {
     const rc = randomRecipe(5, 'realistic', 'base');
     const sk = buildSkeleton(rc);
-    for (const part of buildParts(rc, sk)) {
+    for (const part of buildParts(rc, sk).parts) {
       if (!part.capStart || !part.capEnd) continue;
       const m = emptyMesh();
       loftPart(part, 12, m);
@@ -135,7 +161,7 @@ describe('animation', () => {
   it("Alden's staff stands upright in Idle", () => {
     const alden = PRESETS.find((p) => p.id === 'alden')!.recipe();
     const ask = buildSkeleton(alden);
-    const staff = buildParts(alden, ask).find((p) => p.name === 'prop.staff')!;
+    const staff = buildParts(alden, ask).parts.find((p) => p.name === 'prop.staff')!;
     const wp = worldPose(ask, buildClips(ask)[0].sample(0));
     const q = wp.rot[ask.index.RightHand];
     const dir = qRotate(q, sub(staff.rings[staff.rings.length - 1].c, staff.rings[0].c));

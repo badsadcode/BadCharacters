@@ -6,7 +6,8 @@ import { buildClips, Clip } from './anim';
 import { buildBody } from './body';
 import { buildClothing } from './clothing';
 import { paintFace, Texture } from './face';
-import { computeNormals, emptyMesh, loftPart, MeshData, Part, unweld } from './loft';
+import { appendMesh, computeNormals, emptyMesh, loftPart, MeshData, Part, simplifyRings, unweld } from './loft';
+import { cullHidden } from './shell';
 import { CharacterRecipe, GARMENTS, MaterialKind, SlotId } from './recipe';
 import { buildSkeleton, computeDims, Skeleton } from './skeleton';
 
@@ -40,7 +41,7 @@ export interface Character {
   texture: Texture;
   clips: Clip[];
   morphs: MorphTarget[];
-  stats: { triangles: number; vertices: number; bones: number; parts: number };
+  stats: { triangles: number; vertices: number; bones: number; parts: number; /** triangles before hidden-layer culling and ring simplification */ unoptimized: number };
 }
 
 const KIND: Record<MaterialKind | 'glass', { metallic: number; roughness: number }> = {
@@ -78,26 +79,63 @@ function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
 }
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
-export function buildParts(rc: CharacterRecipe, sk: Skeleton): Part[] {
+/** every part, before culling and simplification */
+export function buildRawParts(rc: CharacterRecipe, sk: Skeleton): Part[] {
   const body = buildBody(rc, sk);
   const cloth = buildClothing(rc, sk, body);
   return [...Object.values(body), ...cloth];
+}
+
+/** geometric tolerance for ring simplification, per detail level (metres per body unit) */
+const SIMPLIFY = { low: 0.006, medium: 0.0022, high: 0.0008 } as const;
+
+/**
+ * The parts that actually get meshed: hidden stretches culled, redundant rings dropped.
+ * `masks` (kept ring indices per part) can be passed in so morph variants share topology.
+ */
+export function buildParts(rc: CharacterRecipe, sk: Skeleton, masks?: number[][]): { parts: Part[]; masks: number[][] } {
+  const parts = cullHidden(buildRawParts(rc, sk));
+  const tol = SIMPLIFY[rc.mesh.detail] * sk.dims.u;
+  const outMasks: number[][] = [];
+  const out = parts.map((p, i) => {
+    let keep = masks?.[i];
+    if (!keep || keep[keep.length - 1] !== p.rings.length - 1) keep = p.lod === 'box' ? p.rings.map((_, k) => k) : simplifyRings(p.rings, tol);
+    outMasks.push(keep);
+    return keep.length === p.rings.length ? p : { ...p, rings: keep.map((k) => p.rings[k]), vertexWeights: p.vertexWeights && ((ri: number, xn: number, yn: number, r: Part['rings'][number]) => p.vertexWeights!(keep![ri], xn, yn, r)) };
+  });
+  return { parts: out, masks: outMasks };
+}
+
+/** sides around each ring for a part, from the detail level and the part's size class */
+export function sidesFor(p: Part, K: number): number {
+  if (p.lod === 'box') return 4;
+  if (p.lod === 'small') return K >= 20 ? 12 : K >= 12 ? 8 : 6;
+  // near-boxy cross-sections: extra sides would only sit on flat faces
+  const n = p.rings.reduce((s, r) => s + r.n, 0) / p.rings.length;
+  if (n >= 7) return K >= 20 ? 12 : Math.min(K, 8);
+  return K;
 }
 
 function meshesFor(parts: Part[], K: number): Map<string, MeshData> {
   const by = new Map<string, MeshData>();
   for (const p of parts) {
     if (!by.has(p.material)) by.set(p.material, emptyMesh());
-    loftPart(p, K, by.get(p.material)!);
+    const m = emptyMesh();
+    loftPart(p, sidesFor(p, K), m);
+    // boxes get hard edges; everything else is smooth within the part
+    if (p.lod === 'box') appendMesh(by.get(p.material)!, unweld(m));
+    else {
+      computeNormals(m);
+      appendMesh(by.get(p.material)!, m);
+    }
   }
-  for (const m of by.values()) computeNormals(m);
   return by;
 }
 
 export function generateCharacter(rc: CharacterRecipe): Character {
   const sk = buildSkeleton(rc);
   const K = DETAIL[rc.mesh.detail] ?? 12;
-  const parts = buildParts(rc, sk);
+  const { parts, masks } = buildParts(rc, sk);
   const by = meshesFor(parts, K);
   const order = [...by.keys()];
 
@@ -113,7 +151,7 @@ export function generateCharacter(rc: CharacterRecipe): Character {
     for (const [name, patch] of variants) {
       const vr: CharacterRecipe = { ...rc, body: { ...rc.body, ...patch } };
       const vsk: Skeleton = { ...sk, dims: { ...computeDims(vr), armDir: sk.dims.armDir } };
-      const vby = meshesFor(buildParts(vr, vsk), K);
+      const vby = meshesFor(buildParts(vr, vsk, masks).parts, K);
       const deltas = order.map((mat) => {
         const a = by.get(mat)!;
         const b = vby.get(mat);
@@ -149,6 +187,10 @@ export function generateCharacter(rc: CharacterRecipe): Character {
   const body = buildBody(rc, sk);
   const texture = paintFace(rc.face, rc.body.skin, sk.dims, body.head, rc.outfit.beard);
   const triangles = primitives.reduce((s, p) => s + p.mesh.indices.length / 3, 0);
+  const unoptimized = buildRawParts(rc, sk).reduce((s, p) => {
+    const k = sidesFor(p, K);
+    return s + (p.rings.length - 1) * k * 2 + ((p.capStart ? 1 : 0) + (p.capEnd ? 1 : 0)) * k;
+  }, 0);
   const vertices = primitives.reduce((s, p) => s + p.mesh.positions.length / 3, 0);
   return {
     recipe: rc,
@@ -156,8 +198,8 @@ export function generateCharacter(rc: CharacterRecipe): Character {
     primitives,
     materials,
     texture,
-    clips: buildClips(sk),
+    clips: buildClips(sk, { rightHandProp: rc.outfit.prop?.id }),
     morphs,
-    stats: { triangles, vertices, bones: sk.bones.length, parts: parts.length },
+    stats: { triangles, vertices, bones: sk.bones.length, parts: parts.length, unoptimized },
   };
 }

@@ -55,6 +55,10 @@ Plain child nodes (not skin joints) for attaching items at runtime:
   around the head (front of the face = u 0.5).
 - Optional **morph targets** `Fat+`, `Fat-`, `Muscle+`, `Muscle-` (all default weight 0) let a
   game reshape the character at runtime without regenerating. Names are in `mesh.extras.targetNames`.
+- **Polygon budget** (medium detail): 1.7k–4.0k triangles, median 2.7k. Low: 1.5k–2.8k.
+  Geometry fully hidden under a thicker layer is never exported; cut edges stay tucked at least a
+  quarter ring under the covering layer, which shares their skin weights, so they stay hidden in
+  every pose. Voxel pieces (hair chunks, buckles, straps) are 12-triangle boxes with hard edges.
 - Props (the staff) are part of the skinned mesh, 100 % weighted to `RightHand`, in their own
   `Prop_*` material, so you can hide them by material.
 

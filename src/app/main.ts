@@ -154,7 +154,7 @@ async function rebuild(frame = false) {
   renderMorphs();
   renderFacePreview();
   const s = character.stats;
-  $('stats').textContent = `${recipe.name} · ${s.triangles.toLocaleString()} tris · ${s.bones} bones · ${character.clips.length} clips · ${character.morphs.length} morphs · ${recipe.body.height.toFixed(2)} m · built in ${genMs.toFixed(0)} ms`;
+  $('stats').textContent = `${recipe.name} · ${s.triangles.toLocaleString()} tris (${Math.round((1 - s.triangles / s.unoptimized) * 100)}% hidden/redundant removed) · ${s.bones} bones · ${character.clips.length} clips · ${character.morphs.length} morphs · ${recipe.body.height.toFixed(2)} m · built in ${genMs.toFixed(0)} ms`;
   if (frame) frameCamera();
   history.replaceState(null, '', `#${encodeRecipe(recipe)}`);
 }
