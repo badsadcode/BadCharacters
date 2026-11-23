@@ -10,6 +10,8 @@ import {
 } from '../core/recipe';
 import { exportGlb, Exportable } from '../export/gltf';
 import { generateCreature, CreatureRecipe } from '../creatures/generate';
+import { randomCreature, SPECIES, SpeciesId } from '../creatures/species';
+import { solitudeProfile } from '../creatures/solitude';
 import { PRESETS } from '../core/presets';
 import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
 import { PATTERNS, PatternId } from '../core/patterns';
@@ -17,11 +19,13 @@ import { PATTERNS, PatternId } from '../core/patterns';
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // ───────────────────────────────────────────────────────────── state ──
-let recipe: CharacterRecipe = loadFromHash() ?? PRESETS[0].recipe();
+let recipe: CharacterRecipe = ((h) => (h && (h as unknown as { kind?: string }).kind !== 'creature' ? h : null))(loadFromHash()) ?? PRESETS[0].recipe();
 let character: Character;
 let clipName = 'Idle';
 const toggles = { skeleton: false, wire: false, sockets: false, turn: true };
 let lineup = false;
+let mode: 'characters' | 'creatures' = 'characters';
+let creature: CreatureRecipe = randomCreature('megalodon', 1);
 
 /** the viewer always shows hand props so you can judge the animations; export follows the recipe */
 const preview = (rc: CharacterRecipe): CharacterRecipe => ({ ...rc, mesh: { ...rc.mesh, exportProps: true } });
@@ -122,6 +126,21 @@ function applyToggles() {
   document.querySelectorAll<HTMLButtonElement>('#toggles button').forEach((b) => b.classList.toggle('on', toggles[b.dataset.t as keyof typeof toggles]));
 }
 
+/** the clip bar shows exactly the clips the loaded model exports */
+function renderClipBar(names: string[]) {
+  const bar = $('clips');
+  if (bar.dataset.names === names.join(',')) return;
+  bar.dataset.names = names.join(',');
+  bar.innerHTML = '';
+  for (const c of names) {
+    const b = document.createElement('button');
+    b.textContent = c === 'RestPose' ? 'Rest' : c.replace(/([a-z])([A-Z])/g, '$1 $2');
+    b.dataset.clip = c;
+    b.addEventListener('click', () => playClip(c));
+    bar.appendChild(b);
+  }
+}
+
 function playClip(name: string) {
   clipName = name;
   for (const a of actors) {
@@ -156,6 +175,7 @@ async function rebuild(frame = false) {
   actors = [actor];
   stage.add(actor.root);
   scene.add(actor.helper);
+  renderClipBar(actor.clips.map((c) => c.name));
   playClip(clipName);
   applyToggles();
   renderMorphs();
@@ -206,9 +226,79 @@ async function showRow(recipes: CharacterRecipe[], clip = 'Idle', spacing = 1.0,
     scene.add(a.helper);
     actors.push(a);
   });
+  renderClipBar(list[0]?.clips.map((c) => c.name) ?? []);
   playClip(clip);
   actors.forEach((a, i) => (a.mixer.time = i * 0.29));
   applyToggles();
+}
+
+// ───────────────────────────────────────────────────────────── creatures ──
+/** put the stage's contents on the floor (or float swimmers above it) and aim the camera */
+function autoFrame(grounded: boolean) {
+  for (const a of actors) a.mixer.update(0);
+  const box = new THREE.Box3().setFromObject(stage);
+  const size = box.getSize(new THREE.Vector3());
+  if (!grounded) stage.position.y += -box.min.y + Math.max(size.y * 0.25, 0.3);
+  const r = Math.max(size.x, size.y, size.z);
+  const cy = (box.max.y - box.min.y) / 2 + (grounded ? 0 : -box.min.y + Math.max(size.y * 0.25, 0.3)) + box.min.y;
+  controls.target.set(0, cy, 0);
+  camera.position.set(r * 0.55, cy + r * 0.25, r * 1.35);
+  camera.far = Math.max(200, r * 20);
+  camera.updateProjectionMatrix();
+}
+
+async function rebuildCreature(frame = false) {
+  const ticket = ++building;
+  const t0 = performance.now();
+  const c = generateCreature(creature);
+  const genMs = performance.now() - t0;
+  const actor = await makeActor(c);
+  if (ticket !== building) return;
+  lineup = false;
+  clearStage();
+  actors = [actor];
+  stage.add(actor.root);
+  scene.add(actor.helper);
+  renderClipBar(actor.clips.map((x) => x.name));
+  if (!actor.clips.some((x) => x.name === clipName)) clipName = actor.clips[0]?.name ?? 'RestPose';
+  playClip(clipName);
+  applyToggles();
+  $('morphs').style.display = 'none';
+  const s = c.stats;
+  $('stats').textContent = `${creature.name} · ${SPECIES[creature.species].label} · ${s.triangles.toLocaleString()} tris · ${s.bones} bones · ${c.clips.length} clips · ${creature.length} m · built in ${genMs.toFixed(0)} ms`;
+  if (frame) autoFrame(c.build.grounded);
+  history.replaceState(null, '', `#${encodeRecipe(creature as never)}`);
+}
+
+/** every species side by side, scaled to the same display size (the real sizes are in the files) */
+async function buildBestiary() {
+  const ticket = ++building;
+  const ids = Object.keys(SPECIES) as SpeciesId[];
+  const list: { a: Actor; L: number; grounded: boolean }[] = [];
+  for (const id of ids) {
+    const c = generateCreature(randomCreature(id, 1));
+    list.push({ a: await makeActor(c), L: c.build.length, grounded: c.build.grounded });
+  }
+  if (ticket !== building) return;
+  lineup = true;
+  clearStage();
+  const perRow = 5;
+  list.forEach(({ a, L, grounded }, i) => {
+    const k = 2.2 / L;
+    a.root.scale.setScalar(k);
+    a.root.position.set(((i % perRow) - (perRow - 1) / 2) * 3, grounded ? 0 : 1.1, -Math.floor(i / perRow) * 3.2);
+    a.root.rotation.y = Math.PI / 2.6;
+    stage.add(a.root);
+    scene.add(a.helper);
+    actors.push(a);
+  });
+  renderClipBar(['Swim', 'Idle', 'RestPose']);
+  playClip('Swim');
+  actors.forEach((a, i) => (a.mixer.time = i * 0.31));
+  applyToggles();
+  $('stats').textContent = `Bestiary: ${ids.length} species, shown at the same size. Real sizes range from ${Math.min(...ids.map((i) => SPECIES[i].length[0]))} m to ${Math.max(...ids.map((i) => SPECIES[i].length[1]))} m.`;
+  controls.target.set(0, 0.9, -4.8);
+  camera.position.set(0, 7, 9);
 }
 
 async function buildLineup() {
@@ -235,6 +325,7 @@ async function buildLineup() {
   });
   stage.rotation.y = 0;
   toggles.turn = false;
+  renderClipBar(list[0].clips.map((c) => c.name));
   playClip(clipName === 'RestPose' ? 'Walk' : clipName);
   // desync so the crowd doesn't march like an army
   actors.forEach((a, i) => (a.mixer.time = i * 0.37));
@@ -264,7 +355,8 @@ function changed(frame = false) {
   pending = true;
   requestAnimationFrame(() => {
     pending = false;
-    rebuild(frame);
+    if (mode === 'creatures') rebuildCreature(frame);
+    else rebuild(frame);
   });
 }
 
@@ -312,6 +404,23 @@ function colorInput(get: () => string, set: (v: string) => void) {
 }
 
 const syncers: (() => void)[] = [];
+const creatureSyncers: (() => void)[] = [];
+function syncCreature() {
+  creatureSyncers.forEach((s) => s());
+}
+function setMode(m: 'characters' | 'creatures') {
+  mode = m;
+  document.querySelectorAll<HTMLButtonElement>('#mode button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
+  $('left').hidden = m === 'creatures';
+  $('left-creatures').hidden = m !== 'creatures';
+  $('btn-solitude').hidden = m !== 'creatures';
+  if (m === 'creatures') {
+    syncCreature();
+    rebuildCreature(true);
+  } else {
+    rebuild(true);
+  }
+}
 function buildUI() {
   // presets
   const pc = $('presets');
@@ -523,13 +632,7 @@ function buildUI() {
 
   // viewport
   const clips = $('clips');
-  for (const c of ['Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight', 'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'ZombieWalk', 'RestPose']) {
-    const b = document.createElement('button');
-    b.textContent = c === 'RestPose' ? 'Rest' : c.replace(/([a-z])([A-Z])/g, '$1 $2');
-    b.dataset.clip = c;
-    b.addEventListener('click', () => playClip(c));
-    clips.appendChild(b);
-  }
+  void clips; // filled by renderClipBar() from whatever the loaded model exports
   document.querySelectorAll<HTMLButtonElement>('#toggles button').forEach((b) =>
     b.addEventListener('click', () => {
       const k = b.dataset.t as keyof typeof toggles;
@@ -538,8 +641,90 @@ function buildUI() {
     }),
   );
 
+  // ── creature panel
+  const csp = $('species');
+  for (const [id, sp] of Object.entries(SPECIES)) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = sp.label;
+    b.dataset.species = id;
+    b.addEventListener('click', () => {
+      creature = randomCreature(id as SpeciesId, creature.seed);
+      syncCreature();
+      rebuildCreature(true);
+    });
+    csp.appendChild(b);
+  }
+  const cs = $('c-sliders');
+  const cSlider = (label: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void, fmt?: (v: number) => string) => {
+    const sync = slider(cs, label, min, max, step, get, set, fmt);
+    creatureSyncers.push(sync);
+  };
+  cSlider('Length', 0.3, 80, 0.1, () => creature.length, (v) => (creature.length = v), (v) => `${v.toFixed(1)} m`);
+  cSlider('Mouth gape', 0, 2, 0.01, () => creature.mods.gape, (v) => (creature.mods.gape = v));
+  cSlider('Teeth', 0, 2, 0.01, () => creature.mods.teeth, (v) => (creature.mods.teeth = v));
+  cSlider('Fins / arms', 0.4, 1.8, 0.01, () => creature.mods.fins, (v) => (creature.mods.fins = v));
+  cSlider('Glow spots', 0, 1, 0.01, () => creature.mods.glow, (v) => (creature.mods.glow = v));
+  cSlider('Blotches', 0, 1, 0.01, () => creature.mods.blotch, (v) => (creature.mods.blotch = v));
+  const scars = $<HTMLInputElement>('c-scars');
+  scars.addEventListener('change', () => ((creature.mods.scars = scars.checked), changed()));
+  const cc = $('c-colors');
+  for (const [key, label] of [['base', 'Back'], ['belly', 'Belly'], ['accent', 'Blotches'], ['fin', 'Fins'], ['mouth', 'Mouth'], ['eye', 'Eyes'], ['glow', 'Glow']] as const) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<label>${label}</label>`;
+    const ci = colorInput(() => creature.colors[key], (v) => (creature.colors[key] = v));
+    row.appendChild(ci.el);
+    cc.appendChild(row);
+    creatureSyncers.push(ci.sync);
+  }
+  const cname = $<HTMLInputElement>('c-name');
+  cname.addEventListener('change', () => ((creature.name = cname.value || creature.name), changed()));
+  const cseed = $<HTMLInputElement>('c-seed');
+  const creseed = (sd: number) => {
+    const keep = creature.species;
+    creature = { ...randomCreature(keep, sd), length: creature.length, colors: creature.colors };
+    syncCreature();
+    rebuildCreature();
+  };
+  cseed.addEventListener('change', () => creseed(Number(cseed.value) || 1));
+  $('c-btn-seed').addEventListener('click', () => creseed(Math.floor(Math.random() * 1e6)));
+  const cdetail = $<HTMLSelectElement>('c-detail');
+  const cshading = $<HTMLSelectElement>('c-shading');
+  cdetail.addEventListener('change', () => ((creature.mesh.detail = cdetail.value as never), changed()));
+  cshading.addEventListener('change', () => ((creature.mesh.shading = cshading.value as never), changed()));
+  creatureSyncers.push(() => {
+    csp.querySelectorAll<HTMLButtonElement>('.chip').forEach((b) => b.classList.toggle('on', b.dataset.species === creature.species));
+    $('species-blurb').textContent = SPECIES[creature.species].blurb;
+    cname.value = creature.name;
+    cseed.value = String(creature.seed);
+    scars.checked = creature.mods.scars;
+    cdetail.value = creature.mesh.detail;
+    cshading.value = creature.mesh.shading;
+  });
+
+  // ── mode switch
+  document.querySelectorAll<HTMLButtonElement>('#mode button').forEach((b) =>
+    b.addEventListener('click', () => setMode(b.dataset.mode as typeof mode)),
+  );
+  $('btn-solitude').addEventListener('click', () => {
+    const c = generateCreature(creature);
+    const code = solitudeProfile(c, `${slug(creature.name)}.glb`);
+    navigator.clipboard?.writeText(code).catch(() => undefined);
+    download(new Blob([code], { type: 'text/plain' }), `${slug(creature.name)}.CreatureProfile.cs`);
+    toast('Solitude profile copied + downloaded 🐚');
+  });
+
   // top bar
   const surprise = () => {
+    if (mode === 'creatures') {
+      const ids = Object.keys(SPECIES) as SpeciesId[];
+      const sd = Math.floor(Math.random() * 1e6);
+      creature = randomCreature(ids[sd % ids.length], sd);
+      syncCreature();
+      rebuildCreature(true);
+      return;
+    }
     const styles = Object.keys(STYLES) as StyleId[];
     const themes = Object.keys(THEMES).filter((t) => t !== 'base');
     const s = Math.floor(Math.random() * 1e6);
@@ -549,21 +734,39 @@ function buildUI() {
     rebuild(true);
   };
   $('btn-random').addEventListener('click', surprise);
-  $('btn-lineup').addEventListener('click', buildLineup);
-  $('btn-save').addEventListener('click', () => download(new Blob([JSON.stringify(recipe, null, 2)], { type: 'application/json' }), `${slug(recipe.name)}.badchar.json`));
+  $('btn-lineup').addEventListener('click', () => (mode === 'creatures' ? buildBestiary() : buildLineup()));
+  $('btn-save').addEventListener('click', () =>
+    mode === 'creatures'
+      ? download(new Blob([JSON.stringify(creature, null, 2)], { type: 'application/json' }), `${slug(creature.name)}.badcreature.json`)
+      : download(new Blob([JSON.stringify(recipe, null, 2)], { type: 'application/json' }), `${slug(recipe.name)}.badchar.json`),
+  );
   $('file-load').addEventListener('change', async (ev) => {
     const f = (ev.target as HTMLInputElement).files?.[0];
     if (!f) return;
     try {
-      recipe = JSON.parse(await f.text());
-      syncAll();
-      rebuild(true);
-      toast(`Loaded ${recipe.name}`);
+      const data = JSON.parse(await f.text());
+      if (data.kind === 'creature') {
+        creature = data;
+        setMode('creatures');
+        toast(`Loaded ${creature.name}`);
+      } else {
+        recipe = data;
+        setMode('characters');
+        syncAll();
+        rebuild(true);
+        toast(`Loaded ${recipe.name}`);
+      }
     } catch {
       toast('That file is not a recipe 🤔');
     }
   });
   $('btn-export').addEventListener('click', () => {
+    if (mode === 'creatures') {
+      const glb = exportGlb(generateCreature(creature));
+      download(new Blob([glb as BlobPart], { type: 'model/gltf-binary' }), `${slug(creature.name)}.glb`);
+      toast(`Exported ${slug(creature.name)}.glb (${(glb.length / 1024).toFixed(0)} KB)`);
+      return;
+    }
     // export from the real recipe: props only if 'Export props' is ticked
     const glb = exportGlb(generateCharacter(recipe));
     download(new Blob([glb as BlobPart], { type: 'model/gltf-binary' }), `${slug(recipe.name)}.glb`);
@@ -654,7 +857,13 @@ function loop() {
 buildUI();
 syncAll();
 resize();
-rebuild(true);
+{
+  const h = loadFromHash() as unknown as { kind?: string } | null;
+  if (h?.kind === 'creature') {
+    creature = h as unknown as CreatureRecipe;
+    setMode('creatures');
+  } else rebuild(true);
+}
 loop();
 // for automated screenshots / debugging
-Object.assign(window, { __bc: { get recipe() { return recipe; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, showCreatures, toggles, applyToggles, stage, camera, controls } });
+Object.assign(window, { __bc: { get recipe() { return recipe; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, showCreatures, buildBestiary, setMode, toggles, applyToggles, stage, camera, controls } });
