@@ -322,3 +322,29 @@ describe('apocalypse', () => {
     expect(Math.max(sk.dims.armL, sk.dims.armR) / Math.min(sk.dims.armL, sk.dims.armR)).toBeGreaterThan(1.5);
   });
 });
+
+describe("Boxy style (Noor's bevelled rectangular anatomy)", () => {
+  it('cross-sections are bevelled boxes: 8 sides, flat faces, chamfered corners', () => {
+    const rc = randomRecipe(1, 'boxy', 'base');
+    const ch = generateCharacter(rc);
+    const skin = ch.primitives.find((p) => p.material === 'skin')!.mesh;
+    expect(skin.positions.length).toBeGreaterThan(0);
+    // flat shading by default, and every boxy body ring has 8 sides (+1 seam vertex)
+    expect(rc.mesh.shading).toBe('flat');
+    const sk = buildSkeleton(rc);
+    const torso = buildParts(rc, sk).parts.find((p) => p.name.startsWith('torso'))!;
+    const m = { positions: [] as number[], normals: [] as number[], uvs: [] as number[], joints: [] as number[], weights: [] as number[], indices: [] as number[] };
+    loftPart({ ...torso, bevel: 0.2, capStart: false, capEnd: false }, 12, m);
+    expect(m.positions.length / 3).toBe(torso.rings.length * 9);
+  });
+  it('works with every race and a range of themes, within budget and validator-clean', async () => {
+    for (const race of ['human', 'orc', 'elf', 'dwarf', 'hobbit', 'goblin', 'gremlin', 'mutant'] as const) {
+      const rc = randomRecipe(5, 'boxy', race === 'mutant' ? 'mutant' : 'ww2', race);
+      const ch = generateCharacter(rc);
+      const r = await validator.validateBytes(exportGlb(ch));
+      expect(r.issues.numErrors, race).toBe(0);
+      expect(r.issues.numWarnings, race).toBe(0);
+      expect(ch.stats.triangles, race).toBeLessThan(5000);
+    }
+  });
+});

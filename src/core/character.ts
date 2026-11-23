@@ -11,7 +11,7 @@ import { subSeed } from './rng';
 import { appendMesh, computeNormals, emptyMesh, loftPart, MeshData, Part, simplifyRings, unweld } from './loft';
 import { cullHidden } from './shell';
 import { addPropBones } from './props';
-import { CharacterRecipe, GARMENTS, MaterialKind, SlotId } from './recipe';
+import { CharacterRecipe, GARMENTS, MaterialKind, SlotId, STYLES } from './recipe';
 import { buildSkeleton, computeDims, Skeleton } from './skeleton';
 
 export interface MaterialDef {
@@ -131,6 +131,7 @@ export function buildParts(rc: CharacterRecipe, sk: Skeleton, masks?: number[][]
 /** sides around each ring for a part, from the detail level and the part's size class */
 export function sidesFor(p: Part, K: number): number {
   if (p.lod === 'box') return 4;
+  if (p.bevel) return 8;
   if (p.lod === 'small') return K >= 20 ? 12 : K >= 12 ? 8 : 6;
   // near-boxy cross-sections: extra sides would only sit on flat faces
   const n = p.rings.reduce((s, r) => s + r.n, 0) / p.rings.length;
@@ -138,9 +139,11 @@ export function sidesFor(p: Part, K: number): number {
   return K;
 }
 
-function meshesFor(parts: Part[], K: number): Map<string, MeshData> {
+function meshesFor(parts: Part[], K: number, bevel = 0): Map<string, MeshData> {
   const by = new Map<string, MeshData>();
-  for (const p of parts) {
+  for (const p0 of parts) {
+    // Boxy style: every body part, garment and hat gets the bevelled-box profile (props stay round)
+    const p = bevel && p0.lod !== 'box' && !/^prop|^glass/.test(p0.material) ? { ...p0, bevel } : p0;
     if (!by.has(p.material)) by.set(p.material, emptyMesh());
     const m = emptyMesh();
     loftPart(p, sidesFor(p, K), m);
@@ -159,7 +162,8 @@ export function generateCharacter(rc: CharacterRecipe): Character {
   addPropBones(rc, sk);
   const K = DETAIL[rc.mesh.detail] ?? 12;
   const { parts, masks } = buildParts(rc, sk);
-  const by = meshesFor(parts, K);
+  const bevel = STYLES[rc.style]?.bevel ?? 0;
+  const by = meshesFor(parts, K, bevel);
   const order = [...by.keys()];
 
   // morph targets: rebuild with fat/muscle pushed to the extremes, on the SAME skeleton
@@ -174,7 +178,7 @@ export function generateCharacter(rc: CharacterRecipe): Character {
     for (const [name, patch] of variants) {
       const vr: CharacterRecipe = { ...rc, body: { ...rc.body, ...patch } };
       const vsk: Skeleton = { ...sk, dims: { ...computeDims(vr), armDir: sk.dims.armDir } };
-      const vby = meshesFor(buildParts(vr, vsk, masks).parts, K);
+      const vby = meshesFor(buildParts(vr, vsk, masks).parts, K, bevel);
       const deltas = order.map((mat) => {
         const a = by.get(mat)!;
         const b = vby.get(mat);

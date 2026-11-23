@@ -51,6 +51,8 @@ export interface Part {
   id?: string;
   /** how this part was cut, so hidden stretches can be culled */
   spec?: ShellSpec;
+  /** bevelled-box cross-section: chamfer size as a fraction of the smaller half-extent */
+  bevel?: number;
   /** torn edges: jag the first/last ring along the direction of travel (metres, seeded) */
   ragged?: { start?: number; end?: number; seed: number };
 }
@@ -207,10 +209,31 @@ export function loftPart(part: Part, K: number, m: MeshData) {
   const rings = part.rings;
   const base = m.positions.length / 3;
   const isBox = part.lod === 'box';
+  const bevel = !isBox && part.bevel ? part.bevel : 0;
   if (isBox) K = 4;
+  if (bevel) K = 8;
   // boxes put their 4 vertices on the corners, everything else puts one mid-side
   const th0 = isBox ? -Math.PI / 2 + Math.PI / 4 : -Math.PI / 2;
-  const pointAt = (r: Ring, th: number): [number, number] => (isBox ? [r.a * Math.sign(Math.cos(th)), r.b * Math.sign(Math.sin(th))] : ringPoint(r, th));
+  /**
+   * Bevelled box: 8 vertices, flat sides, chamfered corners. Vertex k of 8, counter-clockwise
+   * from the back edge. Returns [x, y] plus the angle used for per-vertex weights.
+   */
+  const bevelPoint = (r: Ring, k: number): [number, number] => {
+    const c = bevel * Math.min(r.a, r.b);
+    const X = 1 - c / Math.max(r.a, 1e-9);
+    const Y = 1 - c / Math.max(r.b, 1e-9);
+    const P: [number, number][] = [[X, -1], [1, -Y], [1, Y], [X, 1], [-X, 1], [-1, Y], [-1, -Y], [-X, -1]];
+    const [px, py] = P[k % 8];
+    let x = px * r.a;
+    let y = py * r.b;
+    // same front/back bulges as the superellipse profile (bump() is shared)
+    if (r.fb && py > 0) y += r.fb * py * bump(px, r.fbDouble);
+    if (r.bb && py < 0) y -= r.bb * -py * bump(px, false);
+    return [x, y];
+  };
+  const angleOf = (r: Ring, k: number) => (bevel ? Math.atan2(bevelPoint(r, k)[1] / Math.max(r.b, 1e-9), bevelPoint(r, k)[0] / Math.max(r.a, 1e-9)) : th0 + (2 * Math.PI * k) / K);
+  const pointAt = (r: Ring, th: number, k: number): [number, number] =>
+    bevel ? bevelPoint(r, k) : isBox ? [r.a * Math.sign(Math.cos(th)), r.b * Math.sign(Math.sin(th))] : ringPoint(r, th);
   const R = K + 1;
   // winding: with p×q pointing along the direction of travel, (A,B,C) faces outward
   const travel = rings.length > 1 ? sub(rings[rings.length - 1].c, rings[0].c) : rings[0].d;
@@ -236,7 +259,7 @@ export function loftPart(part: Part, K: number, m: MeshData) {
     const pts: V3[] = [];
     for (let k = 0; k <= K; k++) {
       const th = th0 + (2 * Math.PI * k) / K;
-      const [x, y] = pointAt(r, th);
+      const [x, y] = pointAt(r, th, k);
       pts.push(add(add(r.c, add(scale(r.p, x), scale(r.q, y))), scale(tdir, jag(i, k))));
     }
     // u: arc length around the ring, starting at the back (-q) so the front sits at u = 0.5
@@ -251,9 +274,10 @@ export function loftPart(part: Part, K: number, m: MeshData) {
       const v = uvMode === 'head' ? (p[1] - (part.uv as { y0: number }).y0) / (part.uv as { h: number }).h : cum[i] / total;
       // head: normalized cylinder for the face texture; everything else: metres / tile, so
       // fabric patterns keep the same scale on every part
-      if (uvMode === 'head') m.uvs.push(arc[k] / per, 1 - v);
+      // (bevelled rings start at a corner, not the back centre: shift so the face stays at u = 0.5)
+      if (uvMode === 'head') m.uvs.push((arc[k] + (bevel ? bevelPoint(r, 0)[0] : 0)) / per, 1 - v);
       else m.uvs.push(arc[k] / PATTERN_TILE, (cum[i] / PATTERN_TILE));
-      const th = th0 + (2 * Math.PI * k) / K;
+      const th = angleOf(r, k);
       const w = part.vertexWeights ? part.vertexWeights(i, Math.cos(th), Math.sin(th), r) : r.w;
       const [j, ww] = finishWeights(w);
       m.joints.push(...j);

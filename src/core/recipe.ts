@@ -8,7 +8,7 @@ import { RaceId, RACES, Shape } from './races';
 import type { PatternId } from './patterns';
 
 // ─────────────────────────────────────────────────────────────── styles ──
-export type StyleId = 'blocky' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky';
+export type StyleId = 'blocky' | 'boxy' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky';
 
 export interface Style {
   label: string;
@@ -39,6 +39,8 @@ export interface Style {
   eyeLine: number;
   /** relative size of facial features */
   faceScale: number;
+  /** bevelled-box cross-sections (chamfer as a fraction of the smaller half-extent) */
+  bevel?: number;
 }
 
 export const STYLES: Record<StyleId, Style> = {
@@ -47,6 +49,12 @@ export const STYLES: Record<StyleId, Style> = {
     blurb: 'Advanced voxel hero: chunky limbs, cube head, but with knees and elbows',
     headsTall: 4.4, headW: 0.48, headD: 0.48, arm: 1.75, leg: 1.65, torso: 1.3, definition: 0.15,
     legFrac: 0.55, armFrac: 0.5, neck: 0.06, hand: 1.05, foot: 1.0, roundness: 0.12, eyeLine: 0.44, faceScale: 1.25,
+  },
+  boxy: {
+    label: 'Boxy',
+    blurb: "Noor's style: rectangular anatomy, bevelled edges, real joints, not a Minecraft clone",
+    headsTall: 6.2, headW: 0.43, headD: 0.46, arm: 1.3, leg: 1.22, torso: 1.15, definition: 0.55,
+    legFrac: 0.56, armFrac: 0.48, neck: 0.14, hand: 1.15, foot: 1.15, roundness: 0.05, eyeLine: 0.46, faceScale: 1.1, bevel: 0.2,
   },
   chibi: {
     label: 'Chibi',
@@ -774,7 +782,7 @@ export function randomRecipe(seed: number, style: StyleId = 'blocky', theme = 'c
     face,
     outfit,
     rig: { restPose: 'T' },
-    mesh: style === 'faceted' ? { detail: 'low', shading: 'flat', morphs: true } : { detail: 'medium', shading: 'smooth', morphs: true },
+    mesh: style === 'faceted' || style === 'boxy' ? { detail: style === 'boxy' ? 'medium' : 'low', shading: 'flat', morphs: true } : { detail: 'medium', shading: 'smooth', morphs: true },
   };
 }
 
