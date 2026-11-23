@@ -8,7 +8,7 @@
  * Layering (inner → outer): underwear/suit 1 · trousers 2 · shirt 3 · footwear/gloves 4 ·
  * belt 4.5 · vest 5–6 · armour 7+. Each layer is `e` metres thicker than the one below.
  */
-import { anchor, inflateRing, lerpRing, mergeWeights, Part, ring, Ring, sampleRing, Weights } from './loft';
+import { anchor, inflateRing, lerpRing, mergeWeights, Part, ring, Ring, ringPoint, sampleRing, Weights } from './loft';
 import { shell, ShellOpts } from './shell';
 import { add, clamp, lerp, norm, qRotate, Quat, scale, sub, V3 } from './math';
 import { buildClips, worldPose } from './anim';
@@ -20,6 +20,14 @@ import { Rng, subSeed } from './rng';
 
 const X: V3 = [1, 0, 0];
 const Z: V3 = [0, 0, 1];
+
+/**
+ * How much a superellipse of exponent nOut must be scaled (same a:b aspect) to contain one of
+ * exponent nIn. The worst point is the diagonal corner, so this is exact.
+ */
+export function encloseScale(nIn: number, nOut: number) {
+  return nIn > nOut ? 2 ** (1 / nOut - 1 / nIn) : 1;
+}
 
 /** tag lookup with a fractional offset in ring units */
 const K = (p: Part, tag: string, off = 0) => anchor(p.rings, tag) + off;
@@ -63,14 +71,37 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
     const hipY = d.hipY;
     const encl = Math.max(hip.a, d.hipJX + d.thighR * 1.05);
     const steps = 6;
-    // widen only below the shirt hem, so a skirt never pokes through the top above it
     const y0 = hipY - 0.04 * d.u;
-    const rings: Ring[] = [inflateRing(top, inflate), inflateRing(hip, inflate)];
+    const n = Math.max(2.4, d.n * 0.8);
+    const shape: [number, number, number, number][] = [[hipY, hip.a, hip.b, 0]]; // y, a, b, flare progress
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      const y = lerp(y0, lengthY, t);
-      rings.push(ring([0, y, 0], X, Z, encl + inflate + flare * t, Math.max(hip.b, d.thighR * 1.1) + inflate + flare * 0.7 * t, Math.max(2.4, d.n * 0.8), hip.w, { bb: (hip.bb ?? 0) * (1 - t) }));
+      shape.push([lerp(y0, lengthY, t), encl + flare * t, Math.max(hip.b, d.thighR * 1.1) + flare * 0.7 * t, t]);
     }
+    // everything a skirt must hide: torso, legs and any lower-body garment already built
+    const inner: [number, number, number][] = [];
+    const sample = (p: Part) => {
+      for (const r of p.rings)
+        for (let k = 0; k < 16; k++) {
+          const [x, y] = ringPoint(r, (k / 16) * Math.PI * 2);
+          inner.push(add(r.c, add(scale(r.p, x), scale(r.q, y))));
+        }
+    };
+    sample(torso);
+    for (const sd of sides) sample(body[`leg.${sd}`]);
+    for (const g of out) if (/^(bottom|top)\.(pelvis|leg)/.test(g.name)) sample(g);
+    const rings: Ring[] = [inflateRing(top, inflate)];
+    shape.forEach(([y, a0, b0, t], i) => {
+      // grow the planned cross-section until every point near this height is inside it
+      const band = 0.6 * Math.abs((shape[Math.min(i + 1, shape.length - 1)][0] - shape[Math.max(i - 1, 0)][0]) / 2) + 1e-3;
+      let k = 1;
+      for (const P of inner) if (Math.abs(P[1] - y) <= band) k = Math.max(k, (Math.abs(P[0] / a0) ** n + Math.abs(P[2] / b0) ** n) ** (1 / n));
+      // A-line: never narrower than the ring above (no hip bulge then pinch)
+      const prev = i > 0 ? rings[rings.length - 1] : null;
+      const a = Math.max(a0 * k + inflate, prev ? prev.a : 0);
+      const b = Math.max(b0 * k + inflate, prev ? prev.b : 0);
+      rings.push(ring([0, y, 0], X, Z, a, b, n, hip.w, { bb: (hip.bb ?? 0) * (1 - t) }));
+    });
     const legSpan = d.hipY - d.kneeY;
     const part: Part = {
       name,
@@ -346,19 +377,26 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
     const r = ring0(0.6);
     out.push(slab('head.brim', mat('head'), [0, d.chinY + 0.6 * hh, 0.08 * r.b], r.a + 0.16 * hh, r.b + 0.2 * hh, 0.03 * hh, hw));
   } else if (hd === 'wizard') {
-    const r = ring0(0.62);
-    const y0 = d.chinY + 0.62 * hh;
-    out.push(slab('head.brim', mat('head'), [0, y0, 0], r.a * 1.95, r.b * 1.75, 0.03 * hh, hw, 2.2));
-    const cone: Ring[] = [];
-    const steps = 7;
-    for (let i = 0; i <= steps; i++) {
+    // the cone must swallow the whole upper head (boxy heads have corners!) plus any hair
+    const base = 0.6;
+    const pad = 0.025 * hh + (o.hair.id !== 'none' ? 0.05 * hh : 0) + e;
+    const upper = head.rings.filter((r) => r.c[1] >= d.chinY + (base - 0.05) * hh);
+    const nOut = 2.4;
+    const A = Math.max(...upper.map((r) => r.a * encloseScale(r.n, nOut))) + pad;
+    const B = Math.max(...upper.map((r) => r.b * encloseScale(r.n, nOut))) + pad;
+    const y0 = d.chinY + base * hh;
+    const yTop = d.chinY + hh + pad;
+    out.push(slab('head.brim', mat('head'), [0, y0, 0], A * 1.75, B * 1.6, 0.03 * hh, hw, 2.2));
+    const cone: Ring[] = [ring([0, y0 - 0.01 * hh, 0], X, Z, A, B, nOut, hw), ring([0, yTop, 0], X, Z, A * 0.97, B * 0.97, nOut, hw)];
+    const steps = 6;
+    for (let i = 1; i <= steps; i++) {
       const tt = i / steps;
-      const rad = 1.12 * (1 - tt) ** 1.15 + 0.03;
-      const lean = 0.55 * hh * tt ** 2.2;
-      cone.push(ring([0, y0 + tt * hh * 1.3, -lean], X, Z, r.a * rad, r.b * rad, 2.4, hw));
+      const rad = 0.97 * (1 - tt) ** 1.2 + 0.03;
+      const lean = 0.5 * hh * tt ** 2.2;
+      cone.push(ring([0, yTop + tt * hh * 0.95, -lean], X, Z, A * rad, B * rad, nOut, hw));
     }
     out.push({ name: 'head.cone', material: mat('head'), rings: cone, capStart: true, capEnd: true });
-    out.push(shell('head.hatband', { rings: cone.map((c) => ({ ...c })) }, 0.05, 0.45, { material: mat('head', true), inflate: 0.004 * d.u, cuffStart: true, cuffEnd: true }));
+    out.push(shell('head.hatband', { rings: cone.map((c) => ({ ...c })) }, 0.02, 0.45, { material: mat('head', true), inflate: 0.004 * d.u, cuffStart: true, cuffEnd: true }));
   } else if (hd === 'greathelm') {
     const hr = head.rings.map((r) => ({ ...r }));
     const ext: Ring = { ...hr[0], c: [hr[0].c[0], hr[0].c[1] - 0.12 * hh, hr[0].c[2]] as V3, a: hr[1].a, b: hr[1].b };
@@ -376,15 +414,28 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
       out.push(spike(`head.spike.${i}`, mat('head'), c, 0.05 * hh, 0.16 * hh, hw));
     }
   } else if (hd === 'spacehelm') {
-    const rings: Ring[] = [];
-    const R = Math.max(d.headHW, d.headHD) * 1.35;
+    // a glass bubble sized to contain every vertex of the head, nose, ears and hair
     const cy = d.chinY + 0.5 * hh;
+    const cz = 0.04 * hh;
+    let R = 0;
+    for (const id of ['head', 'nose', 'ear.L', 'ear.R']) {
+      const p = body[id];
+      if (!p) continue;
+      for (const r of p.rings)
+        for (let k = 0; k < 16; k++) {
+          const [x, y] = ringPoint(r, (k / 16) * Math.PI * 2);
+          const P = add(r.c, add(scale(r.p, x), scale(r.q, y)));
+          R = Math.max(R, Math.hypot(P[0], P[1] - cy, P[2] - cz));
+        }
+    }
+    R = R * 1.06 + (o.hair.id !== 'none' ? 0.06 * hh : 0) + e;
+    const rings: Ring[] = [];
     for (let i = 0; i <= 8; i++) {
       const th = -Math.PI / 2 + (Math.PI * i) / 8;
       const rr = Math.max(Math.cos(th), 0.02) * R;
-      rings.push(ring([0, cy + Math.sin(th) * R * 1.05, 0.04 * hh], X, Z, rr, rr, 2.2, hw));
+      rings.push(ring([0, cy + Math.sin(th) * R, cz], X, Z, rr, rr, 2, hw));
     }
-    rings[0] = { ...rings[1], c: [0, rings[1].c[1], 0.04 * hh], a: d.neckR * 1.6, b: d.neckR * 1.6 };
+    rings[0] = { ...rings[1], c: [0, rings[1].c[1], cz], a: d.neckR * 1.6, b: d.neckR * 1.6 };
     out.push({ name: 'head.glass', material: 'glass', rings, capStart: true, capEnd: true });
     out.push(shell('head.collar', body.neck, 0, 1.6, { material: mat('head'), inflate: d.neckR * 0.6 + 4 * e, cuffStart: true, cuffEnd: true, nBoost: 0 }));
   }
