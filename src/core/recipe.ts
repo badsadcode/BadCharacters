@@ -112,6 +112,7 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     long: { label: 'Voxel long', kind: 'cloth' },
     mohawk: { label: 'Mohawk', kind: 'cloth' },
     bun: { label: 'Top knot', kind: 'cloth' },
+    ponytail: { label: 'Ponytail', kind: 'cloth' },
   },
   beard: {
     none: { label: 'Clean (none)', kind: 'cloth' },
@@ -143,6 +144,9 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     sidecap: { label: 'Side cap', kind: 'cloth' },
     peaked: { label: 'Peaked officer cap', kind: 'cloth' },
     ushanka: { label: 'Ushanka', kind: 'cloth' },
+    hood: { label: 'Hood', kind: 'cloth' },
+    divehelm: { label: 'Brass diving helmet', kind: 'metal' },
+    divedome: { label: 'Sci-fi dive dome', kind: 'plastic' },
   },
   // (called 'mask', not 'face': 'face' is the face-texture material)
   mask: {
@@ -152,6 +156,7 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     goggles: { label: 'Goggles', kind: 'rubber' },
     shemagh: { label: 'Shemagh', kind: 'cloth' },
     bandanamask: { label: 'Bandana mask', kind: 'cloth' },
+    divemask: { label: 'Dive mask + snorkel', kind: 'rubber' },
   },
   top: {
     none: { label: 'None', kind: 'cloth' },
@@ -169,6 +174,8 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     combat: { label: 'Combat shirt (modern)', kind: 'cloth' },
     hoodie: { label: 'Hoodie', kind: 'cloth' },
     jacket: { label: 'Leather jacket', kind: 'leather' },
+    drysuit: { label: 'Canvas dive suit', kind: 'cloth' },
+    wetsuit: { label: 'Wetsuit', kind: 'rubber' },
   },
   bottom: {
     none: { label: 'None', kind: 'cloth' },
@@ -179,6 +186,8 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     suit: { label: 'Bodysuit legs', kind: 'rubber' },
     breeches: { label: 'Breeches (WWI)', kind: 'cloth' },
     cargo: { label: 'Cargo trousers', kind: 'cloth' },
+    drysuit: { label: 'Canvas dive suit legs', kind: 'cloth' },
+    wetsuit: { label: 'Wetsuit legs', kind: 'rubber' },
   },
   legs: {
     none: { label: 'None', kind: 'cloth' },
@@ -193,6 +202,8 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     tallboots: { label: 'Tall boots', kind: 'leather' },
     hikers: { label: 'Hiking boots', kind: 'leather' },
     jungle: { label: 'Jungle boots', kind: 'leather' },
+    leadboots: { label: 'Weighted diving boots', kind: 'metal' },
+    fins: { label: 'Dive fins', kind: 'rubber' },
     sabatons: { label: 'Armored boots', kind: 'metal' },
   },
   hands: {
@@ -213,12 +224,16 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     platecarrier: { label: 'Plate carrier (modern)', kind: 'cloth' },
     exo: { label: 'Exo armour (future)', kind: 'plastic' },
     scrap: { label: 'Scrap armour (wasteland)', kind: 'metal' },
+    corselet: { label: 'Diving corselet (brass)', kind: 'metal' },
+    bcd: { label: 'Scuba BCD vest', kind: 'rubber' },
+    hardsuit: { label: 'Deep-sea hard suit', kind: 'plastic' },
   },
   belt: {
     none: { label: 'None', kind: 'leather' },
     belt: { label: 'Belt', kind: 'leather' },
     sash: { label: 'Sash', kind: 'cloth' },
     utility: { label: 'Utility belt + canteen', kind: 'cloth' },
+    weights: { label: 'Dive weight belt', kind: 'rubber' },
   },
   back: {
     none: { label: 'None', kind: 'cloth' },
@@ -230,10 +245,15 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     alice: { label: 'ALICE pack (Vietnam)', kind: 'cloth' },
     assault: { label: 'Assault pack (modern)', kind: 'cloth' },
     radio: { label: 'Field radio', kind: 'plastic' },
+    scubatank: { label: 'Scuba tank', kind: 'metal' },
+    rebreather: { label: 'Rebreather pack', kind: 'plastic' },
+    airhose: { label: 'Diver air hose', kind: 'rubber' },
+    cape: { label: 'Cape', kind: 'cloth' },
   },
   neck: {
     none: { label: 'None', kind: 'cloth' },
     scarf: { label: 'Scarf', kind: 'cloth' },
+    furcollar: { label: 'Fur collar', kind: 'cloth' },
   },
   prop: {
     none: { label: 'Empty hands', kind: 'cloth' },
@@ -281,6 +301,75 @@ interface Theme {
 export const SKIN_TONES = ['#f3d2b8', '#e8b896', '#d29b74', '#b57b55', '#8d5a3b', '#6b4029', '#4a2c1d'];
 
 export const THEMES: Record<string, Theme> = {
+  retrodiver: {
+    label: 'Hard-hat diver',
+    genre: 'Retro deep-sea diving (Mark V)',
+    slots: {
+      head: { divehelm: 1 },
+      top: { drysuit: 1 },
+      bottom: { drysuit: 1 },
+      feet: { leadboots: 1 },
+      hands: { gloves: 1 },
+      armor: { corselet: 1 },
+      belt: { weights: 1 },
+      back: { airhose: 1 },
+    },
+    palette: ['#8a7a5a', '#7a6e52', '#6a6250'],
+    accents: ['#3a3a3a', '#2a2a2a'],
+    slotPalette: { head: ['#b8863a', '#c4943e', '#a87a32'], armor: ['#b8863a', '#c4943e'], feet: ['#5a5a5a'], hands: ['#4a3a2a'], back: ['#2a2a2a'] },
+    fixed: { head: ['#b8863a', '#8a5a22'], armor: ['#b8863a', '#8a5a22'] },
+  },
+  scuba: {
+    label: 'Scuba diver',
+    genre: 'Modern recreational / technical diving',
+    slots: {
+      mask: { divemask: 1 },
+      top: { wetsuit: 1 },
+      bottom: { wetsuit: 1 },
+      feet: { fins: 1 },
+      hands: { gloves: 2, none: 1 },
+      armor: { bcd: 1 },
+      belt: { weights: 1 },
+      back: { scubatank: 1 },
+    },
+    palette: ['#1e2328', '#22303c', '#2a2a30'],
+    accents: ['#e8c21a', '#2fa8d8', '#e8541a', '#d8d8d8'],
+    slotPalette: { back: ['#e8c21a', '#c8ccd0', '#d84a2a'], feet: ['#1e2328'], mask: ['#1e2328'] },
+  },
+  deepsuit: {
+    label: 'Deep-sea hard suit',
+    genre: 'Sci-fi diving (Solitude!)',
+    slots: {
+      head: { divedome: 1 },
+      top: { suit: 1 },
+      bottom: { suit: 1 },
+      feet: { sabatons: 1 },
+      hands: { gauntlets: 1 },
+      armor: { hardsuit: 1 },
+      back: { rebreather: 1 },
+    },
+    palette: ['#3a4048', '#d8dde3', '#c8a83a', '#2c3a4a', '#4a4f58'],
+    accents: ['#00d0ff', '#ffb000', '#a6ff00'],
+  },
+  party: {
+    label: 'Adventuring party',
+    genre: 'Fantasy adventure (cloaks, hoods and fur)',
+    slots: {
+      hair: { none: 2, ponytail: 2, messy: 1 },
+      head: { none: 3, hood: 2, wizard: 1 },
+      top: { tunic: 3, longsleeve: 2, coat: 1 },
+      bottom: { pants: 1 },
+      feet: { boots: 2, tallboots: 1 },
+      hands: { gloves: 1, none: 2 },
+      belt: { belt: 2, sash: 1 },
+      back: { cape: 3, rucksack: 1, quiver: 1 },
+      neck: { none: 2, furcollar: 1, scarf: 1 },
+      prop: { none: 2, staff: 1, bow: 1 },
+    },
+    palette: ['#2f6f4a', '#7a2a2a', '#3a4a7a', '#6a4a2a', '#5a3a6a', '#7a6a4a'],
+    accents: ['#d4a62a', '#c8b48a', '#3a2716'],
+    slotPalette: { neck: ['#d8c8a8', '#8a6a4a', '#e8e0d0'], hair: ['#a33b1f', '#d8b46a', '#3b2414'] },
+  },
   ww1: {
     label: 'WWI soldier',
     genre: 'Great War trenches (1914-1918)',
@@ -691,7 +780,7 @@ export function randomBody(seed: number, style: StyleId, theme: string, raceId: 
     muscle: round(clamp01((heroic ? r.range(0.55, 1) : r.range(0, 0.7) ** 1.3) + race.muscle), 3),
     fat: round(clamp01((heroic ? r.range(0, 0.2) : r.range(0, 0.75) ** 1.6) + race.fat), 3),
     headScale: round(r.range(0.94, 1.06), 3),
-    roundness: round(clamp01(st.roundness + r.range(-0.12, 0.12)), 3),
+    roundness: round(clamp01(st.roundness + r.range(-0.12, 0.12) - (race.rocky ? 0.25 : 0)), 3),
     legLength: round(r.range(-0.4, 0.4), 3),
     skin: r.pick(skins),
   };

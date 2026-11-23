@@ -9,6 +9,7 @@ import { Rng, subSeed } from './rng';
 import { add, clamp, cross, dot, lerp, norm, scale, sub, V3 } from './math';
 import type { Skeleton } from './skeleton';
 import { COVERS_NOSE, STYLES, type CharacterRecipe } from './recipe';
+import { RACES } from './races';
 
 export type PartMap = Record<string, Part>;
 
@@ -355,6 +356,52 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
           }),
         };
       }
+    }
+  }
+  const race = RACES[rc.body.race ?? 'human'];
+  if (race?.rocky || race?.sprout) {
+    const rr = new Rng(subSeed(rc.seed, 'golem'));
+    const add_ = (name: string, material: string, bone: string, c: V3, half: V3) => {
+      parts[name] = { name, material, lod: 'box', capStart: true, capEnd: true, rings: [ring([c[0], c[1] - half[1], c[2]], X, Z, half[0], half[2], 40, W([bone, 1])), ring([c[0], c[1] + half[1], c[2]], X, Z, half[0], half[2], 40, W([bone, 1]))] };
+    };
+    if (race.rocky) {
+      // rock chunks on the shoulders, back, forearms and head, with moss on the top surfaces
+      const chunks: [string, V3, number][] = [
+        ['UpperChest', [d.shoulderHW * 0.85, d.neckBaseY + 0.02 * tl, -d.chestHD * 0.1], 0.07],
+        ['UpperChest', [-d.shoulderHW * 0.85, d.neckBaseY + 0.02 * tl, -d.chestHD * 0.1], 0.065],
+        ['UpperChest', [d.chestHW * 0.35, d.hipY + 0.75 * tl, -d.chestHD * 1.0], 0.06],
+        ['Chest', [-d.chestHW * 0.4, d.hipY + 0.5 * tl, -d.chestHD * 0.95], 0.055],
+        ['Head', [d.headHW * 0.4, d.H - 0.02 * d.headH, -d.headHD * 0.3], 0.05],
+      ];
+      for (const s of [1, -1]) {
+        const side = s > 0 ? 'Left' : 'Right';
+        const fa = sk.bones[sk.index[`${side}LowerArm`]].world;
+        const dir: V3 = [d.armDir[0] * s, d.armDir[1], 0];
+        chunks.push([`${side}LowerArm`, add(add(fa, scale(dir, d.foreArmLen * 0.45)), [0, d.foreArmR * 0.9, 0]), 0.045]);
+      }
+      chunks.forEach(([bone, c, size], i) => {
+        const sz = size * d.u * rr.range(0.8, 1.2);
+        add_(`rock.${i}`, 'rock', bone, c, [sz * rr.range(0.9, 1.3), sz * 0.7, sz * rr.range(0.8, 1.2)]);
+        if (rr.chance(0.6)) add_(`moss.${i}`, 'moss', bone, [c[0], c[1] + sz * 0.72, c[2]], [sz * 0.8, sz * 0.12, sz * 0.75]);
+      });
+    }
+    if (race.sprout) {
+      // a little meadow on the head, leaves on the shoulders, a warm heartstone in the chest
+      const top = d.H;
+      for (let f = 0; f < 4; f++) {
+        const fx = rr.range(-0.7, 0.7) * d.headHW;
+        const fz = rr.range(-0.6, 0.6) * d.headHD;
+        const ps = 0.06 * d.headH;
+        for (let k = 0; k < 4; k++) {
+          const a = (k / 4) * Math.PI * 2 + f;
+          add_(`petal.${f}.${k}`, 'petal', 'Head', [fx + Math.cos(a) * ps, top + 0.02 * d.headH, fz + Math.sin(a) * ps], [ps * 0.6, ps * 0.15, ps * 0.6]);
+        }
+        add_(`flower.${f}`, 'flowercore', 'Head', [fx, top + 0.035 * d.headH, fz], [ps * 0.45, ps * 0.2, ps * 0.45]);
+      }
+      for (const s of [1, -1]) {
+        for (let k = 0; k < 3; k++) add_(`leaf.${s}.${k}`, 'leaf', 'UpperChest', [s * (d.shoulderHW * 0.7 + k * 0.03 * d.u), d.neckBaseY + 0.01 * tl, (k - 1) * 0.04 * d.u], [0.03 * d.u, 0.008 * d.u, 0.05 * d.u]);
+      }
+      add_('heartstone', 'heart', 'Chest', [0, d.hipY + 0.68 * tl, d.chestHD + 0.01 * d.u], [0.035 * d.u, 0.035 * d.u, 0.012 * d.u]);
     }
   }
   for (const [id, p] of Object.entries(parts)) bodySpec(id, p);

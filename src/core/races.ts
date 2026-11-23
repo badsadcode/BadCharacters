@@ -7,7 +7,7 @@
  */
 
 export type EarShape = 'round' | 'pointed' | 'elf' | 'wide' | 'bat';
-export type RaceId = 'human' | 'orc' | 'elf' | 'dwarf' | 'hobbit' | 'goblin' | 'gremlin' | 'mutant';
+export type RaceId = 'human' | 'orc' | 'elf' | 'dwarf' | 'hobbit' | 'goblin' | 'gremlin' | 'mutant' | 'golem' | 'sprout';
 
 export interface Race {
   label: string;
@@ -44,6 +44,10 @@ export interface Race {
   skins: string[];
   /** seeded asymmetry, growths and maybe horns */
   mutant?: boolean;
+  /** stone golem: rock chunks and moss */
+  rocky?: boolean;
+  /** flower golem: flowers, leaves and a glowing heartstone */
+  sprout?: boolean;
 }
 
 export const RACES: Record<RaceId, Race> = {
@@ -95,6 +99,20 @@ export const RACES: Record<RaceId, Race> = {
     neckLen: 0.6, neckThick: 1.3, jaw: 1.2, nose: 1.1, ears: 'round', earScale: 0.9, muscle: 0.25, fat: 0.05, belly: 0, hunch: 0.5, face: 1,
     skins: ['#8a9a7a', '#9a8aa0', '#7a8a8a', '#a0947a', '#8fa08a', '#b08a8a'],
     mutant: true,
+  },
+  golem: {
+    label: 'Stone golem', blurb: 'Two and a half metres of animated quarry. Mossy where it stood still too long.',
+    height: [2.1, 2.5], headsTall: 1.25, headW: 1.05, torso: 1.3, arm: 1.5, leg: 1.38, legFrac: 0.92, armFrac: 1.08, shoulders: 1.45, hand: 1.45, foot: 1.3,
+    neckLen: 0.25, neckThick: 1.6, jaw: 1.3, nose: 0.9, ears: 'round', earScale: 0.6, muscle: 0.5, fat: 0, belly: 0, hunch: 0.25, face: 0.9,
+    skins: ['#8a8a82', '#9a958a', '#7a7a74', '#a39e90', '#8a8070'],
+    rocky: true,
+  },
+  sprout: {
+    label: 'Flower golem', blurb: 'A gentle construct of pale stone and wood, blooming wherever it stops to think.',
+    height: [1.7, 2.0], headsTall: 1.0, headW: 0.95, torso: 0.82, arm: 0.78, leg: 0.8, legFrac: 1.02, armFrac: 1.04, shoulders: 0.95, hand: 1.0, foot: 1.0,
+    neckLen: 1.1, neckThick: 0.8, jaw: 1.05, nose: 0.6, ears: 'round', earScale: 0.5, muscle: -0.2, fat: -0.3, belly: 0, hunch: 0, face: 0.95,
+    skins: ['#d8d2c0', '#c8c0aa', '#e0dccc', '#bfb8a2'],
+    sprout: true,
   },
 };
 

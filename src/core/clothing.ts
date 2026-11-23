@@ -19,6 +19,7 @@ import type { Skeleton } from './skeleton';
 import { Rng, subSeed } from './rng';
 import { buildProps } from './props';
 import { buildMilitary } from './military';
+import { buildExtras } from './extras';
 
 const X: V3 = [1, 0, 0];
 const Z: V3 = [0, 0, 1];
@@ -453,6 +454,7 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
   }
 
   buildMilitary({ rc, sk, body, out, e });
+  buildExtras({ rc, sk, body, out, e });
 
   // torn garments: rebuild every shell of that slot with jagged hems
   const rag = 0.035 * d.u;

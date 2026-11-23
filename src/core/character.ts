@@ -71,6 +71,14 @@ function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
     visor: { name: 'Visor', color: '#0b0b0d', metallic: 0.2, roughness: 0.6 },
     tusk: { name: 'Tusk', color: '#ece2c6', metallic: 0, roughness: 0.5 },
     tyre: { name: 'Tyre', color: '#1c1c1c', metallic: 0, roughness: 0.85 },
+    divglass: { name: 'DiveGlass', color: '#0c1a22', metallic: 0.2, roughness: 0.08, emissive: '#06222c' },
+    lamp: { name: 'Lamp', color: '#222222', metallic: 0, roughness: 0.3, emissive: '#fff2c0' },
+    rock: { name: 'Rock', color: shade(rc.body.skin, 0.78), metallic: 0, roughness: 0.9 },
+    moss: { name: 'Moss', color: '#5f7d3a', metallic: 0, roughness: 0.95 },
+    petal: { name: 'Petals', color: '#f4f1e6', metallic: 0, roughness: 0.8 },
+    flowercore: { name: 'FlowerCentre', color: '#f2c230', metallic: 0, roughness: 0.7 },
+    leaf: { name: 'Leaves', color: '#6fa040', metallic: 0, roughness: 0.85 },
+    heart: { name: 'Heartstone', color: '#3a2a10', metallic: 0, roughness: 0.4, emissive: '#ffcf5a' },
     growth: { name: 'Growth', color: mutantGrowth(rc.body.skin), metallic: 0, roughness: 0.6 },
     horn: { name: 'Horn', color: '#d8cfb4', metallic: 0, roughness: 0.55 },
     visorglow: { name: 'VisorGlow', color: '#0a1a22', metallic: 0.3, roughness: 0.2, emissive: rc.outfit.head?.color2 ?? '#00d0ff' },
@@ -96,6 +104,11 @@ function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
   return m;
 }
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+/** a darker (k < 1) or lighter (k > 1) version of a colour */
+function shade(hex: string, k: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.min(255, Math.round(v * k)).toString(16).padStart(2, '0')).join('');
+}
 /** growths: the skin tone, angrier */
 function mutantGrowth(skin: string) {
   const n = parseInt(skin.slice(1), 16);

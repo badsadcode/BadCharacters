@@ -25,7 +25,11 @@ export interface WardrobeCtx {
   e: number;
 }
 
-export function buildMilitary(c: WardrobeCtx) {
+/**
+ * The shared toolkit every wardrobe module builds with: body lookups (front/back surface of the
+ * torso, head rings), and shell helpers (sleeves, trouser legs, torso shells, head domes, straps).
+ */
+export function wardrobeKit(c: WardrobeCtx) {
   const { rc, sk, body, out, e } = c;
   const d = sk.dims;
   const o = rc.outfit;
@@ -75,8 +79,6 @@ export function buildMilitary(c: WardrobeCtx) {
   const chestW = W(['Chest', 0.4], ['UpperChest', 0.6]);
   const waistW = W(['Spine', 0.6], ['Hips', 0.4]);
 
-  // ─────────────────────────────────────────────────────────────── helmets & caps
-  const hd = id('head');
   const hairPad = o.hair?.id !== 'none' ? 0.05 * hh : 0;
   /** a dome that encloses the head from t0 upward, with exponent n */
   const dome = (name: string, material: string, t0: number, pad: number, n: number, flat = 0.0) => {
@@ -95,6 +97,25 @@ export function buildMilitary(c: WardrobeCtx) {
     out.push({ name, material, rings, capStart: true, capEnd: true });
     return { A, B, y0 };
   };
+  function strap(name: string, material: string, y0: number, thick = 0.02): Part[] {
+    // chinstrap: a thin loop under the jaw, from temple to temple
+    const r = at(0.5);
+    const pts: V3[] = [];
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const ang = Math.PI * (0.5 + t);
+      pts.push([Math.cos(ang) * -(r.a + e), lerp(y0, d.chinY - 0.04 * hh, Math.sin(t * Math.PI)), 0.15 * hh]);
+    }
+    return [{ name, material, capStart: true, capEnd: true, lod: 'small', rings: pts.map((P) => ring(P, Z, [0, 1, 0], thick * hh, thick * hh * 0.5, 2.4, hw)) }];
+  }
+
+  return { rc, sk, body, out, e, d, o, W, mat, torso, head, hh, hw, sides, at, tk, id, frontZ, backZ, shellOf, headShell, sleeves, legsTo, legBand, torsoShell, pocket, chestW, waistW, hairPad, dome, strap };
+}
+
+export function buildMilitary(c: WardrobeCtx) {
+  const { body, out, e, d, W, mat, torso, head, hh, hw, sides, at, tk, id, frontZ, backZ, shellOf, headShell, sleeves, legsTo, legBand, torsoShell, pocket, chestW, waistW, hairPad, dome, strap } = wardrobeKit(c);
+  // ─────────────────────────────────────────────────────────────── helmets & caps
+  const hd = id('head');
   if (hd === 'brodie') {
     const h = dome('head.brodie', mat('head'), 0.66, 0.035 * hh + hairPad + e, 2.4, 0.6);
     out.push(slab('head.brodie.brim', mat('head'), [0, h.y0, 0], h.A * 1.55, h.B * 1.5, 0.025 * hh, hw, 2.2));
@@ -166,18 +187,6 @@ export function buildMilitary(c: WardrobeCtx) {
     const h = dome('head.ushanka', mat('head'), 0.55, 0.08 * hh + hairPad + e, 2.8, 0.7);
     for (const s of [1, -1]) out.push(box(`head.ushanka.flap.${s}`, mat('head'), [s * (h.A * 0.95), h.y0 - 0.13 * hh, -0.05 * hh], [0.05 * hh, 0.17 * hh, h.B * 0.55], hw, 3));
     out.push(box('head.ushanka.front', mat('head'), [0, h.y0 + 0.08 * hh, h.B * 0.9], [h.A * 0.8, 0.09 * hh, 0.05 * hh], hw, 3));
-  }
-
-  function strap(name: string, material: string, y0: number, thick = 0.02): Part[] {
-    // chinstrap: a thin loop under the jaw, from temple to temple
-    const r = at(0.5);
-    const pts: V3[] = [];
-    for (let i = 0; i <= 6; i++) {
-      const t = i / 6;
-      const ang = Math.PI * (0.5 + t);
-      pts.push([Math.cos(ang) * -(r.a + e), lerp(y0, d.chinY - 0.04 * hh, Math.sin(t * Math.PI)), 0.15 * hh]);
-    }
-    return [{ name, material, capStart: true, capEnd: true, lod: 'small', rings: pts.map((P) => ring(P, Z, [0, 1, 0], thick * hh, thick * hh * 0.5, 2.4, hw)) }];
   }
 
   // ─────────────────────────────────────────────────────────────── face gear

@@ -228,7 +228,7 @@ describe('new animation set', () => {
 });
 
 describe('races', () => {
-  const races = ['human', 'orc', 'elf', 'dwarf', 'hobbit', 'goblin', 'gremlin'] as const;
+  const races = ['human', 'orc', 'elf', 'dwarf', 'hobbit', 'goblin', 'gremlin', 'golem', 'sprout'] as const;
   for (const race of races) {
     for (const style of ['faceted', 'blocky', 'chibi', 'heroic'] as StyleId[]) {
       it(`${race} / ${style}: valid, on the floor, within budget, height as rolled`, async () => {
