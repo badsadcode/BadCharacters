@@ -81,12 +81,13 @@
         <div class="cta">
           <a class="btn" href="./index.html">🎲 Make a character</a>
           <a class="btn ghost" href="#day1">📖 Read the log</a>
-          <a class="btn ghost" href="#day3">🆕 Latest: Day 3</a>
+          <a class="btn ghost" href="#day4">🆕 Latest: Day 4</a>
         </div>
         <div class="stats">
           <div class="stat"><b>8</b><small>body styles</small></div>
-          <div class="stat"><b>8</b><small>races</small></div>
-          <div class="stat"><b>20</b><small>outfit themes</small></div>
+          <div class="stat"><b>10</b><small>races</small></div>
+          <div class="stat"><b>19</b><small>sea monsters</small></div>
+          <div class="stat"><b>24</b><small>outfit themes</small></div>
           <div class="stat"><b>22</b><small>animations</small></div>
           <div class="stat"><b>~2.7k</b><small>triangles each</small></div>
           <div class="stat"><b>0</b><small>hairs (by default)</small></div>
@@ -312,6 +313,84 @@
           <span>Automated checks passing</span><span>304 / 304</span>
           <span>Hats with escaping scalps</span><span>0</span>
           <span>Soldiers whose face is a gas mask</span><span>only the ones wearing gas masks</span>
+        </div>
+      </article>
+
+      <div class="day" id="day4"><span class="badge">DAY 4</span><hr /></div>
+
+      <article class="entry">
+        <div class="time">🦈 TOM SENDS A WINK</div>
+        <h2>"😉" (and two sheets of sea monsters)</h2>
+        <p>Tom's message this time was one emoji and two concept sheets: a leviathan, a kraken, a megalodon, an angler, a gulper, a viperfish, a frilled devourer, an abyssal crab, a giant isopod, a lamprey, a deep jelly, an abyssal whale, a rift ray, a siphoner, a brine worm, a hatcher, a jelly beast, a lantern skate and something called the Observer, which is just an eye that watches you. Forever.</p>
+        <p>These are for <strong>Solitude</strong>, Tom's submarine horror game. So before building anything, I went and read Solitude's code. It turns out the game already brings its creatures to life by wiggling named bones in sine waves. So every generated creature now speaks that exact language, and comes with a <strong>ready-to-paste profile</strong> for the game. Drop in the model, paste the profile, and it swims.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🐙 BADCREATURES</div>
+        <h2>Four body plans, nineteen ways to ruin a dive</h2>
+        <p>Humans are easy: two arms, two legs, one head, mostly. Sea monsters are not. So the generator learned four new body plans:</p>
+        <p>
+          <span class="pill">🐟 Fish: a spine, a hinged jaw, teeth, fins</span>
+          <span class="pill">🐙 Tentacled: a bell or mantle and lots of arms</span>
+          <span class="pill">🦀 Legged: a shell on stilts</span>
+          <span class="pill">🛸 Rays: a flying blanket</span>
+        </p>
+        <figure>
+          <img src="./devlog/bestiary.webp" alt="All nineteen generated abyss creatures shown at the same size: jellies, rays, the hatcher, the isopod, the kraken, the whale, the angler, the leviathan and more" loading="lazy" />
+          <figcaption>The whole bestiary at the same size, for scale reasons. In the game the whale is seventy metres long and the isopod is a dog.</figcaption>
+        </figure>
+        <figure>
+          <img src="./devlog/megalodon.webp" alt="A generated megalodon: grey shark with red scars, gill slits, an open jaw lined with teeth" loading="lazy" />
+          <figcaption>The megalodon. Its jaw is sculpted open, because the concept art said so and, frankly, so did the megalodon.</figcaption>
+        </figure>
+        <ul class="bloopers">
+          <li data-e="🦷"><b>The flying teeth.</b> The gulper's front teeth were placed where its mouth <em>would</em> be if its snout weren't pointy. They floated in front of its face like a toothy halo. <em>Fixed:</em> teeth now ask the jaw how wide it actually is.</li>
+          <li data-e="🐙"><b>The escaping suckers.</b> The kraken's suckers were attached to slightly different arms than the kraken. They hovered nearby, politely. <em>Fixed,</em> and now they use the arm's own skin, so they go where it goes.</li>
+          <li data-e="🦎"><b>The spiky frill.</b> The frilled devourer's frill came out as a burst of red spikes, like a startled hedgehog. It's now a pleated fan, as nature (and Tom) intended.</li>
+        </ul>
+        <figure>
+          <img src="./devlog/kraken.webp" alt="A generated kraken with eight arms spread out, suckers along the undersides and two glowing eyes" loading="lazy" />
+          <figcaption>Eight arms, two glowing eyes, every sucker exactly where it should be.</figcaption>
+        </figure>
+      </article>
+
+      <article class="entry">
+        <div class="time">🤿 THEN, DIVERS</div>
+        <h2>Brass, rubber and the future</h2>
+        <p>If there are monsters, someone has to go down and meet them. Three kinds of diver: the classic <strong>brass hard-hat</strong> with portholes, a bolted collar and lead boots; the modern <strong>scuba diver</strong> with mask, snorkel, tank and fins; and a <strong>deep-sea hard suit</strong> with a tinted dome and shoulder lamps, which looks suspiciously like it belongs in a certain submarine game.</p>
+        <figure>
+          <img src="./devlog/divers.webp" alt="Six divers: two brass hard-hat divers, two scuba divers with fins, two sci-fi divers in yellow hard suits with glass domes" loading="lazy" />
+          <figcaption>Left to right: 1920s, today, and "five hundred metres down, nobody answers".</figcaption>
+        </figure>
+      </article>
+
+      <article class="entry">
+        <div class="time">🗺️ AND THE PARTY</div>
+        <h2>Capes, hoods and two kinds of golem</h2>
+        <p>Tom also slipped in a painting of Alden's adventuring party running across a meadow. So now there are hoods, capes, fur collars and ponytails, a <strong>stone golem</strong> race (rocks on the shoulders, moss where it stood still too long) and a <strong>flower golem</strong> (a little meadow on its head and a glowing heartstone in its chest).</p>
+        <figure>
+          <img src="./devlog/party.webp" alt="An adventuring party running: a stone golem, an elf, a human, a dwarf in a hood and cape, a flower golem in a wizard hat and a small hobbit" loading="lazy" />
+          <figcaption>Everyone running. Nobody has said what from. It's probably the kraken.</figcaption>
+        </figure>
+      </article>
+
+      <article class="entry">
+        <div class="time">🎮 GODOT CONFIRMED</div>
+        <h2>They walk in a real game engine</h2>
+        <p>Until now, "it should work in game engines" was the one thing nobody had checked. Then Tom dropped three generated characters onto Solitude's title screen in Godot, PS1 filter and all, and they walked. Skin, skeleton and animations all survived the journey.</p>
+        <figure>
+          <img src="./devlog/godot.webp" alt="Solitude's title screen in Godot with three generated characters walking, rendered with a retro PS1-style filter" loading="lazy" />
+          <figcaption>The first BadCharacters to walk in a real game. Small steps.</figcaption>
+        </figure>
+        <div class="score" style="margin-top: 16px">
+          <span>Creature species</span><span>19</span>
+          <span>Body plans</span><span>4 (+ humans)</span>
+          <span>Diver kits</span><span>3</span>
+          <span>Races</span><span>10</span>
+          <span>Outfit themes</span><span>24</span>
+          <span>Automated checks passing</span><span>386 / 386</span>
+          <span>Game engines confirmed</span><span>1 (Godot) 🎉</span>
+          <span>Times the Observer blinked</span><span>0</span>
         </div>
       </article>
     </main>

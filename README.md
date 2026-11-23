@@ -16,12 +16,12 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 | | |
 |---|---|
 | Styles | Blocky, **Boxy** (bevelled rectangles, Noor's design), Chibi, Stylized, Faceted (flat-shaded, like the race sheets), Realistic, Heroic, Stocky |
-| Races | Human, Orc, Elf, Dwarf, Hobbit, Goblin, Gremlin, Mutant: work with every style |
+| Races | Human, Orc, Elf, Dwarf, Hobbit, Goblin, Gremlin, Mutant, Stone golem, Flower golem: work with every style |
 | Body sliders | height, masculine↔feminine build, muscle, fat, head size, leg length, roundness, skin, plus 21 fine sliders (shoulders, chest, waist, hips, belly, arm length/thickness, leg thickness, neck, head width/depth, jaw, hands, feet, ears, nose, eyes, mouth, posture) |
 | Face | pixel-art texture: 8 eye styles (incl. zombie, third eye), 7 mouths, optional brows/blush/scars, modelled nose, race ears, tusks |
 | Outfits | 14 slots, 94 garments: civilian, fantasy, WWI/WWII/Vietnam/modern/future military, survival and wasteland gear; any garment can be torn |
 | Patterns | woodland, desert, tiger stripe, ERDL, flecktarn, digital, urban, splinter, snow, plaid, stripes, grime, bloodstained, patched |
-| Themes | 20, from Base body and Explorer to WWI soldier, Modern soldier, Survivor, Wasteland raider, Zombie and Mutant |
+| Themes | 24, from Base body and Explorer to WWI soldier, Modern soldier, Survivor, Wasteland raider, Zombie, Mutant, Hard-hat diver, Scuba diver, Deep-sea hard suit and Adventuring party |
 | Opt-in extras | voxel hair, beards (the base brief is bald and clean-shaven) |
 | Props | staff, bow, crossbow, rifle: **previewed in the viewer, not exported unless you tick "Props"** (bring your own weapons; the animations never need them) |
 | Presets | Alden Wayfarer (Thornwake), Mannequin, Sir Clanksalot, Pip the Apprentice |
@@ -29,6 +29,21 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 | Animations | 22: Idle, Walk, Run, Jump, Wave, Punch, Crouch, CrouchWalk, ClimbUp/Down/Left/Right, LadderUp/Down, Swim, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
 | Export | GLB (validator-clean), editable `.badchar.json` recipe, share links |
 | Budget | low 1.5k–2.8k · medium 1.7k–4.0k (median 2.7k) · high 2.5k–6.7k triangles; Alden is 2,880 |
+
+## Creatures (BadCreatures)
+
+The **🦈 Creatures** mode generates the abyss bestiary from Tom's sheets: **19 species** across four
+body plans (fish, tentacled, legged, rays): megalodon, leviathan, angler, viperfish, gulper,
+frilled devourer, abyssal whale, lamprey, brine worm, siphoner, kraken, deep jelly, jelly beast,
+observer, abyssal crab, giant isopod, hatcher, rift ray, lantern skate.
+
+- Rigged GLBs (front +Z, identity bone rests), 430 to 2,200 triangles, countershaded mottled skin,
+  emissive glow maps, translucent jelly bells
+- Clips: Swim, SwimFast, Idle, Bite (jawed) / Attack; walkers get Walk, Run, Idle, Attack
+- **Solitude:** each species' motion is one list of yaw/pitch/roll channels. It bakes the clips *and*
+  writes a ready-to-paste `CreatureProfile` for Solitude's Swimmer ("🐚 Solitude profile" button),
+  with axes matching Swimmer 1:1
+- Sliders: length, mouth gape, teeth, fins/arms, glow spots, blotches, scars, seven colours
 
 ## How it works (short version)
 
