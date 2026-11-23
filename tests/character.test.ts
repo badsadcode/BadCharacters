@@ -131,7 +131,10 @@ describe('animation', () => {
   const clip = (n: string) => clips.find((c) => c.name === n)!;
 
   it('ships the standard clip set', () => {
-    expect(clips.map((c) => c.name)).toEqual(['Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'RestPose']);
+    expect(clips.map((c) => c.name)).toEqual([
+      'Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight',
+      'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RestPose',
+    ]);
   });
   it('a punch goes forward, not sideways', () => {
     const wp = worldPose(sk, clip('Punch').sample(0.35));
@@ -167,5 +170,58 @@ describe('animation', () => {
     const dir = qRotate(q, sub(staff.rings[staff.rings.length - 1].c, staff.rings[0].c));
     const l = Math.hypot(...dir);
     expect(Math.abs(dir[1]) / l).toBeGreaterThan(0.98);
+  });
+});
+
+describe('new animation set', () => {
+  const rc = randomRecipe(14, 'stylized', 'peasant');
+  const sk = buildSkeleton(rc);
+  const clips = buildClips(sk);
+  const clip = (n: string) => clips.find((c) => c.name === n)!;
+
+  it('Crouch keeps both feet planted on the floor (no hovering, no sinking)', () => {
+    for (const t of [0, 0.6, 1.3, 2]) {
+      const wp = worldPose(sk, clip('Crouch').sample(t));
+      for (const s of ['Left', 'Right']) {
+        const y = wp.pos[sk.index[`${s}Foot`]][1];
+        expect(Math.abs(y - sk.dims.ankleY), `${s} ankle at t=${t}`).toBeLessThan(0.05 * sk.dims.hipY);
+      }
+    }
+  });
+  it('CrouchWalk: one foot is always on the ground', () => {
+    const c = clip('CrouchWalk');
+    for (let i = 0; i < 12; i++) {
+      const wp = worldPose(sk, c.sample((i / 12) * c.duration));
+      const low = Math.min(wp.pos[sk.index.LeftFoot][1], wp.pos[sk.index.RightFoot][1]);
+      expect(Math.abs(low - sk.dims.ankleY)).toBeLessThan(0.03 * sk.dims.hipY);
+    }
+  });
+  it('ClimbDown is ClimbUp played backwards (and so is LadderDown)', () => {
+    for (const [up, down] of [['ClimbUp', 'ClimbDown'], ['LadderUp', 'LadderDown']]) {
+      const T = clip(up).duration;
+      for (const t of [0.1, 0.5, 0.9]) expect(clip(down).sample(t * T).rot).toEqual(clip(up).sample(T - t * T).rot);
+    }
+  });
+  it('Swim: the body is horizontal', () => {
+    const wp = worldPose(sk, clip('Swim').sample(0.4));
+    const hips = wp.pos[sk.index.Hips];
+    const head = wp.pos[sk.index.Head];
+    expect(Math.abs(head[1] - hips[1])).toBeLessThan(0.35 * Math.abs(head[2] - hips[2]));
+  });
+  it('the bow string follows the drawing hand at full draw', () => {
+    const brc = { ...rc, outfit: { ...rc.outfit, prop: { id: 'bow', color: '#6e4a2a', color2: '#ffffff' } } };
+    const ch = generateCharacter(brc);
+    const bsk = ch.skeleton;
+    expect(bsk.index.BowString).toBeDefined();
+    const pose = ch.clips.find((c) => c.name === 'BowShoot')!.sample(1.4);
+    const wp = worldPose(bsk, pose);
+    const s = wp.pos[bsk.index.BowString];
+    const rh = wp.pos[bsk.index.RightHand];
+    expect(Math.hypot(s[0] - rh[0], s[1] - rh[1], s[2] - rh[2])).toBeLessThan(bsk.dims.handLen);
+    // …and the GLB with the extra bone still validates
+    return validator.validateBytes(exportGlb(ch)).then((r: { issues: { numErrors: number; numWarnings: number } }) => {
+      expect(r.issues.numErrors).toBe(0);
+      expect(r.issues.numWarnings).toBe(0);
+    });
   });
 });

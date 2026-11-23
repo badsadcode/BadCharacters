@@ -46,7 +46,8 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 .viewport { position: relative; overflow: hidden; background: radial-gradient(ellipse at 50% 35%, #2b2540 0%, #15121f 75%); }
 #canvas { width: 100%; height: 100%; display: block; }
 .hud { position: absolute; display: flex; gap: 8px; flex-wrap: wrap; }
-.hud.top { top: 12px; left: 12px; right: 12px; justify-content: space-between; pointer-events: none; }
+.hud.top { top: 12px; left: 12px; right: 12px; justify-content: space-between; pointer-events: none; align-items: flex-start; }
+#clips { flex-wrap: wrap; max-width: calc(100% - 330px); }
 .hud.top > * { pointer-events: auto; }
 .seg { display: flex; background: rgba(30, 26, 44, 0.85); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; backdrop-filter: blur(6px); }
 .seg button { background: none; border: 0; color: var(--text); padding: 7px 11px; font: 700 12.5px Nunito, sans-serif; cursor: pointer; border-right: 1px solid var(--line); }

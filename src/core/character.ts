@@ -8,6 +8,7 @@ import { buildClothing } from './clothing';
 import { paintFace, Texture } from './face';
 import { appendMesh, computeNormals, emptyMesh, loftPart, MeshData, Part, simplifyRings, unweld } from './loft';
 import { cullHidden } from './shell';
+import { addPropBones } from './props';
 import { CharacterRecipe, GARMENTS, MaterialKind, SlotId } from './recipe';
 import { buildSkeleton, computeDims, Skeleton } from './skeleton';
 
@@ -134,6 +135,7 @@ function meshesFor(parts: Part[], K: number): Map<string, MeshData> {
 
 export function generateCharacter(rc: CharacterRecipe): Character {
   const sk = buildSkeleton(rc);
+  addPropBones(rc, sk);
   const K = DETAIL[rc.mesh.detail] ?? 12;
   const { parts, masks } = buildParts(rc, sk);
   const by = meshesFor(parts, K);

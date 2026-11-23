@@ -17,6 +17,7 @@ import { limbFrame, weightsOf } from './body';
 import type { CharacterRecipe, SlotId } from './recipe';
 import type { Skeleton } from './skeleton';
 import { Rng, subSeed } from './rng';
+import { buildProps } from './props';
 
 const X: V3 = [1, 0, 0];
 const Z: V3 = [0, 0, 1];
@@ -355,6 +356,7 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
   out.push(...buildHair(rc, d, head, hw, hd !== 'none', ring0));
   out.push(...buildBeard(rc, d, head, hw, ring0));
   if (o.prop.id === 'staff') out.push(...buildStaff(sk, rc));
+  out.push(...buildProps(rc, sk));
   if (hd === 'beanie') {
     headShell('head.beanie', mat('head'), 0.56, 1, 3 * e);
     headShell('head.beanie.fold', mat('head'), 0.56, 0.68, 4.5 * e, { capEnd: false, cuffEnd: true });

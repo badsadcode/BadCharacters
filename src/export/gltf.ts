@@ -13,6 +13,46 @@ const ARRAY_BUFFER = 34962;
 const ELEMENT_ARRAY_BUFFER = 34963;
 const FLOAT = 5126;
 export const FPS = 30;
+/** keyframe reduction tolerances: 0.15° for rotations, 0.5 mm for translations */
+const ROT_TOL = (0.15 * Math.PI) / 180;
+const POS_TOL = 0.0005;
+
+/**
+ * Greedy keyframe reduction: drop every key that linear interpolation between its kept
+ * neighbours reproduces within tolerance. First and last keys always stay (loops stay seamless).
+ */
+export function reduceKeys(times: number[], v: number[], stride: number, tol: number, quat: boolean): number[] {
+  const n = times.length;
+  if (n <= 2) return [...Array(n).keys()];
+  const err = (a: number, b: number, i: number) => {
+    const t = (times[i] - times[a]) / (times[b] - times[a]);
+    if (quat) {
+      // angle between the interpolated (nlerp) and the true rotation
+      const q = [0, 1, 2, 3].map((k) => v[a * 4 + k] + (v[b * 4 + k] - v[a * 4 + k]) * t);
+      const l = Math.hypot(...q) || 1;
+      let d = 0;
+      for (let k = 0; k < 4; k++) d += (q[k] / l) * v[i * 4 + k];
+      return 2 * Math.acos(Math.min(1, Math.abs(d)));
+    }
+    let e = 0;
+    for (let k = 0; k < stride; k++) e = Math.max(e, Math.abs(v[a * stride + k] + (v[b * stride + k] - v[a * stride + k]) * t - v[i * stride + k]));
+    return e;
+  };
+  const keep = [0];
+  let a = 0;
+  while (a < n - 1) {
+    let b = a + 1;
+    while (b + 1 < n) {
+      let ok = true;
+      for (let i = a + 1; i <= b; i++) if (err(a, b + 1, i) > tol) { ok = false; break; }
+      if (!ok) break;
+      b++;
+    }
+    keep.push(b);
+    a = b;
+  }
+  return keep;
+}
 
 interface Acc {
   bufferView: number;
@@ -210,21 +250,38 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
         times.push(t);
         poses.push(clip.sample(t));
       }
-      const input = bb.f32(times, 'SCALAR', undefined, true);
       const samplers: any[] = [];
       const channels: any[] = [];
+      const inputs = new Map<string, number>();
+      /** write one channel with redundant keys removed (shared time accessors where possible) */
+      const channel = (node: number, path: 'rotation' | 'translation', values: number[], stride: number) => {
+        const keep = reduceKeys(times, values, stride, path === 'rotation' ? ROT_TOL : POS_TOL, path === 'rotation');
+        const key = keep.join(',');
+        if (!inputs.has(key)) inputs.set(key, bb.f32(keep.map((i) => times[i]), 'SCALAR', undefined, true));
+        const out: number[] = [];
+        for (const i of keep) for (let k = 0; k < stride; k++) out.push(values[i * stride + k]);
+        samplers.push({ input: inputs.get(key)!, output: bb.f32(out, stride === 4 ? 'VEC4' : 'VEC3'), interpolation: 'LINEAR' });
+        channels.push({ sampler: samplers.length - 1, target: { node, path } });
+      };
       const full = poses.map((p) => fullPose(sk, p));
       for (const b of sk.bones) {
         if (b.name === 'Root') continue;
         const out: number[] = [];
         for (const fp of full) out.push(...fp[b.name]);
-        samplers.push({ input, output: bb.f32(out, 'VEC4'), interpolation: 'LINEAR' });
-        channels.push({ sampler: samplers.length - 1, target: { node: sk.index[b.name], path: 'rotation' } });
+        channel(sk.index[b.name], 'rotation', out, 4);
       }
       const tr: number[] = [];
       for (const p of poses) tr.push(hipsRest[0] + p.hips[0], hipsRest[1] + p.hips[1], hipsRest[2] + p.hips[2]);
-      samplers.push({ input, output: bb.f32(tr, 'VEC3'), interpolation: 'LINEAR' });
-      channels.push({ sampler: samplers.length - 1, target: { node: sk.index.Hips, path: 'translation' } });
+      channel(sk.index.Hips, 'translation', tr, 3);
+      // extra prop bones (BowString) get a translation track in EVERY clip, so switching clips
+      // in an engine always puts them back where they belong
+      for (const b of sk.bones) {
+        if (b.name !== 'BowString') continue;
+        const rest = sub(b.world, sk.bones[b.parent].world);
+        const out: number[] = [];
+        for (const p of poses) out.push(...(p.trans?.[b.name] ?? rest));
+        channel(sk.index[b.name], 'translation', out, 3);
+      }
       json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop } });
     }
   }
@@ -236,7 +293,8 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
       up: '+Y',
       forward: '+Z',
       restPose: ch.recipe.rig.restPose === 'A' ? 'A-pose' : 'T-pose',
-      humanoid: Object.fromEntries(sk.bones.filter((b) => b.name !== 'Root').map((b) => [b.name, b.name])),
+      humanoid: Object.fromEntries(sk.bones.filter((b) => b.name !== 'Root' && b.name !== 'BowString').map((b) => [b.name, b.name])),
+      propBones: sk.bones.filter((b) => b.name === 'BowString').map((b) => b.name),
       sockets: ch.skeleton.sockets.map((s) => s.name),
       morphTargets: ch.morphs.map((m) => m.name),
       clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop })),

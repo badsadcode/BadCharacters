@@ -172,6 +172,8 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
   prop: {
     none: { label: 'Empty hands', kind: 'cloth' },
     staff: { label: 'Walking staff', kind: 'leather' },
+    bow: { label: 'Bow', kind: 'leather' },
+    crossbow: { label: 'Crossbow', kind: 'leather' },
   },
 };
 
@@ -250,6 +252,7 @@ export const THEMES: Record<string, Theme> = {
     slots: {
       head: { none: 4, bandana: 1, beanie: 1 },
       top: { tunic: 4, longsleeve: 2 },
+      prop: { none: 3, bow: 1, crossbow: 1 },
       bottom: { pants: 3, skirt: 1 },
       feet: { boots: 3, none: 1 },
       belt: { belt: 3, sash: 1 },
@@ -472,6 +475,7 @@ export function randomOutfit(seed: number, theme: string): Record<SlotId, Garmen
     let color = r.pick(th.palette);
     let color2 = r.pick(th.accents);
     if (slot === 'hair' || slot === 'beard') color = color2 = new Rng(subSeed(seed, 'hairColor')).pick(HAIR_COLORS);
+    if (slot === 'prop') [color, color2] = [r.pick(['#6e4a2a', '#5a3c22', '#7a5532']), r.pick(['#3a2a1a', '#d8cfb8', '#555a60'])];
     if (th.fixed?.[slot]) [color, color2] = th.fixed[slot]!;
     if (GARMENTS[slot][id]?.kind === 'metal' && theme === 'knight') color = r.pick(th.accents.slice(0, 2));
     if (slot === 'armor' && id === 'hivis') color = r.pick(th.accents);
