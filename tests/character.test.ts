@@ -163,6 +163,7 @@ describe('animation', () => {
   });
   it("Alden's staff stands upright in Idle", () => {
     const alden = PRESETS.find((p) => p.id === 'alden')!.recipe();
+    alden.mesh.exportProps = true;
     const ask = buildSkeleton(alden);
     const staff = buildParts(alden, ask).parts.find((p) => p.name === 'prop.staff')!;
     const wp = worldPose(ask, buildClips(ask)[0].sample(0));
@@ -209,7 +210,7 @@ describe('new animation set', () => {
     expect(Math.abs(head[1] - hips[1])).toBeLessThan(0.35 * Math.abs(head[2] - hips[2]));
   });
   it('the bow string follows the drawing hand at full draw', () => {
-    const brc = { ...rc, outfit: { ...rc.outfit, prop: { id: 'bow', color: '#6e4a2a', color2: '#ffffff' } } };
+    const brc = { ...rc, mesh: { ...rc.mesh, exportProps: true }, outfit: { ...rc.outfit, prop: { id: 'bow', color: '#6e4a2a', color2: '#ffffff' } } };
     const ch = generateCharacter(brc);
     const bsk = ch.skeleton;
     expect(bsk.index.BowString).toBeDefined();
@@ -223,5 +224,58 @@ describe('new animation set', () => {
       expect(r.issues.numErrors).toBe(0);
       expect(r.issues.numWarnings).toBe(0);
     });
+  });
+});
+
+describe('races', () => {
+  const races = ['human', 'orc', 'elf', 'dwarf', 'hobbit', 'goblin', 'gremlin'] as const;
+  for (const race of races) {
+    for (const style of ['faceted', 'blocky', 'chibi', 'heroic'] as StyleId[]) {
+      it(`${race} / ${style}: valid, on the floor, within budget, height as rolled`, async () => {
+        const rc = randomRecipe(77, style, 'peasant', race);
+        // bare head, so the scalp isn't culled under a hat and the height check is meaningful
+        rc.outfit.head = { id: 'none', color: '#000000', color2: '#000000' };
+        const ch = generateCharacter(rc);
+        const report = await validator.validateBytes(exportGlb(ch));
+        expect(report.issues.numErrors).toBe(0);
+        expect(report.issues.numWarnings).toBe(0);
+        let minY = Infinity;
+        for (const p of ch.primitives) for (let i = 1; i < p.mesh.positions.length; i += 3) minY = Math.min(minY, p.mesh.positions[i]);
+        expect(minY).toBeGreaterThan(-0.001);
+        expect(minY).toBeLessThan(0.02);
+        expect(ch.stats.triangles).toBeLessThan(5000);
+        const face = ch.primitives.find((p) => p.material === 'face')!.mesh;
+        let maxY = 0;
+        for (let i = 1; i < face.positions.length; i += 3) maxY = Math.max(maxY, face.positions[i]);
+        expect(Math.abs(maxY - rc.body.height) / rc.body.height).toBeLessThan(0.01);
+      });
+    }
+  }
+  it('orcs are taller than humans are taller than dwarves are taller than gremlins', () => {
+    const h = (r: (typeof races)[number]) => randomRecipe(5, 'faceted', 'base', r).body.height;
+    expect(h('orc')).toBeGreaterThan(h('human'));
+    expect(h('human')).toBeGreaterThan(h('dwarf'));
+    expect(h('dwarf')).toBeGreaterThan(h('gremlin'));
+  });
+  it('every proportion slider at both extremes still builds a valid character', async () => {
+    for (const v of [-1, 1]) {
+      const rc = randomRecipe(3, 'stylized', 'casual');
+      rc.body.shape = Object.fromEntries(['shoulders', 'chest', 'waist', 'hips', 'belly', 'armLength', 'armThickness', 'legThickness', 'neckLength', 'neckThickness', 'headWidth', 'headDepth', 'jaw', 'handSize', 'footSize', 'earSize', 'noseSize', 'eyeSize', 'eyeSpacing', 'mouthWidth', 'posture'].map((k) => [k, v]));
+      const report = await validator.validateBytes(exportGlb(generateCharacter(rc)));
+      expect(report.issues.numErrors).toBe(0);
+    }
+  });
+});
+
+describe('props export toggle', () => {
+  it('weapons are NOT exported by default, but their animations are', () => {
+    const rc = randomRecipe(10, 'stylized', 'peasant');
+    rc.outfit.prop = { id: 'bow', color: '#6e4a2a', color2: '#ffffff' };
+    const ch = generateCharacter(rc);
+    expect(ch.primitives.some((p) => p.material.startsWith('prop'))).toBe(false);
+    expect(ch.skeleton.index.BowString).toBeUndefined();
+    expect(ch.clips.map((c) => c.name)).toContain('BowShoot');
+    rc.mesh.exportProps = true;
+    expect(generateCharacter(rc).primitives.some((p) => p.material.startsWith('prop'))).toBe(true);
   });
 });

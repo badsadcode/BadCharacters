@@ -355,7 +355,7 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
   const ring0 = (t: number) => sampleRing(head.rings, headK(t));
   out.push(...buildHair(rc, d, head, hw, hd !== 'none', ring0));
   out.push(...buildBeard(rc, d, head, hw, ring0));
-  if (o.prop.id === 'staff') out.push(...buildStaff(sk, rc));
+  if (o.prop.id === 'staff' && rc.mesh.exportProps) out.push(...buildStaff(sk, rc));
   out.push(...buildProps(rc, sk));
   if (hd === 'beanie') {
     headShell('head.beanie', mat('head'), 0.56, 1, 3 * e);

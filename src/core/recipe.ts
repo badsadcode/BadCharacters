@@ -4,9 +4,10 @@
  * the exact same mesh, rig and animations.
  */
 import { Rng, subSeed } from './rng';
+import { RaceId, RACES, Shape } from './races';
 
 // ─────────────────────────────────────────────────────────────── styles ──
-export type StyleId = 'blocky' | 'chibi' | 'stylized' | 'realistic' | 'heroic' | 'stocky';
+export type StyleId = 'blocky' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky';
 
 export interface Style {
   label: string;
@@ -57,6 +58,12 @@ export const STYLES: Record<StyleId, Style> = {
     blurb: 'Classic low-poly game proportions',
     headsTall: 6, headW: 0.38, headD: 0.43, arm: 1.2, leg: 1.12, torso: 1.08, definition: 0.7,
     legFrac: 0.57, armFrac: 0.48, neck: 0.18, hand: 1.1, foot: 1.05, roundness: 0.45, eyeLine: 0.45, faceScale: 1.1,
+  },
+  faceted: {
+    label: 'Faceted',
+    blurb: 'Flat-shaded low-poly, like the Thornwake race sheets',
+    headsTall: 7.0, headW: 0.34, headD: 0.42, arm: 1.05, leg: 1.03, torso: 1.03, definition: 1,
+    legFrac: 0.59, armFrac: 0.47, neck: 0.25, hand: 1.05, foot: 1.05, roundness: 0.5, eyeLine: 0.48, faceScale: 1.05,
   },
   realistic: {
     label: 'Realistic',
@@ -398,6 +405,10 @@ export interface BodyParams {
   /** -1 … 1 shorter / longer legs */
   legLength: number;
   skin: string;
+  /** Thornwake races; defaults to human */
+  race?: RaceId;
+  /** fine proportion sliders, -1 … 1 each (see races.ts SHAPE_SLIDERS) */
+  shape?: Shape;
 }
 
 export interface FaceParams {
@@ -422,7 +433,14 @@ export interface CharacterRecipe {
   face: FaceParams;
   outfit: Record<SlotId, Garment>;
   rig: { restPose: 'T' | 'A' };
-  mesh: { detail: 'low' | 'medium' | 'high'; shading: 'smooth' | 'flat'; morphs: boolean };
+  mesh: {
+    detail: 'low' | 'medium' | 'high';
+    shading: 'smooth' | 'flat';
+    morphs: boolean;
+    /** include hand props (staff, bow, crossbow) in the exported mesh. Off by default:
+     *  the animations never need them, and most games bring their own weapons. */
+    exportProps?: boolean;
+  };
 }
 
 const IRIS = ['#3b2a1a', '#4a6fa5', '#3f7a4a', '#6b4a2a', '#2a2a2a', '#7a8a9a', '#5a3a6a'];
@@ -430,18 +448,22 @@ const BROW_COLORS = ['#2a1d14', '#4a3222', '#6b4a2a', '#1a1a1a', '#8a6a3a', '#a0
 const FIRST = ['Bram', 'Ada', 'Kit', 'Mira', 'Otto', 'Juno', 'Rex', 'Ivy', 'Hugo', 'Nell', 'Tor', 'Zia', 'Gus', 'Lena', 'Pip', 'Wren', 'Olaf', 'Suki', 'Dax', 'Maud'];
 const LAST = ['Badly', 'Pixel', 'Blockwood', 'Quadsworth', 'Lowpoly', 'Vertex', 'Rigsby', 'Skinner', 'Bonebridge', 'Elbows', 'Kneecap', 'Mesh'];
 
-export function randomBody(seed: number, style: StyleId, theme: string): BodyParams {
+export function randomBody(seed: number, style: StyleId, theme: string, raceId: RaceId = 'human'): BodyParams {
   const r = new Rng(subSeed(seed, 'body'));
   const st = STYLES[style];
+  const race = RACES[raceId] ?? RACES.human;
   const gender = r.chance(0.5) ? r.range(0, 0.25) : r.range(0.75, 1);
   const th = THEMES[theme] ?? THEMES.casual;
-  const skins = th.skins ?? SKIN_TONES;
+  const skins = th.skins ?? race.skins ?? SKIN_TONES;
   const heroic = style === 'heroic';
+  const rs = (race.height[0] + race.height[1]) / 2 / 1.76;
   return {
-    height: round(r.range(1.6, 1.92) - gender * 0.1 + (style === 'stocky' ? -0.35 : 0) + (style === 'chibi' ? -0.5 : 0), 3),
+    race: raceId,
+    shape: {},
+    height: round(r.range(race.height[0], race.height[1]) - gender * 0.1 * rs + ((style === 'stocky' ? -0.35 : 0) + (style === 'chibi' ? -0.5 : 0)) * rs, 3),
     gender: round(gender, 3),
-    muscle: round(heroic ? r.range(0.55, 1) : r.range(0, 0.7) ** 1.3, 3),
-    fat: round(heroic ? r.range(0, 0.2) : r.range(0, 0.75) ** 1.6, 3),
+    muscle: round(clamp01((heroic ? r.range(0.55, 1) : r.range(0, 0.7) ** 1.3) + race.muscle), 3),
+    fat: round(clamp01((heroic ? r.range(0, 0.2) : r.range(0, 0.75) ** 1.6) + race.fat), 3),
     headScale: round(r.range(0.94, 1.06), 3),
     roundness: round(clamp01(st.roundness + r.range(-0.12, 0.12)), 3),
     legLength: round(r.range(-0.4, 0.4), 3),
@@ -496,10 +518,12 @@ const luma = (h: string) => {
   return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
 };
 
-export function randomRecipe(seed: number, style: StyleId = 'blocky', theme = 'casual'): CharacterRecipe {
+export function randomRecipe(seed: number, style: StyleId = 'blocky', theme = 'casual', race: RaceId = 'human'): CharacterRecipe {
   const outfit = randomOutfit(seed, theme);
   const face = randomFace(seed, style);
-  const body = randomBody(seed, style, theme);
+  const body = randomBody(seed, style, theme, race);
+  if (RACES[race].ears !== 'round') face.ears = true;
+  if (race !== 'human' && style !== 'blocky') face.nose = true;
   // hair that matches the skin reads as a bald lump: push it lighter or darker
   if (Math.abs(luma(outfit.hair.color) - luma(body.skin)) < 45) {
     const alt = HAIR_COLORS.filter((c) => Math.abs(luma(c) - luma(body.skin)) >= 60);
@@ -522,7 +546,7 @@ export function randomRecipe(seed: number, style: StyleId = 'blocky', theme = 'c
     face,
     outfit,
     rig: { restPose: 'T' },
-    mesh: { detail: 'medium', shading: 'smooth', morphs: true },
+    mesh: style === 'faceted' ? { detail: 'low', shading: 'flat', morphs: true } : { detail: 'medium', shading: 'smooth', morphs: true },
   };
 }
 

@@ -61,6 +61,7 @@ function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
     skin: { name: 'Skin', color: rc.body.skin, metallic: 0, roughness: 0.75 },
     face: { name: 'Face', color: '#ffffff', metallic: 0, roughness: 0.75, textured: true },
     visor: { name: 'Visor', color: '#0b0b0d', metallic: 0.2, roughness: 0.6 },
+    tusk: { name: 'Tusk', color: '#ece2c6', metallic: 0, roughness: 0.5 },
     glass: { name: 'Glass', color: '#bfe6ff', ...KIND.glass, alpha: 0.28 },
   };
   for (const slot of Object.keys(rc.outfit) as SlotId[]) {

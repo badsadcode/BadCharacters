@@ -80,7 +80,7 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
   };
 
   // ───────────────────────────────────────────────────────────────── head
-  const jaw = lerp(1, lerp(0.9, 0.82, g) + 0.1 * rc.body.fat, def);
+  const jaw = lerp(1, lerp(0.9, 0.82, g) + 0.1 * rc.body.fat, def) * d.jaw;
   const H = (t: number, aw: number, bd: number, z: number, tag: string) =>
     ring([0, d.chinY + t * d.headH, z * d.headHD], X, Z, d.headHW * aw, d.headHD * bd, n, W(['Head', 1]), { tag });
   parts.head = {
@@ -102,7 +102,7 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
   // big-headed styles get proportionally smaller noses and ears, or chibis look like gnomes
   const featureScale = Math.min(1, 0.16 / (d.headH / d.H)) ** 0.7;
   if (rc.face.nose) {
-    const hh = d.headH * featureScale;
+    const hh = d.headH * featureScale * d.noseScale;
     const ny = d.chinY + d.headH * (d.eyeLine - 0.13 * featureScale);
     const fz = d.headHD * lerp(1, 0.97, def);
     parts.nose = {
@@ -118,21 +118,64 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
     };
   }
   if (rc.face.ears) {
-    const hh = d.headH * featureScale;
     for (const s of [1, -1]) {
+      const key = s > 0 ? 'ear.L' : 'ear.R';
       const ey = d.chinY + d.headH * (d.eyeLine - 0.06);
-      const p: V3 = [0, 0, -s];
       const ex = d.headHW * lerp(1, 0.97, def);
-      parts[s > 0 ? 'ear.L' : 'ear.R'] = {
+      if (d.ears === 'round') {
+        const hh = d.headH * featureScale * d.earScale;
+        const p: V3 = [0, 0, -s];
+        parts[key] = {
+          name: 'ear',
+          material: 'skin',
+          capStart: true,
+          capEnd: true,
+          rings: [
+            ring([s * ex * 0.85, ey, -0.08 * d.headHD], p, Y, 0.11 * hh, 0.16 * hh, n, W(['Head', 1])),
+            ring([s * (ex + 0.025 * hh), ey, -0.1 * d.headHD], p, Y, 0.1 * hh, 0.15 * hh, n, W(['Head', 1])),
+            ring([s * (ex + 0.045 * hh), ey + 0.01 * hh, -0.12 * d.headHD], p, Y, 0.06 * hh, 0.1 * hh, n, W(['Head', 1])),
+          ],
+        };
+        continue;
+      }
+      // leaf ears: a flat, tapering blade. direction, length, width and which way the flat faces
+      const spec = {
+        pointed: { dir: [0.8, 0.5, -0.35], len: 0.3, wid: 0.13, face: [1, 0, 0.25] },
+        elf: { dir: [0.55, 0.72, -0.45], len: 0.42, wid: 0.12, face: [1, 0, 0.15] },
+        wide: { dir: [1, 0.22, -0.15], len: 0.42, wid: 0.17, face: [0.5, 0, 1] },
+        bat: { dir: [0.8, 0.8, -0.05], len: 0.42, wid: 0.21, face: [0.3, 0, 1] },
+      }[d.ears];
+      const dir = norm([s * spec.dir[0], spec.dir[1], spec.dir[2]]);
+      const faceN = norm([s * spec.face[0], spec.face[1], spec.face[2]]);
+      const widthAxis = norm(cross(dir, faceN));
+      const { p, q } = limbFrame(dir, widthAxis);
+      const L = spec.len * d.headH * d.earScale;
+      const Wd = spec.wid * d.headH * d.earScale ** 0.8;
+      const th = 0.03 * d.headH * Math.sqrt(d.earScale);
+      const base: V3 = [s * ex * 0.8, ey, -0.1 * d.headHD];
+      const prof: [number, number][] = [[0, 0.75], [0.12, 1], [0.35, 0.95], [0.6, 0.68], [0.82, 0.33], [1, 0.03]];
+      parts[key] = {
         name: 'ear',
         material: 'skin',
         capStart: true,
         capEnd: true,
-        rings: [
-          ring([s * ex * 0.85, ey, -0.08 * d.headHD], p, Y, 0.11 * hh, 0.16 * hh, n, W(['Head', 1])),
-          ring([s * (ex + 0.025 * hh), ey, -0.1 * d.headHD], p, Y, 0.1 * hh, 0.15 * hh, n, W(['Head', 1])),
-          ring([s * (ex + 0.045 * hh), ey + 0.01 * hh, -0.12 * d.headHD], p, Y, 0.06 * hh, 0.1 * hh, n, W(['Head', 1])),
-        ],
+        rings: prof.map(([t, w]) => ring(add(base, scale(dir, t * L)), p, q, th * (1 - 0.6 * t), Wd * w, 2.6, W(['Head', 1]))),
+      };
+    }
+  }
+  if (d.tusks) {
+    for (const s of [1, -1]) {
+      const hh = d.headH * featureScale;
+      const tb: V3 = [s * d.headHW * 0.32, d.chinY + 0.1 * d.headH, d.headHD * 0.8];
+      const tdir = norm([s * 0.18, 1, 0.3]);
+      const { p, q } = limbFrame(tdir);
+      const R = 0.035 * hh;
+      parts[s > 0 ? 'tusk.L' : 'tusk.R'] = {
+        name: 'tusk',
+        material: 'tusk',
+        capStart: true,
+        capEnd: true,
+        rings: [[-0.3, 1], [0.4, 0.85], [0.8, 0.45], [1, 0.05]].map(([t, w]) => ring(add(tb, scale(tdir, t * 0.17 * hh)), p, q, R * w, R * w, 2.4, W(['Head', 1]))),
       };
     }
   }
@@ -269,6 +312,6 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
   }
   for (const [id, p] of Object.entries(parts)) bodySpec(id, p);
   // small parts get fewer sides around
-  for (const id of Object.keys(parts)) if (/^(nose|ear|thumb|hand|foot)/.test(id)) parts[id].lod = 'small';
+  for (const id of Object.keys(parts)) if (/^(nose|ear|tusk|thumb|hand|foot)/.test(id)) parts[id].lod = 'small';
   return parts;
 }

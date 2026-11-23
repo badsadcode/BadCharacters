@@ -10,6 +10,7 @@ import {
 } from '../core/recipe';
 import { exportGlb } from '../export/gltf';
 import { PRESETS } from '../core/presets';
+import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -19,6 +20,9 @@ let character: Character;
 let clipName = 'Idle';
 const toggles = { skeleton: false, wire: false, sockets: false, turn: true };
 let lineup = false;
+
+/** the viewer always shows hand props so you can judge the animations; export follows the recipe */
+const preview = (rc: CharacterRecipe): CharacterRecipe => ({ ...rc, mesh: { ...rc.mesh, exportProps: true } });
 
 // ───────────────────────────────────────────────────────────── scene ──
 const canvas = $<HTMLCanvasElement>('canvas');
@@ -140,7 +144,7 @@ let building = 0;
 async function rebuild(frame = false) {
   const ticket = ++building;
   const t0 = performance.now();
-  character = generateCharacter(recipe);
+  character = generateCharacter(preview(recipe));
   const genMs = performance.now() - t0;
   const actor = await makeActor(character);
   if (ticket !== building) return;
@@ -163,7 +167,7 @@ async function rebuild(frame = false) {
 async function showRow(recipes: CharacterRecipe[], clip = 'Idle', spacing = 1.0, angle = 0) {
   const ticket = ++building;
   const list: Actor[] = [];
-  for (const rc of recipes) list.push(await makeActor(generateCharacter(rc)));
+  for (const rc of recipes) list.push(await makeActor(generateCharacter(preview(rc))));
   if (ticket !== building) return;
   lineup = true;
   clearStage();
@@ -188,8 +192,9 @@ async function buildLineup() {
   const list: Actor[] = [];
   const N = 9;
   for (let i = 0; i < N; i++) {
-    const rc = randomRecipe(seed0 + i, styles[i % styles.length], themes[(i * 7 + seed0) % themes.length]);
-    list.push(await makeActor(generateCharacter(rc)));
+    const races = Object.keys(RACES) as RaceId[];
+    const rc = randomRecipe(seed0 + i, styles[i % styles.length], themes[(i * 7 + seed0) % themes.length], races[(i * 3 + seed0) % races.length]);
+    list.push(await makeActor(generateCharacter(preview(rc))));
   }
   if (ticket !== building) return;
   lineup = true;
@@ -307,7 +312,8 @@ function buildUI() {
     b.dataset.style = id;
     b.addEventListener('click', () => {
       const keep = { ...recipe.body };
-      recipe = { ...recipe, style: id as StyleId, body: randomBody(recipe.seed, id as StyleId, recipe.theme), face: randomFace(recipe.seed, id as StyleId) };
+      recipe = { ...recipe, style: id as StyleId, body: { ...randomBody(recipe.seed, id as StyleId, recipe.theme, recipe.body.race ?? 'human'), shape: recipe.body.shape }, face: randomFace(recipe.seed, id as StyleId) };
+      if (id === 'faceted') recipe.mesh = { ...recipe.mesh, detail: 'low', shading: 'flat' };
       recipe.body.skin = keep.skin;
       recipe.body.gender = keep.gender;
       syncAll();
@@ -318,6 +324,42 @@ function buildUI() {
   syncers.push(() => {
     sc.querySelectorAll<HTMLButtonElement>('.chip').forEach((b) => b.classList.toggle('on', b.dataset.style === recipe.style));
     $('style-blurb').textContent = STYLES[recipe.style].blurb;
+  });
+
+  // races
+  const rcEl = $('races');
+  for (const [id, r] of Object.entries(RACES)) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = r.label;
+    b.dataset.race = id;
+    b.addEventListener('click', () => {
+      const keep = { gender: recipe.body.gender, shape: recipe.body.shape };
+      recipe = { ...recipe, body: { ...randomBody(recipe.seed, recipe.style, recipe.theme, id as RaceId), ...keep } };
+      if (r.ears !== 'round') recipe.face.ears = true;
+      syncAll();
+      changed(true);
+    });
+    rcEl.appendChild(b);
+  }
+  syncers.push(() => {
+    const race = recipe.body.race ?? 'human';
+    rcEl.querySelectorAll<HTMLButtonElement>('.chip').forEach((b) => b.classList.toggle('on', b.dataset.race === race));
+    $('race-blurb').textContent = RACES[race].blurb;
+  });
+
+  // fine proportion sliders
+  const shp = $('shape-sliders');
+  for (const [key, label] of SHAPE_SLIDERS) {
+    syncers.push(
+      slider(shp, label, -1, 1, 0.01, () => recipe.body.shape?.[key] ?? 0, (v) => (recipe.body.shape = { ...(recipe.body.shape ?? {}), [key]: v }), (v) => (v > 0 ? '+' : '') + v.toFixed(2)),
+    );
+  }
+  $('btn-shape-reset').addEventListener('click', (e) => {
+    e.preventDefault();
+    recipe.body.shape = {};
+    syncAll();
+    changed();
   });
 
   // basics
@@ -337,7 +379,7 @@ function buildUI() {
   });
   const seedIn = $<HTMLInputElement>('in-seed');
   const reseed = (s: number) => {
-    recipe = randomRecipe(s, recipe.style, recipe.theme);
+    recipe = randomRecipe(s, recipe.style, recipe.theme, recipe.body.race ?? 'human');
     syncAll();
     changed(true);
   };
@@ -418,6 +460,8 @@ function buildUI() {
   const detail = $<HTMLSelectElement>('in-detail');
   const shading = $<HTMLSelectElement>('in-shading');
   const morphs = $<HTMLInputElement>('in-morphs');
+  const propsIn = $<HTMLInputElement>('in-props');
+  propsIn.addEventListener('change', () => (recipe.mesh.exportProps = propsIn.checked));
   pose.addEventListener('change', () => ((recipe.rig.restPose = pose.value as 'T' | 'A'), changed()));
   detail.addEventListener('change', () => ((recipe.mesh.detail = detail.value as never), changed()));
   shading.addEventListener('change', () => ((recipe.mesh.shading = shading.value as never), changed()));
@@ -427,13 +471,14 @@ function buildUI() {
     detail.value = recipe.mesh.detail;
     shading.value = recipe.mesh.shading;
     morphs.checked = recipe.mesh.morphs;
+    propsIn.checked = !!recipe.mesh.exportProps;
   });
 
   // section re-rolls
   document.querySelectorAll<HTMLButtonElement>('[data-reroll]').forEach((b) =>
     b.addEventListener('click', () => {
       const s = Math.floor(Math.random() * 1e6);
-      if (b.dataset.reroll === 'body') recipe.body = randomBody(s, recipe.style, recipe.theme);
+      if (b.dataset.reroll === 'body') recipe.body = randomBody(s, recipe.style, recipe.theme, recipe.body.race ?? 'human');
       if (b.dataset.reroll === 'face') recipe.face = randomFace(s, recipe.style);
       if (b.dataset.reroll === 'outfit') recipe.outfit = randomOutfit(s, recipe.theme);
       syncAll();
@@ -463,7 +508,8 @@ function buildUI() {
     const styles = Object.keys(STYLES) as StyleId[];
     const themes = Object.keys(THEMES).filter((t) => t !== 'base');
     const s = Math.floor(Math.random() * 1e6);
-    recipe = randomRecipe(s, styles[s % styles.length], themes[(s >> 3) % themes.length]);
+    const races = Object.keys(RACES) as RaceId[];
+    recipe = randomRecipe(s, styles[s % styles.length], themes[(s >> 3) % themes.length], (s >> 6) % 3 === 0 ? races[(s >> 8) % races.length] : 'human');
     syncAll();
     rebuild(true);
   };
@@ -483,7 +529,8 @@ function buildUI() {
     }
   });
   $('btn-export').addEventListener('click', () => {
-    const glb = exportGlb(character);
+    // export from the real recipe: props only if 'Export props' is ticked
+    const glb = exportGlb(generateCharacter(recipe));
     download(new Blob([glb as BlobPart], { type: 'model/gltf-binary' }), `${slug(recipe.name)}.glb`);
     toast(`Exported ${slug(recipe.name)}.glb (${(glb.length / 1024).toFixed(0)} KB)`);
   });

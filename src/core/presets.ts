@@ -3,7 +3,7 @@
  */
 import { CharacterRecipe, randomRecipe, StyleId } from './recipe';
 
-type Patch = { style: StyleId; theme: string; seed: number; name: string; body?: Partial<CharacterRecipe['body']>; face?: Partial<CharacterRecipe['face']>; outfit?: Partial<Record<keyof CharacterRecipe['outfit'], [string, string, string]>> };
+type Patch = { id?: string; style: StyleId; theme: string; seed: number; name: string; body?: Partial<CharacterRecipe['body']>; face?: Partial<CharacterRecipe['face']>; outfit?: Partial<Record<keyof CharacterRecipe['outfit'], [string, string, string]>> };
 
 function make(p: Patch): CharacterRecipe {
   const r = randomRecipe(p.seed, p.style, p.theme);
@@ -21,7 +21,7 @@ export const PRESETS: { id: string; label: string; blurb: string; recipe: () => 
     blurb: 'The First Explorer of Thornwake. He went first because somebody had to.',
     recipe: () =>
       make({
-        style: 'blocky', theme: 'explorer', seed: 1001, name: 'Alden Wayfarer',
+        id: 'alden', style: 'blocky', theme: 'explorer', seed: 1001, name: 'Alden Wayfarer',
         body: { height: 1.82, gender: 0.05, muscle: 0.35, fat: 0.08, skin: '#e8b896', headScale: 1.04, roundness: 0.14, legLength: 0.1 },
         face: { eyes: 'square', iris: '#2a1d14', mouth: 'line', brows: 'thick', browColor: '#4a2f1b', blush: false, nose: true, ears: false },
         outfit: {

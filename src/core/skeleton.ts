@@ -9,6 +9,7 @@
  */
 import { add, clamp, lerp, norm, scale, V3 } from './math';
 import { CharacterRecipe, STYLES } from './recipe';
+import { EarShape, RACES, sv } from './races';
 
 export interface Bone {
   name: string;
@@ -73,6 +74,16 @@ export interface Dims {
   n: number;
   eyeLine: number;
   faceScale: number;
+  /** race & fine-slider extras */
+  jaw: number;
+  ears: EarShape;
+  earScale: number;
+  noseScale: number;
+  tusks: boolean;
+  hunch: number;
+  eyeSize: number;
+  eyeSpacing: number;
+  mouthWidth: number;
 }
 
 export interface Skeleton {
@@ -89,28 +100,31 @@ export function computeDims(rc: CharacterRecipe): Dims {
   const m = clamp(b.muscle);
   const f = clamp(b.fat);
   const H = b.height;
-  const headH = (H / st.headsTall) * b.headScale;
-  const neckLen = st.neck * headH;
+  const race = RACES[b.race ?? 'human'] ?? RACES.human;
+  const sh = b.shape;
+  const k = (key: Parameters<typeof sv>[1], amt: number) => 1 + amt * sv(sh, key);
+  const headH = (H / (st.headsTall * race.headsTall)) * b.headScale;
+  const neckLen = st.neck * headH * race.neckLen * k('neckLength', 0.6);
   const chinY = H - headH;
   const neckBaseY = chinY - neckLen;
   const bodyRest = neckBaseY;
   const u = bodyRest / 1.49;
-  const legLen = bodyRest * st.legFrac * (1 + 0.08 * b.legLength);
+  const legLen = bodyRest * Math.min(0.72, st.legFrac * race.legFrac) * (1 + 0.08 * b.legLength);
   const hipY = legLen;
   const torsoLen = neckBaseY - hipY;
-  const T = st.torso;
-  const L = st.leg;
-  const A = st.arm;
+  const T = st.torso * race.torso;
+  const L = st.leg * race.leg * k('legThickness', 0.25);
+  const A = st.arm * race.arm * k('armThickness', 0.25);
   // `def` flattens anatomical taper toward the limb's average for blocky styles
   const def = (avg: number, x: number) => lerp(avg, x, st.definition);
 
-  const chestHW = u * T * (lerp(0.165, 0.145, g) + 0.02 * m + 0.03 * f);
-  const chestHD = u * T * (lerp(0.105, 0.092, g) + 0.02 * m + 0.03 * f) * lerp(1, 0.85, 1 - st.definition);
-  const waistHW = u * T * (def(0.15, lerp(0.135, 0.112, g)) + 0.004 * m + 0.075 * f);
-  const waistHD = u * T * (lerp(0.088, 0.08, g) + 0.004 * m + 0.07 * f) * lerp(1, 0.85, 1 - st.definition);
-  let hipHW = u * T * (def(0.155, lerp(0.148, 0.172, g)) + 0.035 * f);
-  const hipHD = u * T * (lerp(0.098, 0.108, g) + 0.035 * f) * lerp(1, 0.85, 1 - st.definition);
-  const shoulderHW = u * T * (lerp(0.19, 0.162, g) + 0.025 * m + 0.015 * f);
+  const chestHW = u * T * (lerp(0.165, 0.145, g) + 0.02 * m + 0.03 * f) * k('shoulders', 0.1) * Math.sqrt(race.shoulders);
+  const chestHD = u * T * (lerp(0.105, 0.092, g) + 0.02 * m + 0.03 * f) * lerp(1, 0.85, 1 - st.definition) * k('chest', 0.08);
+  const waistHW = u * T * (def(0.15, lerp(0.135, 0.112, g)) + 0.004 * m + 0.075 * f) * k('waist', 0.2);
+  const waistHD = u * T * (lerp(0.088, 0.08, g) + 0.004 * m + 0.07 * f) * lerp(1, 0.85, 1 - st.definition) * k('waist', 0.15);
+  let hipHW = u * T * (def(0.155, lerp(0.148, 0.172, g)) + 0.035 * f) * k('hips', 0.2);
+  const hipHD = u * T * (lerp(0.098, 0.108, g) + 0.035 * f) * lerp(1, 0.85, 1 - st.definition) * k('hips', 0.12);
+  const shoulderHW = u * T * (lerp(0.19, 0.162, g) + 0.025 * m + 0.015 * f) * race.shoulders * k('shoulders', 0.22);
 
   const thighR = u * L * (def(0.07, 0.082) + 0.018 * m + 0.035 * f + 0.008 * g);
   const hipJX = Math.max(hipHW - thighR + 0.006 * u, thighR * 0.96);
@@ -120,22 +134,23 @@ export function computeDims(rc: CharacterRecipe): Dims {
   const kneeY = ankleY + (hipY - ankleY) * 0.48;
   const legAvg = 0.06;
 
-  const armLen = bodyRest * st.armFrac;
+  const armLen = bodyRest * st.armFrac * race.armFrac * k('armLength', 0.15);
   const deltR = u * A * (def(0.047, 0.056) + 0.024 * m + 0.018 * f - 0.006 * g);
   const restAngle = rc.rig.restPose === 'A' ? -38 : 0;
   const armDir = norm([Math.cos((restAngle * Math.PI) / 180), Math.sin((restAngle * Math.PI) / 180), 0]);
-  const handLen = armLen * 0.25 * st.hand * Math.max(1, Math.sqrt(A) * 0.85);
+  const handK = race.hand * k('handSize', 0.3);
+  const handLen = armLen * 0.25 * st.hand * Math.max(1, Math.sqrt(A) * 0.85) * handK;
   const roundness = clamp(b.roundness + 0.15 * f);
 
   return {
     H,
     u,
     headH,
-    headHW: headH * st.headW * lerp(1, 0.95, g) * (1 + 0.08 * f),
-    headHD: headH * st.headD,
+    headHW: headH * st.headW * lerp(1, 0.95, g) * (1 + 0.08 * f) * race.headW * k('headWidth', 0.2),
+    headHD: headH * st.headD * k('headDepth', 0.2),
     chinY,
     neckBaseY,
-    neckR: Math.min(headH * st.headW * 0.6, u * (lerp(0.058, 0.046, g) + 0.018 * m + 0.016 * f) * Math.sqrt(T)),
+    neckR: Math.min(headH * st.headW * 0.6 * race.headW, u * (lerp(0.058, 0.046, g) + 0.018 * m + 0.016 * f) * Math.sqrt(T) * race.neckThick * k('neckThickness', 0.3)),
     hipY,
     torsoLen,
     shoulderY: neckBaseY - 0.1 * torsoLen,
@@ -147,9 +162,9 @@ export function computeDims(rc: CharacterRecipe): Dims {
     waistHD,
     hipHW,
     hipHD,
-    belly: u * T * 0.075 * f ** 1.2,
-    breast: u * T * g * (0.032 + 0.03 * f) * Math.min(1, 0.4 + st.definition),
-    pecs: u * T * m * (1 - g) * 0.02,
+    belly: Math.max(0, u * T * (0.075 * f ** 1.2 + 0.05 * race.belly + 0.05 * sv(sh, 'belly'))),
+    breast: Math.max(0, u * T * g * (0.032 + 0.03 * f) * Math.min(1, 0.4 + st.definition) * k('chest', 0.8)),
+    pecs: Math.max(0, u * T * m * (1 - g) * 0.02 * k('chest', 0.8)),
     butt: u * T * (0.012 + 0.018 * g + 0.02 * f) * st.definition,
     hipJX,
     kneeY,
@@ -159,14 +174,14 @@ export function computeDims(rc: CharacterRecipe): Dims {
     kneeR: u * L * (def(legAvg, 0.047) + 0.006 * m + 0.012 * f),
     calfR: u * L * (def(legAvg, 0.055) + 0.014 * m + 0.014 * f),
     ankleR: u * L * (def(legAvg, 0.034) + 0.004 * m + 0.006 * f),
-    footLen: u * 0.27 * st.foot * lerp(1, 0.92, g) * Math.max(1, L * 0.85),
-    footHW: u * 0.27 * st.foot * 0.2 * Math.max(1, L * 0.9),
+    footLen: u * 0.27 * st.foot * lerp(1, 0.92, g) * Math.max(1, L * 0.85) * race.foot * k('footSize', 0.3),
+    footHW: u * 0.27 * st.foot * 0.2 * Math.max(1, L * 0.9) * Math.sqrt(race.foot) * k('footSize', 0.2),
     armDir,
     upperArmLen: (armLen - handLen) * 0.53,
     foreArmLen: (armLen - handLen) * 0.47,
     handLen,
-    handHW: Math.max(handLen * 0.27, u * A * (def(0.042, 0.029) + 0.004 * m) * 1.3),
-    handHT: Math.max(handLen * 0.11, u * A * (def(0.042, 0.029) + 0.004 * m) * 0.75),
+    handHW: Math.max(handLen * 0.27, u * A * (def(0.042, 0.029) + 0.004 * m) * 1.3 * handK),
+    handHT: Math.max(handLen * 0.11, u * A * (def(0.042, 0.029) + 0.004 * m) * 0.75 * Math.sqrt(handK)),
     deltR,
     upperArmR: u * A * (def(0.042, 0.046) + 0.02 * m + 0.02 * f - 0.005 * g),
     elbowR: u * A * (def(0.042, 0.036) + 0.006 * m + 0.01 * f),
@@ -174,7 +189,16 @@ export function computeDims(rc: CharacterRecipe): Dims {
     wristR: u * A * (def(0.042, 0.029) + 0.004 * m + 0.004 * f),
     n: lerp(10, 2.2, roundness),
     eyeLine: st.eyeLine,
-    faceScale: st.faceScale,
+    faceScale: st.faceScale * race.face,
+    jaw: race.jaw * k('jaw', 0.2),
+    ears: race.ears,
+    earScale: race.earScale * k('earSize', 0.5),
+    noseScale: race.nose * k('noseSize', 0.5),
+    tusks: !!race.tusks,
+    hunch: Math.max(-0.3, Math.min(1, race.hunch + 0.6 * sv(sh, 'posture'))),
+    eyeSize: k('eyeSize', 0.45),
+    eyeSpacing: k('eyeSpacing', 0.3),
+    mouthWidth: k('mouthWidth', 0.4),
   };
 }
 

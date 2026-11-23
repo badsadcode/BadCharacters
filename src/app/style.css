@@ -68,3 +68,8 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
   .viewport { grid-row: 2; }
   .panel.left { grid-row: 3; border-right: 0; }
 }
+
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary h2::before { content: '▸ '; color: var(--dim); }
+details[open] > summary h2::before { content: '▾ '; }

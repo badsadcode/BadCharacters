@@ -448,7 +448,23 @@ export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
     sample: () => ({ rot: {}, hips: [0, 0, 0] }),
   };
 
-  return [idle, walk, run, jump, wave, punch, ...extra, tpose];
+  // posture: hunched races (goblins, gremlins) lean every clip forward and look back up
+  const h = d.hunch;
+  const hunched = (c: Clip): Clip =>
+    Math.abs(h) < 1e-3
+      ? c
+      : {
+          ...c,
+          sample: (t) => {
+            const p = c.sample(t);
+            p.rot.Spine = qMul(qx(h * 16 * DEG), p.rot.Spine ?? QI);
+            p.rot.Chest = qMul(qx(h * 8 * DEG), p.rot.Chest ?? QI);
+            p.rot.Neck = qMul(qx(-h * 14 * DEG), p.rot.Neck ?? QI);
+            p.rot.Head = qMul(qx(-h * 8 * DEG), p.rot.Head ?? QI);
+            return p;
+          },
+        };
+  return [idle, walk, run, jump, wave, punch, ...extra].map(hunched).concat(tpose);
 }
 
 /** fill missing bones with identity so channels are complete */

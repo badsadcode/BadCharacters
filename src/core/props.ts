@@ -52,7 +52,7 @@ function path(name: string, material: string, pts: V3[], radii: number[], up: V3
 
 /** BowString bone: added to the skeleton when the character carries a bow */
 export function addPropBones(rc: CharacterRecipe, sk: Skeleton) {
-  if (rc.outfit.prop?.id !== 'bow' || sk.index.BowString !== undefined) return;
+  if (!rc.mesh.exportProps || rc.outfit.prop?.id !== 'bow' || sk.index.BowString !== undefined) return;
   const b = bowFrame(sk);
   sk.index.BowString = sk.bones.length;
   sk.bones.push({ name: 'BowString', parent: sk.index.LeftHand, world: b.toRest(b.stringMid) });
@@ -70,6 +70,7 @@ function bowFrame(sk: Skeleton) {
 }
 
 export function buildProps(rc: CharacterRecipe, sk: Skeleton): Part[] {
+  if (!rc.mesh.exportProps) return [];
   const id = rc.outfit.prop?.id;
   addPropBones(rc, sk);
   const d = sk.dims;

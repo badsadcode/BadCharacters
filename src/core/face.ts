@@ -73,9 +73,9 @@ export function paintFace(face: FaceParams, skinHex: string, d: Dims, head: Part
   const fs = d.faceScale;
   const hw = d.headHW;
   const eyeY = row(d.eyeLine);
-  const eyeDX = Math.max(2, Math.round(0.4 * hw * pxX));
-  const ew = Math.max(2, Math.round(0.2 * hw * pxX * fs));
-  const eh = Math.max(1, Math.round(0.07 * d.headH * pxY * fs));
+  const eyeDX = Math.max(2, Math.round(0.4 * hw * pxX * d.eyeSpacing));
+  const ew = Math.max(2, Math.round(0.2 * hw * pxX * fs * d.eyeSize));
+  const eh = Math.max(1, Math.round(0.07 * d.headH * pxY * fs * d.eyeSize));
 
   for (const s of [-1, 1]) {
     // s = +1 is the image's right = the character's left (it faces +Z, we look at it from +Z)
@@ -132,7 +132,7 @@ export function paintFace(face: FaceParams, skinHex: string, d: Dims, head: Part
 
   // mouth
   const my = Math.round(row(Math.max(0.12, d.eyeLine - 0.28 * Math.min(1.2, fs * 0.9))));
-  const mw = Math.max(3, Math.round(0.42 * hw * pxX * Math.min(1.25, fs)));
+  const mw = Math.max(3, Math.round(0.42 * hw * pxX * Math.min(1.25, fs) * d.mouthWidth));
   const mx = Math.round(cx - mw / 2);
   switch (face.mouth) {
     case 'line':
