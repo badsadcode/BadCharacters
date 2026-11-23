@@ -133,7 +133,7 @@ describe('animation', () => {
   it('ships the standard clip set', () => {
     expect(clips.map((c) => c.name)).toEqual([
       'Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight',
-      'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RestPose',
+      'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'RestPose',
     ]);
   });
   it('a punch goes forward, not sideways', () => {
@@ -292,5 +292,14 @@ describe('fabric patterns', () => {
     const r = await validator.validateBytes(exportGlb(ch));
     expect(r.issues.numErrors).toBe(0);
     expect(r.issues.numWarnings).toBe(0);
+  });
+});
+
+describe('material names never collide', () => {
+  it('the face texture survives every outfit slot (regression: a "face" slot once overwrote it)', () => {
+    for (const theme of Object.keys(THEMES)) {
+      const ch = generateCharacter(randomRecipe(328, 'faceted', theme));
+      expect(ch.materials.face.textured, theme).toBe(true);
+    }
   });
 });

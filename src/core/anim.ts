@@ -439,7 +439,22 @@ export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
   };
   const crossbowShoot: Clip = { name: 'CrossbowShoot', duration: xbowT, loop: true, sample: xbowPose };
 
-  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot];
+  /** rifle: shouldered aim with breathing sway, and low ready */
+  const riflePose = (lower: number, t: number, T: number): Pose => {
+    const ph = (TAU * t) / T;
+    const sway = 0.012 * sin(ph);
+    const rot: Record<string, Quat> = {};
+    const tilt = -0.55 * lower + sway;
+    setArms(rot, armTo(1, [0.2, 0.21 + tilt, 1], 22 + 12 * lower), armTo(-1, [-0.5, -0.62 + tilt * 0.6, 0.6], 122 - 12 * lower, 25));
+    setLegs(rot, flatLeg(10, 14), flatLeg(-8, 10));
+    rot.Spine = qChain(qx((4 + 6 * lower + 1.2 * sin(ph * 2)) * DEG), qy(-8 * DEG));
+    rot.Head = qChain(qy(6 * DEG), qx((8 + 14 * lower) * DEG));
+    return { rot, hips: [0, -plant(10, 14).drop, 0] };
+  };
+  const rifleAim: Clip = { name: 'RifleAim', duration: 3, loop: true, sample: (t) => riflePose(0, t, 3) };
+  const rifleReady: Clip = { name: 'RifleReady', duration: 3, loop: true, sample: (t) => riflePose(1, t, 3) };
+
+  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot, rifleAim, rifleReady];
 
   const tpose: Clip = {
     name: 'RestPose',

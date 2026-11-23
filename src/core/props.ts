@@ -98,6 +98,26 @@ export function buildProps(rc: CharacterRecipe, sk: Skeleton): Part[] {
     parts.push(path('prop.grip', 'prop.2', [b.toRest(add(b.G, scale(b.U, -0.12 * b.Lh))), b.toRest(add(b.G, scale(b.U, 0.12 * b.Lh)))], [0.02 * d.u, 0.02 * d.u], fwdRest, W('LeftHand'), 2.4, 1.3));
     return parts;
   }
+  if (id === 'rifle') {
+    const wp = poseAt(sk, 'RifleAim', 0);
+    const R = gripWorld(sk, wp, 'Right');
+    const Lg = gripWorld(sk, wp, 'Left');
+    const F = norm(sub(Lg, R));
+    const U = norm(sub([0, 1, 0], scale(F, dot([0, 1, 0], F))));
+    const toRest = restMapper(sk, wp, 'RightHand');
+    const W = weightsOf(sk, ['RightHand', 1]);
+    const L = Math.max(0.5 * d.u, Math.hypot(...sub(Lg, R)) * 1.7);
+    const at = (f: number, u = 0) => toRest(add(R, add(scale(F, f * L), scale(U, u * L))));
+    const upRest = norm(sub(at(0, 1), at(0, 0)));
+    const w = 0.028 * d.u;
+    return [
+      path('prop.stock', 'prop', [at(-0.4, -0.05), at(-0.12, 0.02), at(0.05, 0.05)], [w * 1.4, w, w * 0.9], upRest, W, 6, 1.6),
+      path('prop.receiver', 'prop.2', [at(0.02, 0.06), at(0.38, 0.06)], [w, w], upRest, W, 6, 1.3),
+      path('prop.handguard', 'prop', [at(0.38, 0.055), at(0.72, 0.055)], [w * 0.8, w * 0.75], upRest, W, 5, 1.2),
+      path('prop.barrel', 'prop.2', [at(0.7, 0.07), at(1.05, 0.07)], [w * 0.3, w * 0.3], upRest, W, 2.2),
+      path('prop.mag', 'prop.2', [at(0.25, 0.02), at(0.29, -0.16)], [w * 0.5, w * 0.5], upRest, W, 6, 2),
+    ];
+  }
   if (id === 'crossbow') {
     const wp = poseAt(sk, 'CrossbowShoot', 0.3);
     const R = gripWorld(sk, wp, 'Right');

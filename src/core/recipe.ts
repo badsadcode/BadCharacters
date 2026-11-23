@@ -87,8 +87,11 @@ export const STYLES: Record<StyleId, Style> = {
 };
 
 // ───────────────────────────────────────────────────────────── garments ──
-export type SlotId = 'hair' | 'beard' | 'head' | 'top' | 'bottom' | 'feet' | 'hands' | 'armor' | 'belt' | 'back' | 'neck' | 'prop';
-export const SLOTS: SlotId[] = ['hair', 'beard', 'head', 'top', 'bottom', 'feet', 'hands', 'armor', 'belt', 'back', 'neck', 'prop'];
+export type SlotId = 'hair' | 'beard' | 'head' | 'mask' | 'top' | 'bottom' | 'legs' | 'feet' | 'hands' | 'armor' | 'belt' | 'back' | 'neck' | 'prop';
+export const SLOTS: SlotId[] = ['hair', 'beard', 'head', 'mask', 'top', 'bottom', 'legs', 'feet', 'hands', 'armor', 'belt', 'back', 'neck', 'prop'];
+
+/** face gear that covers the nose (the modelled nose is skipped under it) */
+export const COVERS_NOSE = new Set(['gasmask', 'respirator', 'shemagh', 'bandanamask']);
 
 export type MaterialKind = 'cloth' | 'leather' | 'metal' | 'plastic' | 'rubber';
 
@@ -121,6 +124,26 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     greathelm: { label: 'Great helm', kind: 'metal' },
     crown: { label: 'Crown', kind: 'metal' },
     spacehelm: { label: 'Space helmet', kind: 'plastic' },
+    brodie: { label: 'Brodie helmet (WWI)', kind: 'metal' },
+    stahlhelm: { label: 'Stahlhelm (WWI/WWII)', kind: 'metal' },
+    m1: { label: 'M1 helmet (WWII/Vietnam)', kind: 'plastic' },
+    modern: { label: 'Modern helmet + NVG mount', kind: 'plastic' },
+    visorhelm: { label: 'Future visor helmet', kind: 'plastic' },
+    beret: { label: 'Beret', kind: 'cloth' },
+    boonie: { label: 'Boonie hat', kind: 'cloth' },
+    patrol: { label: 'Patrol cap', kind: 'cloth' },
+    sidecap: { label: 'Side cap', kind: 'cloth' },
+    peaked: { label: 'Peaked officer cap', kind: 'cloth' },
+    ushanka: { label: 'Ushanka', kind: 'cloth' },
+  },
+  // (called 'mask', not 'face': 'face' is the face-texture material)
+  mask: {
+    none: { label: 'None', kind: 'cloth' },
+    gasmask: { label: 'Gas mask', kind: 'rubber' },
+    respirator: { label: 'Respirator', kind: 'rubber' },
+    goggles: { label: 'Goggles', kind: 'rubber' },
+    shemagh: { label: 'Shemagh', kind: 'cloth' },
+    bandanamask: { label: 'Bandana mask', kind: 'cloth' },
   },
   top: {
     none: { label: 'None', kind: 'cloth' },
@@ -132,6 +155,12 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     robe: { label: 'Robe', kind: 'cloth' },
     coat: { label: 'Long coat', kind: 'leather' },
     suit: { label: 'Bodysuit top', kind: 'rubber' },
+    tunicww1: { label: 'Service tunic (WWI)', kind: 'cloth' },
+    fieldjacket: { label: 'Field jacket (WWII)', kind: 'cloth' },
+    fatigues: { label: 'Fatigues (Vietnam)', kind: 'cloth' },
+    combat: { label: 'Combat shirt (modern)', kind: 'cloth' },
+    hoodie: { label: 'Hoodie', kind: 'cloth' },
+    jacket: { label: 'Leather jacket', kind: 'leather' },
   },
   bottom: {
     none: { label: 'None', kind: 'cloth' },
@@ -140,6 +169,14 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     pants: { label: 'Trousers', kind: 'cloth' },
     skirt: { label: 'Skirt', kind: 'cloth' },
     suit: { label: 'Bodysuit legs', kind: 'rubber' },
+    breeches: { label: 'Breeches (WWI)', kind: 'cloth' },
+    cargo: { label: 'Cargo trousers', kind: 'cloth' },
+  },
+  legs: {
+    none: { label: 'None', kind: 'cloth' },
+    puttees: { label: 'Puttees', kind: 'cloth' },
+    kneepads: { label: 'Knee pads', kind: 'plastic' },
+    gaiters: { label: 'Gaiters', kind: 'cloth' },
   },
   feet: {
     none: { label: 'Barefoot', kind: 'cloth' },
@@ -147,6 +184,7 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     boots: { label: 'Boots', kind: 'leather' },
     tallboots: { label: 'Tall boots', kind: 'leather' },
     hikers: { label: 'Hiking boots', kind: 'leather' },
+    jungle: { label: 'Jungle boots', kind: 'leather' },
     sabatons: { label: 'Armored boots', kind: 'metal' },
   },
   hands: {
@@ -160,11 +198,18 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     hivis: { label: 'Hi-vis vest', kind: 'plastic' },
     chestplate: { label: 'Chestplate', kind: 'metal' },
     plate: { label: 'Full plate', kind: 'metal' },
+    webbing: { label: 'Webbing (WWI/WWII)', kind: 'cloth' },
+    bandolier: { label: 'Bandolier', kind: 'leather' },
+    flak: { label: 'Flak vest (Vietnam)', kind: 'cloth' },
+    chestrig: { label: 'Chest rig', kind: 'cloth' },
+    platecarrier: { label: 'Plate carrier (modern)', kind: 'cloth' },
+    exo: { label: 'Exo armour (future)', kind: 'plastic' },
   },
   belt: {
     none: { label: 'None', kind: 'leather' },
     belt: { label: 'Belt', kind: 'leather' },
     sash: { label: 'Sash', kind: 'cloth' },
+    utility: { label: 'Utility belt + canteen', kind: 'cloth' },
   },
   back: {
     none: { label: 'None', kind: 'cloth' },
@@ -172,6 +217,10 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     rucksack: { label: 'Explorer rucksack', kind: 'leather' },
     jetpack: { label: 'Jetpack', kind: 'metal' },
     quiver: { label: 'Quiver', kind: 'leather' },
+    ww1pack: { label: 'Pack + greatcoat roll (WWI)', kind: 'cloth' },
+    alice: { label: 'ALICE pack (Vietnam)', kind: 'cloth' },
+    assault: { label: 'Assault pack (modern)', kind: 'cloth' },
+    radio: { label: 'Field radio', kind: 'plastic' },
   },
   neck: {
     none: { label: 'None', kind: 'cloth' },
@@ -182,6 +231,7 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     staff: { label: 'Walking staff', kind: 'leather' },
     bow: { label: 'Bow', kind: 'leather' },
     crossbow: { label: 'Crossbow', kind: 'leather' },
+    rifle: { label: 'Rifle (preview)', kind: 'metal' },
   },
 };
 
@@ -207,11 +257,109 @@ interface Theme {
   skins?: string[];
   /** fixed colours for specific slots (signature looks) */
   fixed?: Partial<Record<SlotId, [string, string]>>;
+  /** fabric pattern weights per slot (camo!) */
+  patterns?: Partial<Record<SlotId, Partial<Record<PatternId, number>>>>;
+  /** palette per slot, overriding `palette` */
+  slotPalette?: Partial<Record<SlotId, string[]>>;
 }
 
 export const SKIN_TONES = ['#f3d2b8', '#e8b896', '#d29b74', '#b57b55', '#8d5a3b', '#6b4029', '#4a2c1d'];
 
 export const THEMES: Record<string, Theme> = {
+  ww1: {
+    label: 'WWI soldier',
+    genre: 'Great War trenches (1914-1918)',
+    slots: {
+      head: { brodie: 3, stahlhelm: 2, peaked: 1, sidecap: 1 },
+      mask: { none: 4, gasmask: 1 },
+      top: { tunicww1: 1 },
+      bottom: { breeches: 2, pants: 1 },
+      legs: { puttees: 3, none: 1 },
+      feet: { boots: 1 },
+      armor: { webbing: 3, bandolier: 1 },
+      back: { ww1pack: 3, none: 1 },
+      prop: { rifle: 1 },
+    },
+    palette: ['#7a6e4e', '#6f6a4c', '#5e6450', '#7d8597', '#8a7d5a'],
+    accents: ['#5a4a32', '#3e3a2c', '#8a7a52'],
+    slotPalette: { head: ['#5f6248', '#6a6a52', '#585c4a'], armor: ['#8a7a52', '#7a6a46'], back: ['#7a6e4e', '#6a6044'] },
+  },
+  ww2: {
+    label: 'WWII soldier',
+    genre: 'Second World War (1939-1945)',
+    slots: {
+      head: { m1: 3, stahlhelm: 2, sidecap: 1, beret: 1 },
+      top: { fieldjacket: 2, fatigues: 1 },
+      bottom: { pants: 3, cargo: 1 },
+      legs: { gaiters: 2, none: 2 },
+      feet: { boots: 1 },
+      hands: { none: 3, gloves: 1 },
+      armor: { webbing: 3, none: 1 },
+      belt: { utility: 1 },
+      back: { ww1pack: 1, assault: 1, radio: 1, none: 2 },
+      prop: { rifle: 1 },
+    },
+    palette: ['#5b5a3c', '#6b6b47', '#7a7350', '#55594c', '#6e6a58'],
+    accents: ['#8a7f62', '#3a3a2e', '#a39a7a'],
+    patterns: { top: { solid: 5, splinter: 1, erdl: 1 }, head: { solid: 6, erdl: 1 } },
+  },
+  vietnam: {
+    label: 'Vietnam-era soldier',
+    genre: 'Jungle warfare (1960s-70s)',
+    slots: {
+      head: { m1: 3, boonie: 3, none: 1 },
+      mask: { none: 6, bandanamask: 1 },
+      top: { fatigues: 3, tee: 1 },
+      bottom: { cargo: 2, pants: 1 },
+      feet: { jungle: 1 },
+      armor: { flak: 2, bandolier: 1, webbing: 1, none: 1 },
+      belt: { utility: 1 },
+      back: { alice: 2, radio: 1, none: 1 },
+      neck: { none: 3, scarf: 1 },
+      prop: { rifle: 1 },
+    },
+    palette: ['#4e5a34', '#55603a', '#5d6640', '#4a5236'],
+    accents: ['#2f3a22', '#6b5a3a', '#3e4a2c'],
+    patterns: { top: { solid: 3, tiger: 2, erdl: 2 }, bottom: { solid: 3, tiger: 2, erdl: 2 }, head: { solid: 2, tiger: 2, erdl: 2 } },
+  },
+  modern: {
+    label: 'Modern soldier',
+    genre: 'Contemporary military sim',
+    slots: {
+      head: { modern: 4, patrol: 1, boonie: 1 },
+      mask: { none: 3, goggles: 2, shemagh: 1 },
+      top: { combat: 3, fatigues: 1 },
+      bottom: { cargo: 3, pants: 1 },
+      legs: { kneepads: 3, none: 1 },
+      feet: { boots: 1 },
+      hands: { gloves: 4, none: 1 },
+      armor: { platecarrier: 4, chestrig: 2 },
+      belt: { utility: 1 },
+      back: { assault: 3, radio: 1, none: 1 },
+      prop: { rifle: 1 },
+    },
+    palette: ['#7a7356', '#6b6b4e', '#8f8466', '#5b6150', '#a89a78'],
+    accents: ['#3a3a30', '#5a5444', '#2a2c28'],
+    patterns: { top: { digital: 2, woodland: 2, desert: 2, flecktarn: 1, solid: 1 }, bottom: { digital: 2, woodland: 2, desert: 2, flecktarn: 1, solid: 1 }, head: { solid: 3, digital: 1 } },
+  },
+  future: {
+    label: 'Future soldier',
+    genre: 'Sci-fi military',
+    slots: {
+      head: { visorhelm: 4, none: 1 },
+      top: { suit: 1 },
+      bottom: { suit: 1 },
+      feet: { boots: 1 },
+      hands: { gauntlets: 1, gloves: 1 },
+      armor: { exo: 4, platecarrier: 1 },
+      back: { jetpack: 1, assault: 1, none: 1 },
+      prop: { rifle: 1 },
+    },
+    palette: ['#2b2f36', '#3a4048', '#d8dde3', '#4a5a4a', '#2c3a4a'],
+    accents: ['#00d0ff', '#ff6a00', '#a6ff00', '#ff2e88'],
+    patterns: { top: { solid: 3, urban: 1, digital: 1 } },
+  },
+
   explorer: {
     label: 'Explorer',
     genre: 'Voxel adventure (Alden Wayfarer look)',
@@ -497,7 +645,7 @@ export function randomOutfit(seed: number, theme: string): Record<SlotId, Garmen
     const r = new Rng(subSeed(seed, `outfit.${slot}`));
     const table = th.slots[slot];
     const id = table ? r.weighted(table as Record<string, number>) : 'none';
-    let color = r.pick(th.palette);
+    let color = r.pick(th.slotPalette?.[slot] ?? th.palette);
     let color2 = r.pick(th.accents);
     if (slot === 'hair' || slot === 'beard') color = color2 = new Rng(subSeed(seed, 'hairColor')).pick(HAIR_COLORS);
     if (slot === 'prop') [color, color2] = [r.pick(['#6e4a2a', '#5a3c22', '#7a5532']), r.pick(['#3a2a1a', '#d8cfb8', '#555a60'])];
@@ -505,7 +653,9 @@ export function randomOutfit(seed: number, theme: string): Record<SlotId, Garmen
     if (GARMENTS[slot][id]?.kind === 'metal' && theme === 'knight') color = r.pick(th.accents.slice(0, 2));
     if (slot === 'armor' && id === 'hivis') color = r.pick(th.accents);
     if (slot === 'head' && id === 'hardhat') color = r.pick(['#f2c200', '#ffffff', '#ff7a00', '#2e86c1']);
-    out[slot] = { id, color, color2 };
+    const pw = th.patterns?.[slot];
+    const pattern = pw ? (r.weighted(pw as Record<string, number>) as PatternId) : undefined;
+    out[slot] = pattern && pattern !== 'solid' ? { id, color, color2: pattern === 'snow' ? color2 : r.pick(th.palette.filter((c) => c !== color).concat(color2)), pattern } : { id, color, color2 };
   }
   return out;
 }

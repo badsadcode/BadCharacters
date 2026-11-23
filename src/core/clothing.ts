@@ -18,6 +18,7 @@ import type { CharacterRecipe, SlotId } from './recipe';
 import type { Skeleton } from './skeleton';
 import { Rng, subSeed } from './rng';
 import { buildProps } from './props';
+import { buildMilitary } from './military';
 
 const X: V3 = [1, 0, 0];
 const Z: V3 = [0, 0, 1];
@@ -32,9 +33,10 @@ export function encloseScale(nIn: number, nOut: number) {
 
 /** tag lookup with a fractional offset in ring units */
 const K = (p: Part, tag: string, off = 0) => anchor(p.rings, tag) + off;
+export const KTag = K;
 
 /** head ring index for a fraction t of head height (head rings sit at t = 0, .1, .35, .6, .86, 1) */
-function headK(t: number) {
+export function headK(t: number) {
   const ts = [0, 0.1, 0.35, 0.6, 0.86, 1];
   if (t <= 0) return 0;
   for (let i = 0; i < ts.length - 1; i++) if (t <= ts[i + 1]) return i + (t - ts[i]) / (ts[i + 1] - ts[i]);
@@ -210,6 +212,14 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
     footwear('feet', 'belowKnee', 0, 4 * e);
     soles('feet', d.ankleY * 0.3, 4 * e);
     for (const s of sides) band(`feet.cuff.${s}`, mat('feet'), body[`leg.${s}`], K(body[`leg.${s}`], 'belowKnee', 0.12), 0.14, 6 * e);
+  } else if (f === 'jungle') {
+    // leather foot, canvas upper (accent colour)
+    footwear('feet', 'ankle', 0.2, 4 * e);
+    soles('feet', d.ankleY * 0.3, 4 * e);
+    for (const s of sides) {
+      const L = body[`leg.${s}`];
+      out.push(shell(`feet.canvas.${s}`, L, K(L, 'shin', -0.3), K(L, 'ankle', 0.25), { material: mat('feet', true), inflate: 4.2 * e, cuffStart: true, cuffEnd: true }));
+    }
   } else if (f === 'hikers') {
     footwear('feet', 'shin', 0.1, 4 * e);
     soles('feet', d.ankleY * 0.32, 4.5 * e);
@@ -442,6 +452,7 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
     out.push(shell('head.collar', body.neck, 0, 1.6, { material: mat('head'), inflate: d.neckR * 0.6 + 4 * e, cuffStart: true, cuffEnd: true, nBoost: 0 }));
   }
 
+  buildMilitary({ rc, sk, body, out, e });
   return out;
 }
 
@@ -456,7 +467,7 @@ export function box(name: string, material: string, c: V3, half: V3, w: Weights,
 }
 
 /** flat disc / brim on the XZ plane */
-function slab(name: string, material: string, c: V3, a: number, b: number, thick: number, w: Weights, n = 2.6): Part {
+export function slab(name: string, material: string, c: V3, a: number, b: number, thick: number, w: Weights, n = 2.6): Part {
   return { name, material, capStart: true, capEnd: true, rings: [ring([c[0], c[1] - thick / 2, c[2]], X, Z, a, b, n, w), ring([c[0], c[1] + thick / 2, c[2]], X, Z, a, b, n, w)] };
 }
 
@@ -465,7 +476,7 @@ function capsuleY(name: string, material: string, c: V3, r: number, h: number, w
   return { name, material, capStart: true, capEnd: true, lod: 'small', rings: [R(-h / 2, 0.55), R(-h / 2 + r * 0.25, 0.95), R(h / 2 - r * 0.25, 0.95), R(h / 2, 0.55)] };
 }
 
-function tube(name: string, material: string, c: V3, dir: V3, r: number, h: number, w: Weights): Part {
+export function tube(name: string, material: string, c: V3, dir: V3, r: number, h: number, w: Weights): Part {
   const { p, q } = limbFrame(dir, Z);
   const R = (t: number, s: number) => ring(add(c, scale(dir, t)), p, q, r * s, r * s, 2.4, w);
   return { name, material, capStart: true, capEnd: true, lod: 'small', rings: [R(-h / 2, 0.9), R(-h / 2 + r * 0.2, 1), R(h / 2, 1), R(h / 2 + 0.001, 0.85)] };

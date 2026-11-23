@@ -497,7 +497,7 @@ function buildUI() {
 
   // viewport
   const clips = $('clips');
-  for (const c of ['Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight', 'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RestPose']) {
+  for (const c of ['Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight', 'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'RestPose']) {
     const b = document.createElement('button');
     b.textContent = c === 'RestPose' ? 'Rest' : c.replace(/([a-z])([A-Z])/g, '$1 $2');
     b.dataset.clip = c;

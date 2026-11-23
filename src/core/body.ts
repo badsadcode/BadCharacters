@@ -7,7 +7,7 @@ import { Part, ring, Ring, Weights } from './loft';
 import { bodySpec } from './shell';
 import { add, clamp, cross, dot, lerp, norm, scale, sub, V3 } from './math';
 import type { Skeleton } from './skeleton';
-import { STYLES, type CharacterRecipe } from './recipe';
+import { COVERS_NOSE, STYLES, type CharacterRecipe } from './recipe';
 
 export type PartMap = Record<string, Part>;
 
@@ -101,7 +101,7 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
 
   // big-headed styles get proportionally smaller noses and ears, or chibis look like gnomes
   const featureScale = Math.min(1, 0.16 / (d.headH / d.H)) ** 0.7;
-  if (rc.face.nose) {
+  if (rc.face.nose && !COVERS_NOSE.has(rc.outfit.mask?.id ?? 'none')) {
     const hh = d.headH * featureScale * d.noseScale;
     const ny = d.chinY + d.headH * (d.eyeLine - 0.13 * featureScale);
     const fz = d.headHD * lerp(1, 0.97, def);
