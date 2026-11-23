@@ -67,6 +67,7 @@ npm run cli -- samples out/samples                # a sample per style
 | Generation, styles, themes, sliders, presets | ✅ working |
 | GLB export (skin, morphs, texture, clips, sockets, recipe in extras) | ✅ Khronos validator: 0 errors, 0 warnings on all 72 style×theme combos |
 | Animations | ✅ procedural, checked with forward-kinematics tests and by eye |
-| Unity / Godot / Unreal import | ⚠️ not yet verified inside those editors (not available in the build environment) |
+| Godot import | ✅ confirmed by Tom: generated characters walking on Solitude's title screen (Godot 4, skinning + baked clips) |
+| Unity / Unreal import | ⚠️ not yet verified inside those editors (not available in the build environment) |
 | Fingers | ❌ mitten hands + thumb by design (low-poly budget) |
 | Facial animation | ❌ the face is a static texture for now (blinking would be a nice next step) |

@@ -109,6 +109,6 @@ can be turned back into an editable character.
 - **Blender**: File → Import → glTF 2.0. Shape keys show up under Object Data → Shape Keys.
 
 Honest status: the files pass the Khronos glTF validator with zero errors and warnings, and
-load and animate in three.js (the viewer renders the exported GLB itself). They have **not**
-yet been opened in Unity, Godot or Unreal by me. Those editors aren't available in the build
-environment, so please report anything odd.
+load and animate in three.js (the viewer renders the exported GLB itself). **Godot 4: confirmed**
+by Tom, with generated characters walking on Solitude's title screen (skinning and baked clips
+intact). Unity and Unreal have not been tried yet; please report anything odd.
