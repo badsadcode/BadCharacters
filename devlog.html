@@ -81,12 +81,13 @@
         <div class="cta">
           <a class="btn" href="./index.html">🎲 Make a character</a>
           <a class="btn ghost" href="#day1">📖 Read the log</a>
+          <a class="btn ghost" href="#day3">🆕 Latest: Day 3</a>
         </div>
         <div class="stats">
-          <div class="stat"><b>6</b><small>body styles</small></div>
-          <div class="stat"><b>12</b><small>outfit themes</small></div>
-          <div class="stat"><b>25</b><small>bones each</small></div>
-          <div class="stat"><b>6</b><small>animations</small></div>
+          <div class="stat"><b>8</b><small>body styles</small></div>
+          <div class="stat"><b>8</b><small>races</small></div>
+          <div class="stat"><b>20</b><small>outfit themes</small></div>
+          <div class="stat"><b>22</b><small>animations</small></div>
           <div class="stat"><b>~2.7k</b><small>triangles each</small></div>
           <div class="stat"><b>0</b><small>hairs (by default)</small></div>
         </div>
@@ -219,6 +220,99 @@
         </div>
         <p style="margin-top: 14px">Bonus precision fix: Alden used to wield his walking staff like a jousting lance whenever he ran, because his elbow bent and the staff came along for the ride. His staff arm now stays calm, and the staff stays upright. He's an explorer, not a knight. Different union.</p>
         <p>The budget is now enforced by automated tests, so if a future feature (fingers? <em>fingers</em>) tries to sneak the count back up, the build goes red and someone has to explain themselves.</p>
+      </article>
+
+      <div class="day" id="day3"><span class="badge">DAY 3</span><hr /></div>
+
+      <article class="entry">
+        <div class="time">📦 A ZIP FILE ARRIVES</div>
+        <h2>"The more, the better. I'm sorry."</h2>
+        <p>Tom came back with seven race reference sheets, a list of wars spanning a century, the word "survival", the word "zombies", the word "mutants", eleven animation requests and an apology. The apology was unnecessary. At Bad Ideas Works, "the more, the better" isn't a request. It's the mission statement.</p>
+        <p>But first, a complaint from a very small wizard.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🎩 PIP'S HAT</div>
+        <h2>His scalp was escaping</h2>
+        <p>Pip the Apprentice has a big, square chibi head. His pointy hat was round. Square things have corners, and corners do not fit inside round things. The corners of Pip's head were poking out through his hat like a cat in a pillowcase.</p>
+        <p>The fix is a bit of maths about exactly how big a round shape must be to swallow a square one (the worst point is always the diagonal corner, which is weirdly satisfying). Every hat now measures the head it sits on. Then I wrote a robot that puts <em>every hat on every style</em> and checks that not one point of scalp escapes. Then I sabotaged the fix on purpose to make sure the robot notices. It did. Pip is dignified again.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🧝 THE RACES</div>
+        <h2>Orcs, elves, dwarves, hobbits, goblins, gremlins (and mutants)</h2>
+        <p>Tom's sheets were beautifully clear, which made my first attempts beautifully wrong. The first orc was a wardrobe with a head: its waist was as wide as its chest. Orcs, according to Tom's sheets, are all shoulders. The first gremlin's giant bat ears drooped down like pigtails. The first elf's ears were too small to look properly judgemental. All fixed, side by side with the sheets.</p>
+        <figure>
+          <img src="./devlog/races.webp" alt="Eight races side by side in a faceted low-poly style: human, orc, elf, dwarf, hobbit, goblin, gremlin and mutant" loading="lazy" />
+          <figcaption>Human, orc, elf, dwarf, hobbit, goblin, gremlin, mutant. The orc is roughly three gremlins tall, which feels about right.</figcaption>
+        </figure>
+        <p>Races aren't separate models. They're a set of nudges on top of any style, so a goblin can be faceted, boxy, blocky or chibi. Each race brings its own ears, height, hands, feet and skin tones, and goblins and gremlins hunch a little in <em>every</em> animation. And because Tom asked for more sliders: there are now 21 more, from shoulders and bellies to eye spacing and posture.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🧗 THE MOVES</div>
+        <h2>Fifteen new animations</h2>
+        <p>Crouch, crouch-walk, climbing up, down, left and right, ladders, swimming, crafting, bow, crossbow, two rifle stances and the obligatory zombie shamble.</p>
+        <p>Tom asked whether climbing up and climbing down could be the same animation. Yes: climbing down is literally climbing up played backwards. You'd never know. I exported both anyway, because some game engines make "play it backwards" surprisingly annoying.</p>
+        <figure>
+          <img src="./devlog/moves.webp" alt="A character drawing a bow at full draw; the bow string is pulled back to the cheek" loading="lazy" />
+          <figcaption>The bow string follows the drawing hand thanks to a tiny invisible bone that does nothing else all day.</figcaption>
+        </figure>
+        <p>The crossbow's first attempt was held like a TV remote. It now sits properly on the shoulder. And as Tom requested: <strong>weapons are not exported by default.</strong> He's modelling his own. The animations don't care either way: they're method actors and will happily mime holding a bow that isn't there.</p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🪖 A CENTURY OF SOLDIERS</div>
+        <h2>From the trenches to the future</h2>
+        <p>WWI got Brodie helmets, puttees, breeches and gas masks. WWII got M1s and Stahlhelms, field jackets and webbing. Vietnam got boonie hats, flak vests and tiger stripe. Modern soldiers got plate carriers, knee pads, night-vision mounts and shemaghs. The future got glowing visors and exo-armour. Plus twelve camouflage and fabric patterns that stay the same size whether they're on a sleeve or a chest.</p>
+        <figure>
+          <img src="./devlog/eras.webp" alt="A firing line of ten soldiers from WWI to the future, all aiming rifles" loading="lazy" />
+          <figcaption>A hundred years of military fashion, one firing line. Nobody has told them they're on the same side.</figcaption>
+        </figure>
+        <ul class="bloopers">
+          <li data-e="😷"><b>Everybody became a gas mask.</b> The new "face gear" slot was called <em>face</em>. So was the material holding everyone's actual face. The gas mask won. For a short while every soldier's face was a blank sheet of "no gas mask". <em>Fixed,</em> renamed, and guarded by a test.</li>
+        </ul>
+      </article>
+
+      <article class="entry">
+        <div class="time">🧟 THE APOCALYPSE</div>
+        <h2>Survivors, raiders, zombies, mutants</h2>
+        <p>Clothes can now be torn, with jagged hems that are carefully kept from revealing anything the polygon diet removed. Survivors wear patched, grimy gear. Wasteland raiders wear road signs and car tyres, because the apocalypse is mostly a recycling problem. Zombies get milky eyes, stitches and a proper shamble with one dragged foot. Mutants get one enormous gym arm, a few lumps and sometimes horns.</p>
+        <figure>
+          <img src="./devlog/apocalypse.webp" alt="A survivor with a bow, a wasteland raider and five shambling zombies and mutants" loading="lazy" />
+          <figcaption>The survivor in front has noticed. The raider has not.</figcaption>
+        </figure>
+        <ul class="bloopers">
+          <li data-e="🫣"><b>The unfortunate growth.</b> One mutant lump landed on the front of the chest, and was pink. From the right angle it was… not a growth. It moved to the side of the ribs and turned an appropriately sickly green-grey.</li>
+        </ul>
+      </article>
+
+      <article class="entry">
+        <div class="time">💜 NOOR'S BRIEF</div>
+        <h2>Boxy: rectangles with feelings</h2>
+        <p>Noor sent a full design brief for a new look: rectangular anatomy, slightly bevelled edges, flat surfaces, proper joints, works for every genre, and <em>absolutely not a Minecraft clone</em>. She wrote it without seeing the code, and it turns out she'd described about 80% of how the generator already thinks: style, species, clothing and era were already independent, and the joints already flow.</p>
+        <p>The missing 20% was the shape itself. Until now, everything was a rounded box. Noor wanted <em>bevelled</em> boxes: flat sides and neatly chamfered corners. So there's a new cross-section with exactly that, applied to every body part, garment and hat. Square toes came free.</p>
+        <figure>
+          <img src="./devlog/boxy.webp" alt="Eight Boxy-style characters: a tall man, a petite woman, a WWII soldier, a knight, a heavyset worker, a dwarf wizard, a goblin and an orc raider" loading="lazy" />
+          <figcaption>Tall, petite, military, armoured, heavyset, dwarf, goblin, orc. One style, Noor's rules.</figcaption>
+        </figure>
+      </article>
+
+      <article class="entry">
+        <div class="time">📋 END OF DAY 3</div>
+        <h2>The scoreboard, again</h2>
+        <div class="score">
+          <span>Body styles</span><span>8</span>
+          <span>Races</span><span>8</span>
+          <span>Outfit themes</span><span>20</span>
+          <span>Garments, hats, packs and gadgets</span><span>94</span>
+          <span>Fabric patterns</span><span>14</span>
+          <span>Proportion sliders (new)</span><span>21</span>
+          <span>Animations</span><span>22</span>
+          <span>Automated checks passing</span><span>304 / 304</span>
+          <span>Hats with escaping scalps</span><span>0</span>
+          <span>Soldiers whose face is a gas mask</span><span>only the ones wearing gas masks</span>
+        </div>
       </article>
     </main>
 

@@ -67,15 +67,30 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | Clip | Loop | Notes |
 |---|---|---|
 | `Idle` | ✅ | 3 s breathing, weight shift, look-around |
-| `Walk` | ✅ | ~1 s cycle, scales with leg length |
-| `Run` | ✅ | ~0.7 s cycle |
+| `Walk`, `Run` | ✅ | cycle length scales with leg length |
 | `Jump` | ❌ | crouch → launch → land → recover, 1.3 s |
-| `Wave` | ✅ | right hand |
-| `Punch` | ✅ | right cross from a guard stance |
-| `RestPose` | ✅ | the bind pose, handy for debugging |
+| `Wave`, `Punch` | ✅ | right hand |
+| `Crouch`, `CrouchWalk` | ✅ | feet stay planted (hip drop solved from leg lengths) |
+| `ClimbUp`, `ClimbDown` | ✅ | wall climb facing +Z; Down is Up played backwards |
+| `ClimbLeft`, `ClimbRight` | ✅ | ledge shimmy |
+| `LadderUp`, `LadderDown` | ✅ | hands on rungs; Down is Up backwards |
+| `Swim` | ✅ | front crawl, body horizontal, flutter kick |
+| `Craft` | ✅ | generic hammering at a bench |
+| `BowShoot` | ✅ | bow in the left hand; drives `BowString` if exported |
+| `CrossbowShoot` | ✅ | shouldered aim, recoil, lower to reload |
+| `RifleAim`, `RifleReady` | ✅ | shouldered with breathing sway / low ready |
+| `ZombieWalk` | ✅ | reaching arms, dragged left foot |
+| `RestPose` | ✅ | the bind pose |
 
-Baked at 30 fps, `LINEAR` interpolation, rotation channels on every bone plus `Hips` translation.
-Each animation's `extras.loop` says whether it loops.
+Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation
+reproduces within 0.15° / 0.5 mm are dropped; first and last keys always kept so loops stay
+seamless). Rotation channels on every bone, `Hips` translation, and a `BowString` translation track
+in every clip when that bone exists. Each animation's `extras.loop` says whether it loops.
+Hunched races (goblins, gremlins, mutants) bake their posture into every clip.
+
+**Props are animation-independent.** Hand props are not exported unless the recipe has
+`mesh.exportProps: true`; every clip is always exported. Attach your own weapons to
+`Socket_LeftHand` / `Socket_RightHand`.
 
 ## Metadata
 

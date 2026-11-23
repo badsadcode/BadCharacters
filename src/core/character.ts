@@ -97,7 +97,7 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** growths: the skin tone, angrier */
 function mutantGrowth(skin: string) {
   const n = parseInt(skin.slice(1), 16);
-  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v * [1.05, 0.8, 0.85][i]));
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v * [0.78, 0.86, 0.66][i]));
   return '#' + c.map((v) => Math.min(255, v).toString(16).padStart(2, '0')).join('');
 }
 

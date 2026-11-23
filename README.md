@@ -15,15 +15,18 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 
 | | |
 |---|---|
-| Styles | Blocky (advanced voxel), Chibi, Stylized, Realistic, Heroic, Stocky |
-| Body sliders | height, masculine↔feminine build, muscle, fat, head size, leg length, roundness, skin tone |
-| Face | pixel-art texture: 6 eye styles, 6 mouths, optional brows/blush, modelled nose and ears |
-| Outfits | 12 slots and 50+ garments: shirts, robes, coats, trousers, skirts, boots, gloves, plate armour, vests, hats, helmets, backpacks, a jetpack… |
-| Themes | Base body, Explorer, Casual, Villager, Knight, Wizard, Soldier, Sci-fi, Worker, Athlete, Pirate, Zombie |
-| Opt-in extras | voxel hair, beards, walking staff (the base brief is bald and clean-shaven) |
+| Styles | Blocky, **Boxy** (bevelled rectangles, Noor's design), Chibi, Stylized, Faceted (flat-shaded, like the race sheets), Realistic, Heroic, Stocky |
+| Races | Human, Orc, Elf, Dwarf, Hobbit, Goblin, Gremlin, Mutant: work with every style |
+| Body sliders | height, masculine↔feminine build, muscle, fat, head size, leg length, roundness, skin, plus 21 fine sliders (shoulders, chest, waist, hips, belly, arm length/thickness, leg thickness, neck, head width/depth, jaw, hands, feet, ears, nose, eyes, mouth, posture) |
+| Face | pixel-art texture: 8 eye styles (incl. zombie, third eye), 7 mouths, optional brows/blush/scars, modelled nose, race ears, tusks |
+| Outfits | 14 slots, 94 garments: civilian, fantasy, WWI/WWII/Vietnam/modern/future military, survival and wasteland gear; any garment can be torn |
+| Patterns | woodland, desert, tiger stripe, ERDL, flecktarn, digital, urban, splinter, snow, plaid, stripes, grime, bloodstained, patched |
+| Themes | 20, from Base body and Explorer to WWI soldier, Modern soldier, Survivor, Wasteland raider, Zombie and Mutant |
+| Opt-in extras | voxel hair, beards (the base brief is bald and clean-shaven) |
+| Props | staff, bow, crossbow, rifle: **previewed in the viewer, not exported unless you tick "Props"** (bring your own weapons; the animations never need them) |
 | Presets | Alden Wayfarer (Thornwake), Mannequin, Sir Clanksalot, Pip the Apprentice |
-| Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 6 sockets |
-| Animations | Idle, Walk, Run, Jump, Wave, Punch (+ RestPose) |
+| Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 6 sockets (+ `BowString` helper bone when a bow is exported) |
+| Animations | 22: Idle, Walk, Run, Jump, Wave, Punch, Crouch, CrouchWalk, ClimbUp/Down/Left/Right, LadderUp/Down, Swim, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
 | Export | GLB (validator-clean), editable `.badchar.json` recipe, share links |
 | Budget | low 1.5k–2.8k · medium 1.7k–4.0k (median 2.7k) · high 2.5k–6.7k triangles; Alden is 2,880 |
 
@@ -52,7 +55,7 @@ what your engine gets.
 
 ```bash
 npm run dev                                       # the app
-npm test                                          # 86 tests: every style × theme validates clean, polygon budgets, feet on floor, normals outward, animation sanity
+npm test                                          # 304 tests: every style × theme and race validates clean, polygon budgets, hats/skirts enclose what they cover, feet on floor, animation sanity
 npm run cli -- export blocky explorer 42 out/     # one character → GLB + recipe
 npm run cli -- samples out/samples                # a sample per style
 ```
