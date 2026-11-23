@@ -25,6 +25,8 @@ export interface MaterialDef {
   texture?: Texture;
   /** pattern id, to pick the texture filter */
   pattern?: string;
+  /** emissive map (bioluminescent spots) */
+  emissiveTexture?: Texture;
   alpha?: number;
   emissive?: string;
 }
@@ -130,6 +132,7 @@ export function buildParts(rc: CharacterRecipe, sk: Skeleton, masks?: number[][]
 
 /** sides around each ring for a part, from the detail level and the part's size class */
 export function sidesFor(p: Part, K: number): number {
+  if (p.sides) return p.sides;
   if (p.lod === 'box') return 4;
   if (p.bevel) return 8;
   if (p.lod === 'small') return K >= 20 ? 12 : K >= 12 ? 8 : 6;

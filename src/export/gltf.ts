@@ -6,6 +6,10 @@
  */
 import { fullPose } from '../core/anim';
 import type { Character } from '../core/character';
+import type { Creature } from '../creatures/generate';
+
+/** anything with a skeleton, skinned primitives, materials and clips */
+export type Exportable = Character | Creature;
 import { encodePng, hexRgb } from '../core/face';
 import { sub } from '../core/math';
 
@@ -136,7 +140,8 @@ export interface GltfOptions {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; bin: Uint8Array } {
+export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; bin: Uint8Array } {
+  const isCreature = 'kind' in ch && ch.kind === 'creature';
   const sk = ch.skeleton;
   const bb = new Buf();
   const json: any = {
@@ -193,6 +198,10 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
       gm.doubleSided = true;
     }
     if (m.emissive) gm.emissiveFactor = linear(m.emissive);
+    if (m.emissiveTexture) {
+      gm.emissiveTexture = { index: addTexture(`${m.name}_glow`, encodePng(m.emissiveTexture), 1) };
+      gm.emissiveFactor = [1, 1, 1];
+    }
     matIndex.set(p.material, json.materials.length);
     json.materials.push(gm);
   }
@@ -248,7 +257,10 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
   // ── animations
   if (opts.animations ?? true) {
     json.animations = [];
-    const hipsRest = sk.bones[sk.index.Hips].world;
+    // the bone that carries bobbing / lunges: Hips for humanoids, Body for creatures
+    const moveName = sk.moveBone ?? 'Hips';
+    const moveBone = sk.bones[sk.index[moveName]];
+    const hipsRest = sub(moveBone.world, moveBone.parent >= 0 ? sk.bones[moveBone.parent].world : [0, 0, 0]);
     for (const clip of ch.clips) {
       const frames = Math.max(2, Math.round(clip.duration * FPS) + 1);
       const times: number[] = [];
@@ -280,7 +292,7 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
       }
       const tr: number[] = [];
       for (const p of poses) tr.push(hipsRest[0] + p.hips[0], hipsRest[1] + p.hips[1], hipsRest[2] + p.hips[2]);
-      channel(sk.index.Hips, 'translation', tr, 3);
+      channel(sk.index[moveName], 'translation', tr, 3);
       // extra prop bones (BowString) get a translation track in EVERY clip, so switching clips
       // in an engine always puts them back where they belong
       for (const b of sk.bones) {
@@ -294,21 +306,35 @@ export function buildGltf(ch: Character, opts: GltfOptions = {}): { json: any; b
     }
   }
 
-  json.scenes[0].extras = {
-    badcharacters: {
-      schema: 'badcharacters/1',
-      units: 'metres',
-      up: '+Y',
-      forward: '+Z',
-      restPose: ch.recipe.rig.restPose === 'A' ? 'A-pose' : 'T-pose',
-      humanoid: Object.fromEntries(sk.bones.filter((b) => b.name !== 'Root' && b.name !== 'BowString').map((b) => [b.name, b.name])),
-      propBones: sk.bones.filter((b) => b.name === 'BowString').map((b) => b.name),
-      sockets: ch.skeleton.sockets.map((s) => s.name),
-      morphTargets: ch.morphs.map((m) => m.name),
-      clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop })),
-      recipe: ch.recipe,
-    },
-  };
+  json.scenes[0].extras = isCreature
+    ? {
+        badcreatures: {
+          schema: 'badcreatures/1',
+          units: 'metres',
+          up: '+Y',
+          forward: '+Z',
+          species: (ch as Creature).recipe.species,
+          modelLength: (ch as Creature).build.length,
+          motion: (ch as Creature).motion,
+          clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop })),
+          recipe: ch.recipe,
+        },
+      }
+    : {
+        badcharacters: {
+          schema: 'badcharacters/1',
+          units: 'metres',
+          up: '+Y',
+          forward: '+Z',
+          restPose: (ch as Character).recipe.rig.restPose === 'A' ? 'A-pose' : 'T-pose',
+          humanoid: Object.fromEntries(sk.bones.filter((b) => b.name !== 'Root' && b.name !== 'BowString').map((b) => [b.name, b.name])),
+          propBones: sk.bones.filter((b) => b.name === 'BowString').map((b) => b.name),
+          sockets: ch.skeleton.sockets.map((s) => s.name),
+          morphTargets: ch.morphs.map((m) => m.name),
+          clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop })),
+          recipe: ch.recipe,
+        },
+      };
 
   const bin = bb.concat();
   json.buffers = [{ byteLength: bin.byteLength }];
@@ -343,7 +369,7 @@ export function toGlb(json: any, bin: Uint8Array): Uint8Array {
   return out;
 }
 
-export function exportGlb(ch: Character, opts: GltfOptions = {}): Uint8Array {
+export function exportGlb(ch: Exportable, opts: GltfOptions = {}): Uint8Array {
   const { json, bin } = buildGltf(ch, opts);
   return toGlb(json, bin);
 }

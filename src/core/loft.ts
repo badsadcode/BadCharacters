@@ -10,6 +10,9 @@ import { add, cross, dot, len, lerp, lerp3, norm, scale, sub, V3 } from './math'
 import type { ShellSpec } from './shell';
 import { PATTERN_TILE } from './patterns';
 
+/** metres of creature skin per texture repeat along the body */
+export const CREATURE_TILE = 1.5;
+
 /** [boneIndex, weight] pairs */
 export type Weights = [number, number][];
 
@@ -39,7 +42,11 @@ export interface Part {
   capStart?: boolean;
   capEnd?: boolean;
   /** 'head' maps v to world height so the face texture lines up with the eye line */
-  uv?: { mode: 'arc' } | { mode: 'head'; y0: number; h: number };
+  uv?: { mode: 'arc' } | { mode: 'head'; y0: number; h: number } | { mode: 'wrap' };
+  /** fixed number of sides around (teeth and fins: 4) */
+  sides?: number;
+  /** render inside-out (a throat you look into) */
+  flipWinding?: boolean;
   /** per-vertex weight override (skirts that follow both legs) */
   vertexWeights?: (ring: number, xn: number, yn: number, r: Ring) => Weights;
   /**
@@ -237,7 +244,7 @@ export function loftPart(part: Part, K: number, m: MeshData) {
   const R = K + 1;
   // winding: with p×q pointing along the direction of travel, (A,B,C) faces outward
   const travel = rings.length > 1 ? sub(rings[rings.length - 1].c, rings[0].c) : rings[0].d;
-  const flip = dot(cross(rings[0].p, rings[0].q), travel) < 0;
+  const flip = (dot(cross(rings[0].p, rings[0].q), travel) < 0) !== !!part.flipWinding;
   // v: arc length along the centres
   const cum = [0];
   for (let i = 1; i < rings.length; i++) cum.push(cum[i - 1] + len(sub(rings[i].c, rings[i - 1].c)));
@@ -276,6 +283,8 @@ export function loftPart(part: Part, K: number, m: MeshData) {
       // fabric patterns keep the same scale on every part
       // (bevelled rings start at a corner, not the back centre: shift so the face stays at u = 0.5)
       if (uvMode === 'head') m.uvs.push((arc[k] + (bevel ? bevelPoint(r, 0)[0] : 0)) / per, 1 - v);
+      // creatures: once around the body (u, for countershading), metres along it (v)
+      else if (uvMode === 'wrap') m.uvs.push(arc[k] / per, cum[i] / CREATURE_TILE);
       else m.uvs.push(arc[k] / PATTERN_TILE, (cum[i] / PATTERN_TILE));
       const th = angleOf(r, k);
       const w = part.vertexWeights ? part.vertexWeights(i, Math.cos(th), Math.sin(th), r) : r.w;

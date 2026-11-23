@@ -526,7 +526,7 @@ export function worldPose(sk: Skeleton, p: Pose): { pos: V3[]; rot: Quat[] } {
   sk.bones.forEach((b, i) => {
     const parentW: V3 = b.parent >= 0 ? sk.bones[b.parent].world : [0, 0, 0];
     let t: V3 = [b.world[0] - parentW[0], b.world[1] - parentW[1], b.world[2] - parentW[2]];
-    if (b.name === 'Hips') t = [t[0] + p.hips[0], t[1] + p.hips[1], t[2] + p.hips[2]];
+    if (b.name === (sk.moveBone ?? 'Hips')) t = [t[0] + p.hips[0], t[1] + p.hips[1], t[2] + p.hips[2]];
     if (p.trans?.[b.name]) t = p.trans[b.name];
     const lq = p.rot[b.name] ?? QI;
     if (b.parent < 0) {

@@ -8,7 +8,8 @@ import {
   BROW_STYLES, CharacterRecipe, EYE_STYLES, GARMENTS, MOUTH_STYLES, randomBody, randomFace, randomOutfit, randomRecipe,
   SKIN_TONES, SLOTS, StyleId, STYLES, THEMES,
 } from '../core/recipe';
-import { exportGlb } from '../export/gltf';
+import { exportGlb, Exportable } from '../export/gltf';
+import { generateCreature, CreatureRecipe } from '../creatures/generate';
 import { PRESETS } from '../core/presets';
 import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
 import { PATTERNS, PatternId } from '../core/patterns';
@@ -82,7 +83,7 @@ function loadGlb(bytes: Uint8Array): Promise<GLTF> {
 }
 
 /** The viewer shows the EXPORTED GLB, never an in-memory approximation of it. */
-async function makeActor(ch: Character): Promise<Actor> {
+async function makeActor(ch: Exportable): Promise<Actor> {
   const gltf = await loadGlb(exportGlb(ch));
   const root = gltf.scene;
   const meshes: THREE.SkinnedMesh[] = [];
@@ -134,6 +135,7 @@ function playClip(name: string) {
 }
 
 function clearStage() {
+  stage.position.set(0, 0, 0);
   for (const a of actors) {
     stage.remove(a.root);
     scene.remove(a.helper);
@@ -162,6 +164,30 @@ async function rebuild(frame = false) {
   $('stats').textContent = `${recipe.name} · ${s.triangles.toLocaleString()} tris (${Math.round((1 - s.triangles / s.unoptimized) * 100)}% hidden/redundant removed) · ${s.bones} bones · ${character.clips.length} clips · ${character.morphs.length} morphs · ${recipe.body.height.toFixed(2)} m · built in ${genMs.toFixed(0)} ms`;
   if (frame) frameCamera();
   history.replaceState(null, '', `#${encodeRecipe(recipe)}`);
+}
+
+/** debug / screenshot helper: a row of creatures, spaced by their size */
+async function showCreatures(recipes: CreatureRecipe[], clip = 'Swim', gap = 1, angle = 90, y = 0) {
+  const ticket = ++building;
+  const list: Actor[] = [];
+  for (const rc of recipes) list.push(await makeActor(generateCreature(rc)));
+  if (ticket !== building) return;
+  lineup = true;
+  clearStage();
+  stage.rotation.y = 0;
+  let x = 0;
+  list.forEach((a, i) => {
+    const L = recipes[i].length;
+    a.root.position.set(x + L / 2, y, 0);
+    a.root.rotation.y = (angle * Math.PI) / 180;
+    x += L + gap;
+    stage.add(a.root);
+    scene.add(a.helper);
+    actors.push(a);
+  });
+  stage.position.x = -x / 2;
+  playClip(clip);
+  applyToggles();
 }
 
 /** debug / screenshot helper: put a row of recipes on stage */
@@ -631,4 +657,4 @@ resize();
 rebuild(true);
 loop();
 // for automated screenshots / debugging
-Object.assign(window, { __bc: { get recipe() { return recipe; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, toggles, applyToggles, stage, camera, controls } });
+Object.assign(window, { __bc: { get recipe() { return recipe; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, showCreatures, toggles, applyToggles, stage, camera, controls } });

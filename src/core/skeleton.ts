@@ -96,6 +96,8 @@ export interface Skeleton {
   sockets: Socket[];
   dims: Dims;
   index: Record<string, number>;
+  /** bone carrying the Pose.hips translation (default 'Hips'; creatures use 'Body') */
+  moveBone?: string;
 }
 
 export function computeDims(rc: CharacterRecipe): Dims {
