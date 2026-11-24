@@ -208,8 +208,8 @@ Clips fitted to that exact weapon (both hands on it, every frame):
 
 | Weapon | Clips |
 |---|---|
-| rifle, SMG, shotgun, sniper, LMG, crossbow | `RifleAim` (shouldered, bladed stance, cheek down), `RifleReady` (low ready), `RifleReadyWalk`, `RifleRun` (low ready), `RifleSprint` (high port across the chest), `RifleCrawl` (prone, gun ahead of the face) (RifleAim / RifleReady replace the generic ones) |
-| pistol | `PistolAim` (two-handed, arms out), `PistolReady` (low and close), `PistolReadyWalk`, `PistolRun`, `PistolSprint` (one-handed, gun tucked muzzle-down, the free arm pumps) |
+| rifle, SMG, shotgun, sniper, LMG, crossbow | `RifleAim` (shouldered, bladed stance, cheek down), `RifleReady` (low ready), `RifleReadyWalk`, `RifleRun` (low ready), `RifleSprint` (high port across the chest), `RifleCrawl` (prone, gun ahead of the face), `RifleCrouchReady`, `RifleCrouchAim`, `RifleCrouchWalk`, `RifleCrouchWalkAim` (crouched; the gun stays level while the body leans) (RifleAim / RifleReady replace the generic ones) |
+| pistol | `PistolAim` (two-handed, arms out), `PistolReady` (low and close), `PistolReadyWalk`, `PistolRun`, `PistolSprint` (one-handed, gun tucked muzzle-down, the free arm pumps), `PistolCrouchReady`, `PistolCrouchAim`, `PistolCrouchWalk`, `PistolCrouchWalkAim` |
 
 With `embed: true` the weapon GLB is merged into the character's: a node `Weapon_<name>` under the
 `RightHand` bone (a rigid attachment, no skinning), its materials untouched, and its own clips

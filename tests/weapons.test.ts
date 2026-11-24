@@ -69,6 +69,10 @@ describe('BadGun weapons in the hands', () => {
       } else {
         for (const n of ['RifleSprint', 'RifleCrawl']) expect(holdQuality(ch, n).worst, n).toBeLessThan(0.04);
       }
+      // crouched: hands on the gun, and the crouched aim still points forward
+      const P = a === 'pistol' ? 'Pistol' : 'Rifle';
+      for (const n of ['CrouchReady', 'CrouchAim', 'CrouchWalk', 'CrouchWalkAim']) expect(holdQuality(ch, P + n).worst, P + n).toBeLessThan(0.04);
+      expect(holdQuality(ch, P + 'CrouchAim').fwd).toBeGreaterThan(0.97);
       const q = holdQuality(ch, aim);
       expect(q.worst).toBeLessThan(0.025);
       expect(q.fwd).toBeGreaterThan(0.97);

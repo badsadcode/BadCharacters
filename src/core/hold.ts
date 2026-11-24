@@ -225,6 +225,15 @@ export function weaponClips(sk: Skeleton, clips: Clip[], hold: WeaponHold): Clip
       holding(sk, hold, clip('Run'), 'RifleRun', longGun(40, 24), BLADE * 0.5),
       ...(has('Sprint') ? [holding(sk, hold, clip('Sprint'), 'RifleSprint', port)] : []),
       ...(has('CrawlProne') ? [holding(sk, hold, clip('CrawlProne'), 'RifleCrawl', prone)] : []),
+      // crouched: the gun stays level in the world while the body leans, so aim holds on target
+      ...(has('Crouch') && has('CrouchWalk')
+        ? [
+            holding(sk, hold, clip('Crouch'), 'RifleCrouchReady', longGun(38, 22), BLADE),
+            holding(sk, hold, clip('Crouch'), 'RifleCrouchAim', longGun(0, 3), BLADE),
+            holding(sk, hold, clip('CrouchWalk'), 'RifleCrouchWalk', longGun(38, 22), BLADE * 0.7),
+            holding(sk, hold, clip('CrouchWalk'), 'RifleCrouchWalkAim', longGun(0, 3), BLADE * 0.8),
+          ]
+        : []),
     ];
   }
   // pistols: two-handed, out in front at eye level (aim) or low and close (ready)
@@ -249,6 +258,14 @@ export function weaponClips(sk: Skeleton, clips: Clip[], hold: WeaponHold): Clip
             const ucW = wp.rot[ix('UpperChest')];
             return { pos: add(wp.pos[ix('UpperChest')], qRotate(ucW, [-0.03 * d.H, -0.07 * d.H, d.chestHD + 0.04 * d.H])), rot: qMul(ucW, frameMap([0, 0, 1], [0, 1, 0], [0, -1, 0.15], [0, 0, 1])) };
           }, 0, true),
+        ]
+      : []),
+    ...(clips.some((c) => c.name === 'Crouch') && clips.some((c) => c.name === 'CrouchWalk')
+      ? [
+          holding(sk, hold, clip('Crouch'), 'PistolCrouchReady', pistol(0.5, 0.12, 45)),
+          holding(sk, hold, clip('Crouch'), 'PistolCrouchAim', pistol(0.86, 0.01, 0)),
+          holding(sk, hold, clip('CrouchWalk'), 'PistolCrouchWalk', pistol(0.5, 0.12, 45)),
+          holding(sk, hold, clip('CrouchWalk'), 'PistolCrouchWalkAim', pistol(0.86, 0.01, 0)),
         ]
       : []),
   ];
