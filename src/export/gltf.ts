@@ -4,7 +4,8 @@
  * texture and baked animation clips. No three.js in between: what the model says is what lands
  * in the file.
  */
-import { fullPose } from '../core/anim';
+import { fullPose, type Clip } from '../core/anim';
+import type { Skeleton } from '../core/skeleton';
 import type { Character } from '../core/character';
 import type { Creature } from '../creatures/generate';
 
@@ -68,11 +69,21 @@ interface Acc {
   normalized?: boolean;
 }
 
-class Buf {
+export class Buf {
   chunks: Uint8Array[] = [];
   length = 0;
   views: { buffer: 0; byteOffset: number; byteLength: number; target?: number }[] = [];
   accessors: Acc[] = [];
+
+  /** optionally continue an existing buffer (the auto-rigger appends to an imported GLB) */
+  constructor(seed?: { bin: Uint8Array; views: any[]; accessors: any[] }) {
+    if (seed) {
+      this.chunks.push(seed.bin);
+      this.length = seed.bin.byteLength;
+      this.views = [...seed.views];
+      this.accessors = [...seed.accessors];
+    }
+  }
 
   view(bytes: Uint8Array, target?: number) {
     const pad = (4 - (this.length % 4)) % 4;
@@ -154,24 +165,7 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
     skins: [],
   };
 
-  // ── bones (node index == bone index)
-  sk.bones.forEach((b) => {
-    const parent = b.parent >= 0 ? sk.bones[b.parent].world : [0, 0, 0];
-    const t = sub(b.world, parent as [number, number, number]).map(r6);
-    const node: any = { name: b.name };
-    if (t.some((x) => x !== 0)) node.translation = t;
-    json.nodes.push(node);
-    if (b.parent >= 0) (json.nodes[b.parent].children ??= []).push(json.nodes.length - 1);
-  });
-  json.scenes[0].nodes.push(0);
-
-  // ── sockets (plain child nodes, not skin joints)
-  for (const s of ch.skeleton.sockets) {
-    const bi = sk.index[s.bone];
-    const idx = json.nodes.length;
-    json.nodes.push({ name: s.name, translation: sub(s.world, sk.bones[bi].world).map(r6), extras: { badcharacters: { socket: true } } });
-    (json.nodes[bi].children ??= []).push(idx);
-  }
+  writeBones(json, sk);
 
   // ── materials & textures (the face plus one small tile per patterned garment)
   const matIndex = new Map<string, number>();
@@ -255,56 +249,7 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
   json.scenes[0].nodes.push(meshNode);
 
   // ── animations
-  if (opts.animations ?? true) {
-    json.animations = [];
-    // the bone that carries bobbing / lunges: Hips for humanoids, Body for creatures
-    const moveName = sk.moveBone ?? 'Hips';
-    const moveBone = sk.bones[sk.index[moveName]];
-    const hipsRest = sub(moveBone.world, moveBone.parent >= 0 ? sk.bones[moveBone.parent].world : [0, 0, 0]);
-    for (const clip of ch.clips) {
-      const frames = Math.max(2, Math.round(clip.duration * FPS) + 1);
-      const times: number[] = [];
-      const poses = [];
-      for (let f = 0; f < frames; f++) {
-        const t = (f / (frames - 1)) * clip.duration;
-        times.push(t);
-        poses.push(clip.sample(t));
-      }
-      const samplers: any[] = [];
-      const channels: any[] = [];
-      const inputs = new Map<string, number>();
-      /** write one channel with redundant keys removed (shared time accessors where possible) */
-      const channel = (node: number, path: 'rotation' | 'translation', values: number[], stride: number) => {
-        const keep = reduceKeys(times, values, stride, path === 'rotation' ? ROT_TOL : POS_TOL, path === 'rotation');
-        const key = keep.join(',');
-        if (!inputs.has(key)) inputs.set(key, bb.f32(keep.map((i) => times[i]), 'SCALAR', undefined, true));
-        const out: number[] = [];
-        for (const i of keep) for (let k = 0; k < stride; k++) out.push(values[i * stride + k]);
-        samplers.push({ input: inputs.get(key)!, output: bb.f32(out, stride === 4 ? 'VEC4' : 'VEC3'), interpolation: 'LINEAR' });
-        channels.push({ sampler: samplers.length - 1, target: { node, path } });
-      };
-      const full = poses.map((p) => fullPose(sk, p));
-      for (const b of sk.bones) {
-        if (b.name === 'Root') continue;
-        const out: number[] = [];
-        for (const fp of full) out.push(...fp[b.name]);
-        channel(sk.index[b.name], 'rotation', out, 4);
-      }
-      const tr: number[] = [];
-      for (const p of poses) tr.push(hipsRest[0] + p.hips[0], hipsRest[1] + p.hips[1], hipsRest[2] + p.hips[2]);
-      channel(sk.index[moveName], 'translation', tr, 3);
-      // extra prop bones (BowString) get a translation track in EVERY clip, so switching clips
-      // in an engine always puts them back where they belong
-      for (const b of sk.bones) {
-        if (b.name !== 'BowString') continue;
-        const rest = sub(b.world, sk.bones[b.parent].world);
-        const out: number[] = [];
-        for (const p of poses) out.push(...(p.trans?.[b.name] ?? rest));
-        channel(sk.index[b.name], 'translation', out, 3);
-      }
-      json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, ...(clip.travel ? { travel: clip.travel.map(r6) } : {}) } });
-    }
-  }
+  if (opts.animations ?? true) writeAnimations(json, bb, sk, ch.clips);
 
   json.scenes[0].extras = isCreature
     ? {
@@ -341,6 +286,81 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
   json.bufferViews = bb.views;
   json.accessors = bb.accessors;
   return { json, bin };
+}
+
+/** bone nodes (node index == bone index, so call this first on an empty node list) and sockets */
+export function writeBones(json: any, sk: Skeleton) {
+  // ── bones (node index == bone index)
+  sk.bones.forEach((b) => {
+    const parent = b.parent >= 0 ? sk.bones[b.parent].world : [0, 0, 0];
+    const t = sub(b.world, parent as [number, number, number]).map(r6);
+    const node: any = { name: b.name };
+    if (t.some((x) => x !== 0)) node.translation = t;
+    json.nodes.push(node);
+    if (b.parent >= 0) (json.nodes[b.parent].children ??= []).push(json.nodes.length - 1);
+  });
+  json.scenes[0].nodes.push(0);
+
+  // ── sockets (plain child nodes, not skin joints)
+  for (const s of sk.sockets) {
+    const bi = sk.index[s.bone];
+    const idx = json.nodes.length;
+    json.nodes.push({ name: s.name, translation: sub(s.world, sk.bones[bi].world).map(r6), extras: { badcharacters: { socket: true } } });
+    (json.nodes[bi].children ??= []).push(idx);
+  }
+
+}
+
+/** bake clips into glTF animations (keyframe-reduced), appended to json.animations */
+export function writeAnimations(json: any, bb: Buf, sk: Skeleton, clips: Clip[]) {
+  json.animations = [];
+  // the bone that carries bobbing / lunges: Hips for humanoids, Body for creatures
+  const moveName = sk.moveBone ?? 'Hips';
+  const moveBone = sk.bones[sk.index[moveName]];
+  const hipsRest = sub(moveBone.world, moveBone.parent >= 0 ? sk.bones[moveBone.parent].world : [0, 0, 0]);
+  for (const clip of clips) {
+    const frames = Math.max(2, Math.round(clip.duration * FPS) + 1);
+    const times: number[] = [];
+    const poses = [];
+    for (let f = 0; f < frames; f++) {
+      const t = (f / (frames - 1)) * clip.duration;
+      times.push(t);
+      poses.push(clip.sample(t));
+    }
+    const samplers: any[] = [];
+    const channels: any[] = [];
+    const inputs = new Map<string, number>();
+    /** write one channel with redundant keys removed (shared time accessors where possible) */
+    const channel = (node: number, path: 'rotation' | 'translation', values: number[], stride: number) => {
+      const keep = reduceKeys(times, values, stride, path === 'rotation' ? ROT_TOL : POS_TOL, path === 'rotation');
+      const key = keep.join(',');
+      if (!inputs.has(key)) inputs.set(key, bb.f32(keep.map((i) => times[i]), 'SCALAR', undefined, true));
+      const out: number[] = [];
+      for (const i of keep) for (let k = 0; k < stride; k++) out.push(values[i * stride + k]);
+      samplers.push({ input: inputs.get(key)!, output: bb.f32(out, stride === 4 ? 'VEC4' : 'VEC3'), interpolation: 'LINEAR' });
+      channels.push({ sampler: samplers.length - 1, target: { node, path } });
+    };
+    const full = poses.map((p) => fullPose(sk, p));
+    for (const b of sk.bones) {
+      if (b.name === 'Root') continue;
+      const out: number[] = [];
+      for (const fp of full) out.push(...fp[b.name]);
+      channel(sk.index[b.name], 'rotation', out, 4);
+    }
+    const tr: number[] = [];
+    for (const p of poses) tr.push(hipsRest[0] + p.hips[0], hipsRest[1] + p.hips[1], hipsRest[2] + p.hips[2]);
+    channel(sk.index[moveName], 'translation', tr, 3);
+    // extra prop bones (BowString) get a translation track in EVERY clip, so switching clips
+    // in an engine always puts them back where they belong
+    for (const b of sk.bones) {
+      if (b.name !== 'BowString') continue;
+      const rest = sub(b.world, sk.bones[b.parent].world);
+      const out: number[] = [];
+      for (const p of poses) out.push(...(p.trans?.[b.name] ?? rest));
+      channel(sk.index[b.name], 'translation', out, 3);
+    }
+    json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, ...(clip.travel ? { travel: clip.travel.map(r6) } : {}) } });
+  }
 }
 
 export function toGlb(json: any, bin: Uint8Array): Uint8Array {
