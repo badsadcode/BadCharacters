@@ -8,7 +8,7 @@ import { RaceId, RACES, Shape } from './races';
 import type { PatternId } from './patterns';
 
 // ─────────────────────────────────────────────────────────────── styles ──
-export type StyleId = 'blocky' | 'boxy' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky' | 'voxel' | 'voxelslim' | 'mannequin' | 'figure';
+export type StyleId = 'blocky' | 'boxy' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky' | 'voxel' | 'voxelslim' | 'mannequin' | 'figure' | 'brick' | 'brickslim' | 'capsule';
 
 export interface Style {
   label: string;
@@ -55,6 +55,8 @@ export interface Style {
   simplify?: number;
   /** one clean taper per limb segment instead of the anatomical knee/calf/ankle profile */
   straightLimbs?: boolean;
+  /** no taper at all: constant-thickness limbs and a straight pillar torso */
+  uniform?: boolean;
 }
 
 export const STYLES: Record<StyleId, Style> = {
@@ -134,6 +136,28 @@ export const STYLES: Record<StyleId, Style> = {
     headsTall: 6.4, headW: 0.38, headD: 0.42, arm: 1.0, leg: 1.0, torso: 1.0, definition: 0.85,
     legFrac: 0.57, armFrac: 0.48, neck: 0.18, hand: 1.1, foot: 1.05, roundness: 0.4, eyeLine: 0.47, faceScale: 1.1,
     raceBlend: 0.45, joints: 'peg', gloss: 0.32, shading: 'smooth', straightLimbs: true,
+  },
+  // ── no taper at all: every limb is one uniform block / tube ──
+  brick: {
+    label: 'Brick',
+    blurb: 'No taper anywhere: every limb one uniform block, a straight pillar torso.',
+    headsTall: 5.4, headW: 0.45, headD: 0.46, arm: 1.0, leg: 1.0, torso: 0.98, definition: 0.2,
+    legFrac: 0.55, armFrac: 0.48, neck: 0.08, hand: 1.0, foot: 1.0, roundness: 0, eyeLine: 0.45, faceScale: 1.15,
+    section: 'box', simplify: 5, raceBlend: 0.4, shading: 'flat', uniform: true,
+  },
+  brickslim: {
+    label: 'Brick Slim',
+    blurb: 'Uniform blocks with realistic proportions.',
+    headsTall: 7.0, headW: 0.36, headD: 0.42, arm: 0.9, leg: 0.92, torso: 0.92, definition: 0.4,
+    legFrac: 0.58, armFrac: 0.47, neck: 0.18, hand: 0.95, foot: 0.95, roundness: 0, eyeLine: 0.47, faceScale: 1.0,
+    section: 'box', simplify: 5, raceBlend: 0.35, shading: 'flat', uniform: true,
+  },
+  capsule: {
+    label: 'Capsule',
+    blurb: 'Rounded tubes of one thickness: peg-people toys, soft and friendly.',
+    headsTall: 5.6, headW: 0.42, headD: 0.44, arm: 1.0, leg: 1.0, torso: 1.0, definition: 0.3,
+    legFrac: 0.55, armFrac: 0.48, neck: 0.1, hand: 1.0, foot: 1.0, roundness: 0.95, eyeLine: 0.45, faceScale: 1.15,
+    simplify: 5, raceBlend: 0.4, shading: 'smooth', uniform: true,
   },
 };
 

@@ -361,7 +361,7 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
   // straight limbs (newer styles): replace the anatomical bead-and-bulb profile (pinched knee, bulging
   // calf, pinched ankle: the "fancy table leg" look) with one clean taper per segment.
   // Ring positions, tags and skin weights are untouched, so bending and clothing behave the same.
-  if (st.straightLimbs) {
+  if (st.straightLimbs || st.uniform) {
     const taper = (part: Part, along: (r: Ring) => number, segs: [string, number][], depth: number) => {
       const at = (tag: string) => along(part.rings.find((r) => r.tag === tag)!);
       const keys = segs.map(([tag, rad]) => [at(tag), rad] as [number, number]);
@@ -381,17 +381,27 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
     for (const s of ['L', 'R'] as const) {
       const leg = parts[`leg.${s}`];
       const hipY = leg.rings[0].c[1];
-      const thigh = d.thighR;
-      const knee = lerp(d.thighR, d.ankleR, 0.42);
-      const ankle = Math.max(d.ankleR, d.thighR * 0.5);
+      // uniform: one constant thickness from hip to ankle (no taper at all)
+      const legR = lerp(d.thighR, d.calfR, 0.5);
+      const thigh = st.uniform ? legR : d.thighR;
+      const knee = st.uniform ? legR : lerp(d.thighR, d.ankleR, 0.42);
+      const ankle = st.uniform ? legR : Math.max(d.ankleR, d.thighR * 0.5);
       taper(leg, (r) => hipY - r.c[1], [['thighTop', thigh], ['knee', knee], ['ankle', ankle], ['end', ankle * 1.02]], 1);
       const arm = parts[`arm.${s}`];
       const root = arm.rings[0].c;
       const am = s === 'L' ? d.armL : d.armR;
-      const upper = Math.max(d.upperArmR, d.deltR * 0.88) * am;
-      const elbow = lerp(d.upperArmR, d.wristR, 0.4) * am;
-      const wrist = Math.max(d.wristR, d.upperArmR * 0.55) * am ** 0.8;
+      const armR = lerp(d.upperArmR, d.foreArmR, 0.5) * am;
+      const upper = st.uniform ? armR : Math.max(d.upperArmR, d.deltR * 0.88) * am;
+      const elbow = st.uniform ? armR : lerp(d.upperArmR, d.wristR, 0.4) * am;
+      const wrist = st.uniform ? armR : Math.max(d.wristR, d.upperArmR * 0.55) * am ** 0.8;
       taper(arm, (r) => Math.hypot(r.c[0] - root[0], r.c[1] - root[1], r.c[2] - root[2]), [['shoulder', upper], ['elbow', elbow], ['wrist', wrist], ['end', wrist * 0.96]], 0.92);
+    }
+    if (st.uniform) {
+      // a straight pillar torso: hips to chest the same block, no pinched waist, no belly bulge
+      const A = Math.max(d.hipHW, d.chestHW * 0.96);
+      const B = Math.max(d.hipHD, d.chestHD);
+      const pillar = new Set(['hip', 'lowWaist', 'waist', 'ribs', 'chest', 'armpit']);
+      parts.torso.rings = parts.torso.rings.map((r) => (pillar.has(r.tag ?? '') ? { ...r, a: A, b: B, fb: r.tag === 'chest' || r.tag === 'armpit' ? r.fb : 0, bb: 0 } : r));
     }
   }
 
