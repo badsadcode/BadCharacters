@@ -13,7 +13,7 @@ export interface ClipCategory {
 /** first match wins, so the order matters */
 export const CLIP_CATEGORIES: ClipCategory[] = [
   { id: 'layers', label: 'Upper-body layers', icon: '🧍', match: /^Upper_/ },
-  { id: 'death', label: 'Deaths', icon: '💀', match: /^Death/ },
+  { id: 'death', label: 'Hits & deaths', icon: '💀', match: /^(Death|Hit|GetUp)/ },
   { id: 'weapons', label: 'Weapons', icon: '🔫', match: /^(Rifle|Pistol|Bow|Crossbow)/ },
   { id: 'combat', label: 'Combat', icon: '🥊', match: /^(Punch|Kick|Sword|Staff)/ },
   { id: 'traverse', label: 'Climb & vault', icon: '🧗', match: /^(Climb|Ladder|RockClimb|Vault)/ },

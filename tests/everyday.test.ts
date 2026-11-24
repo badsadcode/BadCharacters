@@ -145,3 +145,48 @@ describe('directional locomotion and upper-body layers', () => {
     expect(layer.channels.some((c: any) => c.target.path === 'translation')).toBe(false);
   });
 });
+
+describe('getting up and hit reactions', () => {
+  for (const style of ['realistic', 'chibi', 'blocky'] as StyleId[]) {
+    const ch = generateCharacter(randomRecipe(8, style, 'athlete', 'human'));
+    const sk = ch.skeleton;
+    const H = sk.dims.H;
+    const clip = (n: string) => ch.clips.find((c) => c.name === n)!;
+    const headRest = sk.bones[sk.index.Head].world[1];
+    it(`${style}: get-ups start lying, end standing, never sink into the floor`, () => {
+      for (const n of ['GetUpFromBack', 'GetUpFromFront']) {
+        const c = clip(n);
+        expect(worldPose(sk, c.sample(0)).pos[sk.index.Head][1], n).toBeLessThan(0.2 * H);
+        const end = worldPose(sk, c.sample(c.duration));
+        expect(end.pos[sk.index.Head][1], n).toBeGreaterThan(0.95 * headRest);
+        for (let i = 0; i <= 20; i++) {
+          const wp = worldPose(sk, c.sample((i / 20) * c.duration));
+          expect(wp.pos[sk.index.Hips][1], `${n} @${i}`).toBeGreaterThan(0.03 * H);
+          for (const f of ['LeftFoot', 'RightFoot']) expect(wp.pos[sk.index[f]][1], `${n} ${f} @${i}`).toBeGreaterThan(-0.03 * H);
+        }
+      }
+    });
+    it(`${style}: hit reactions start and end at the idle pose`, () => {
+      const idle = clip('Idle');
+      for (const n of ['HitHeadFront', 'HitHeadBack', 'HitTorsoFront', 'HitTorsoBack', 'HitArmLeft', 'HitArmRight', 'HitLegLeft', 'HitLegRight']) {
+        const c = clip(n);
+        for (const t of [0, c.duration]) {
+          const a = worldPose(sk, c.sample(t));
+          const b = worldPose(sk, idle.sample(t % idle.duration));
+          for (const bone of ['Head', 'LeftHand', 'RightHand', 'LeftFoot']) {
+            const i = sk.index[bone];
+            expect(Math.hypot(a.pos[i][0] - b.pos[i][0], a.pos[i][1] - b.pos[i][1], a.pos[i][2] - b.pos[i][2]), `${n} ${bone} @${t}`).toBeLessThan(0.01 * H);
+          }
+        }
+        // and something actually happens in between
+        const mid = worldPose(sk, c.sample(0.1));
+        const ref = worldPose(sk, idle.sample(0.1));
+        const moved = Math.max(...['Head', 'LeftHand', 'RightHand', 'LeftLowerLeg', 'RightLowerLeg'].map((bn) => {
+          const i = sk.index[bn];
+          return Math.hypot(mid.pos[i][0] - ref.pos[i][0], mid.pos[i][1] - ref.pos[i][1], mid.pos[i][2] - ref.pos[i][2]);
+        }));
+        expect(moved, n).toBeGreaterThan(0.02 * H);
+      }
+    });
+  }
+});

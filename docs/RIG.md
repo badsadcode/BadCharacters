@@ -133,6 +133,9 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `Point`, `Shrug`, `Stretch`, `Yawn`, `CheckWatch`, `KnockDoor` | ❌ | one-off gestures (KnockDoor: a door `doorAheadZ` ahead) |
 | `Clap`, `ScratchHead`, `PhoneCall`, `PhoneText`, `Read` | ✅ | looping gestures |
 | `Upper_*` | per source | **upper-body layers** (Export settings → Layers): the spine and everything above it only, no hips, for Wave, Talk, Eat, Drink, Point, Shrug, Clap, CrossArms, Listen, HandsInPockets, ScratchHead, CheckWatch, Yawn, PhoneCall, PhoneText, Read, KnockDoor, CarryBag/Duffle/Box idle, Rifle/Pistol aim and ready, BowShoot, CrossbowShoot, Punch. In Godot, blend one over Walk/Run with an AnimationTree filter (or a Blend2 node with the upper-body bones filtered); `extras.layer` is `"upper"` |
+| `GetUpFromBack` | ❌ | from lying on the back (where `DeathBackward` / `DeathHeadshot` end): sit up on the hands, tuck the feet, squat, stand. Blend a face-up ragdoll into it |
+| `GetUpFromFront` | ❌ | from lying face down (where `DeathForward` ends): push up to hands and knees, kneel, one foot forward, stand |
+| `HitHeadFront/Back`, `HitTorsoFront/Back`, `HitArmLeft/Right`, `HitLegLeft/Right` | ❌ | 0.75 s jolts from the side that was hit, starting and ending exactly at `Idle`, so they can interrupt anything (play as a one-shot, or as an additive) |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation
