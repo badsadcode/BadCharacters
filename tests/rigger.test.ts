@@ -8,6 +8,7 @@ import { autoMarkers, MARKER_IDS, moveMirrored } from '../src/rigger/markers';
 import { rigModel } from '../src/rigger/rig';
 import { parseGlb, readAccessor } from '../src/rigger/glb';
 import type { RaceId } from '../src/core/races';
+import { worldPose } from '../src/core/anim';
 
 const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -171,6 +172,35 @@ describe('auto-rigger', () => {
       expect(Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) / H, `${m}`).toBeLessThan(0.06);
     }
     expect(Math.abs(mk.groin[1] - (W('Hips')[1] - 0.045 * H)) / H).toBeLessThan(0.05);
+  });
+
+  it('plays clips on straightened legs when the model stands with its legs apart (A-pose stance)', () => {
+    const { glb } = unrigged('realistic', 'athlete', 'human', 'A');
+    const model = loadModel(glb);
+    const mk = autoMarkers(model.positions, model.triangles);
+    // splay the legs: knees and ankles move outward, like a model standing with feet apart
+    for (const [id, dx] of [['knee', 0.05], ['ankle', 0.1], ['toes', 0.1]] as const) {
+      mk[`${id}.L`] = [mk[`${id}.L`][0] + dx, mk[`${id}.L`][1], mk[`${id}.L`][2]];
+      mk[`${id}.R`] = [mk[`${id}.R`][0] - dx, mk[`${id}.R`][1], mk[`${id}.R`][2]];
+    }
+    const r = rigModel(model, mk);
+    const sk = r.fitted.skeleton;
+    const clip = (n: string) => r.clips.find((c) => c.name === n)!;
+    const rest = worldPose(sk, clip('RestPose').sample(0));
+    const hipGap = rest.pos[sk.index.LeftUpperLeg][0] - rest.pos[sk.index.RightUpperLeg][0];
+    expect(rest.pos[sk.index.LeftFoot][0] - rest.pos[sk.index.RightFoot][0]).toBeGreaterThan(hipGap + 0.15); // bind pose untouched
+    const restAnkle = rest.pos[sk.index.LeftFoot][1];
+    const idle = worldPose(sk, clip('Idle').sample(0));
+    // feet come in under the hips, and stay on the floor (not sunk, not floating)
+    expect(Math.abs(idle.pos[sk.index.LeftFoot][0] - idle.pos[sk.index.RightFoot][0] - hipGap)).toBeLessThan(0.03);
+    for (const n of ['Idle', 'Walk', 'Crouch']) {
+      let lo = Infinity;
+      for (let i = 0; i < 16; i++) {
+        const wp = worldPose(sk, clip(n).sample((i / 16) * clip(n).duration));
+        lo = Math.min(lo, wp.pos[sk.index.LeftFoot][1], wp.pos[sk.index.RightFoot][1]);
+      }
+      expect(Math.abs(lo - restAnkle), n).toBeLessThan(0.04 * model.height);
+    }
   });
 
   it('mirrors marker moves and keeps centre markers on the centre line', () => {

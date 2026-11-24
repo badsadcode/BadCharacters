@@ -133,5 +133,9 @@ bones, names, identity rest rotations, sockets and clips. Differences:
 - Materials, textures, images, samplers and morph targets are carried over unchanged. Any skin or
   animations the file already had are replaced.
 - `ThumbProximal` exists but owns no vertices (the hand bone takes the whole hand).
+- The bind pose is the model's own pose (`RestPose` shows it). Every other clip is **retargeted**:
+  legs are straightened under the hips and arms aligned to the shoulder line before the motion is
+  applied, so a model built in an A-pose stance with its feet apart doesn't waddle. Hips rise a
+  little to keep the straightened feet on the floor; hip joints sit where the thighs start.
 - `scenes[0].extras.badcharacters.source` is `"auto-rigged import"` and `markers` holds the joint
   markers used, so a rig can be reproduced.

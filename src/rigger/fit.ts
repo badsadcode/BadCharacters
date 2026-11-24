@@ -82,7 +82,12 @@ export function fitSkeleton(mk: Markers, model: Model): Fitted {
     const kn = mk[`knee.${k}`];
     const an = mk[`ankle.${k}`];
     const to = mk[`toes.${k}`];
-    const hipX = s * Math.max(0.05 * H, Math.abs(kn[0]) * 0.9);
+    // hip joint: the centre of this thigh just below the crotch (not derived from the knee, so a
+    // model standing with its feet apart still gets its hip joints where the thighs start)
+    const thigh = slice(pos, tris, weld, mk.groin[1] - 0.03 * H, false)
+      .filter((i) => s * (i.x0 + i.x1) > 0 && Math.abs(i.x0 + i.x1) / 2 < 0.25 * H)
+      .sort((a, b) => b.x1 - b.x0 - (a.x1 - a.x0))[0];
+    const hipX = thigh ? (thigh.x0 + thigh.x1) / 2 : s * Math.max(0.05 * H, Math.abs(kn[0]) * 0.9);
     add_(`${side}UpperLeg` as BoneName, 'Hips', [hipX, hipY, mk.groin[2]]);
     add_(`${side}LowerLeg` as BoneName, `${side}UpperLeg` as BoneName, kn);
     add_(`${side}Foot` as BoneName, `${side}LowerLeg` as BoneName, an);
@@ -101,8 +106,14 @@ export function fitSkeleton(mk: Markers, model: Model): Fitted {
   const chest = widthAt(hipY + 0.7 * tl);
   const waist = widthAt(hipY + 0.38 * tl);
   const hip = widthAt(hipY);
-  const kneeY = avg(mk['knee.L'][1], mk['knee.R'][1]);
+  // the clips work on straightened legs (see retarget.ts): give them the true thigh and shin
+  // lengths, not the shorter vertical extent of a leg that stands a little apart
   const ankleY = avg(mk['ankle.L'][1], mk['ankle.R'][1]);
+  const seg = (a: V3, b: V3) => len(sub(a, b));
+  const shinLen = avg(seg(mk['knee.L'], mk['ankle.L']), seg(mk['knee.R'], mk['ankle.R']));
+  const thighLen = avg(seg(bones[index.LeftUpperLeg].world, mk['knee.L']), seg(bones[index.RightUpperLeg].world, mk['knee.R']));
+  const kneeY = ankleY + shinLen;
+  const straightHipY = kneeY + thighLen;
   const footLen = Math.max(0.05 * H, avg(len(sub(mk['toes.L'], mk['ankle.L'])), len(sub(mk['toes.R'], mk['ankle.R']))) / 0.52);
   const handLen = avg(handLens[0], handLens[1]);
   const shoulderX = avg(Math.abs(l.sh[0]), Math.abs(r.sh[0]));
@@ -111,7 +122,7 @@ export function fitSkeleton(mk: Markers, model: Model): Fitted {
   const limb = 0.022 * H;
   const dims: Dims = {
     H, u, headH, headHW: 0.07 * H, headHD: 0.075 * H, chinY, neckBaseY: mk.neck[1], neckR: 0.03 * H,
-    hipY, torsoLen: tl, shoulderY: avg(l.sh[1], r.sh[1]), shoulderX, shoulderHW: shoulderX + limb,
+    hipY: straightHipY, torsoLen: tl, shoulderY: avg(l.sh[1], r.sh[1]), shoulderX, shoulderHW: shoulderX + limb,
     chestHW: chest.hw, chestHD: chest.hd, waistHW: waist.hw, waistHD: waist.hd, hipHW: hip.hw, hipHD: hip.hd,
     belly: 0, breast: 0, pecs: 0, butt: 0, hipJX: Math.abs(bones[index.LeftUpperLeg].world[0]),
     kneeY, ankleY, thighR: 0.045 * H, midThighR: 0.04 * H, kneeR: 0.03 * H, calfR: 0.033 * H, ankleR: 0.02 * H,
