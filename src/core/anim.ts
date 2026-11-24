@@ -23,6 +23,8 @@ export interface Clip {
   name: string;
   duration: number;
   loop: boolean;
+  /** where the hips end up relative to the start (traversal clips: vault, climb over, dive) */
+  travel?: V3;
   sample: (t: number) => Pose;
 }
 
@@ -100,7 +102,19 @@ export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
       const th = thighAmp * sin(p);
       const swingPhase = pos(cos(p + 0.35));
       const knee = 6 + kneeAmp * swingPhase ** 1.6 + 8 * pos(sin(p - 0.6)) * (thighAmp / 25);
-      const foot = th - knee + (-14 * pos(sin(p)) + 16 * pos(-sin(p + 0.4))) * (thighAmp / 25);
+      // On the ground the foot stays level with the floor (toes up for the heel strike, a heel lift
+      // at push-off). In the air it hangs off the shin, relaxed and a little pointed, the way real
+      // feet do, instead of staying level and folding back toward the knee. How far it may point is
+      // limited by how high the ankle actually is, so the toes never scrape through the floor.
+      const ground = (-12 * pos(sin(p)) + 14 * pos(-sin(p + 0.4))) * Math.min(1, thighAmp / 25);
+      const shinPitch = knee - th;
+      const hipDrop = bob * legLen * (0.5 + 0.5 * cos(2 * ph));
+      const ankleY = d.hipY - hipDrop - thighLen * cos(th * DEG) - shinLen * cos(shinPitch * DEG);
+      const clearance = Math.max(0, ankleY - d.ankleY - 0.01 * legLen);
+      const limit = Math.asin(Math.min(1, clearance / (0.6 * d.footLen))) / DEG;
+      // relaxed: the foot follows the shin about 60% of the way (shin level behind → toes ~55° down, not straight down)
+      const pitch = Math.max(ground, Math.min(0.6 * shinPitch, limit));
+      const foot = th - knee + pitch;
       return leg(th, knee, -foot);
     };
     setLegs(rot, L(ph), L(ph + Math.PI));
@@ -484,7 +498,189 @@ export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
     },
   };
 
-  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot, rifleAim, rifleReady, zombieWalk];
+  // ───────────────────────────────────────────────────────── sprinting & parkour
+  const sprintT = 0.56 * stride;
+  const sprint: Clip = {
+    name: 'Sprint',
+    duration: sprintT,
+    loop: true,
+    sample: (t) => {
+      const p = gait((TAU * t) / sprintT, 50, 118, 58, 88, 22, chunky ? 0.07 : 0.055);
+      p.hips[1] += 0.035 * legLen;
+      return p;
+    },
+  };
+
+  /**
+   * Keyframed pose track: every field is its own smoothed key list over the same times.
+   * Arms are world-ish directions (normalised by armTo), legs are thigh/knee angles.
+   */
+  type KF = { [k: string]: number };
+  const track = (times: number[], frames: KF[]) => (t: number) => {
+    const out: KF = {};
+    for (const k of Object.keys(frames[0])) out[k] = keys(times.map((tt, i) => [tt, frames[i][k]] as [number, number]), t);
+    return out;
+  };
+  const framePose = (f: KF, hipY: number, hipZ: number): Pose => {
+    const rot: Record<string, Quat> = {};
+    setArms(rot, armTo(1, [f.lx, f.ly, f.lz], f.le), armTo(-1, [-f.lx, f.ly, f.lz], f.le));
+    setLegs(rot, leg(f.lt, f.lk, f.lf ?? f.lk - f.lt), leg(f.rt, f.rk, f.rf ?? f.rk - f.rt));
+    rot.Hips = qx((f.hp ?? 0) * DEG);
+    rot.Spine = qx(f.sp * DEG);
+    rot.Chest = qx(f.sp * 0.4 * DEG);
+    rot.Head = qx(f.hd * DEG);
+    return { rot, hips: [0, hipY, hipZ] };
+  };
+
+  /** two-handed vault over a waist-high obstacle (0.85 × hip height); ends `travel` further on */
+  const vaultT = 1.25;
+  const vaultD = 1.5 * legLen;
+  const vaultTimes = [0, 0.22, 0.42, 0.62, 0.86, 1.02, 1.25];
+  // hip height above the floor in leg lengths, and forward travel
+  const vaultY = [1.0, 0.86, 1.3, 1.32, 1.02, 0.78, 0.97];
+  const vaultZ = [0, 0.12, 0.45, 0.78, 1.15, 1.42, 1.5];
+  const vaultF = track(vaultTimes, [
+    { lx: 0.3, ly: -0.6, lz: 0.75, le: 40, lt: 20, lk: 40, rt: -15, rk: 30, sp: 14, hd: -12 },
+    { lx: 0.3, ly: -0.2, lz: 1, le: 25, lt: 42, lk: 75, rt: 30, rk: 70, sp: 26, hd: -24 },
+    { lx: 0.25, ly: -0.8, lz: 0.6, le: 8, lt: 95, lk: 135, rt: 90, rk: 140, sp: 38, hd: -30 },
+    { lx: 0.25, ly: -0.9, lz: -0.35, le: 6, lt: 100, lk: 120, rt: 95, rk: 125, sp: 30, hd: -22 },
+    { lx: 0.55, ly: -0.35, lz: 0.6, le: 25, lt: 40, lk: 35, rt: 30, rk: 45, sp: 10, hd: -6 },
+    { lx: 0.5, ly: -0.3, lz: 0.7, le: 35, lt: 60, lk: 95, rt: 50, rk: 90, sp: 24, hd: -18 },
+    { lx: 0.3, ly: -0.6, lz: 0.75, le: 40, lt: 20, lk: 40, rt: -15, rk: 30, sp: 14, hd: -12 },
+  ]);
+  const vault: Clip = {
+    name: 'Vault',
+    duration: vaultT,
+    loop: false,
+    travel: [0, 0, vaultD],
+    sample: (t) => {
+      const ky = (a: number[]) => keys(vaultTimes.map((tt, i) => [tt, a[i]] as [number, number]), t);
+      return framePose(vaultF(t), (ky(vaultY) - 1) * legLen, ky(vaultZ) * legLen);
+    },
+  };
+
+  /** climb over a wall about 1.4 × hip height (head-high on a human): grab, pull, knee up, crouch on top, drop */
+  const overT = 2.4;
+  const overTimes = [0, 0.25, 0.5, 0.95, 1.35, 1.6, 1.95, 2.15, 2.4];
+  const overY = [1.0, 0.84, 1.05, 1.5, 1.95, 2.0, 0.95, 0.76, 0.97];
+  const overZ = [0, 0, 0.18, 0.32, 0.55, 0.8, 1.25, 1.32, 1.35];
+  const overF = track(overTimes, [
+    { lx: 0.3, ly: -1, lz: 0.1, le: 10, lt: 0, lk: 4, rt: 0, rk: 4, sp: 0, hd: -10 },
+    { lx: 0.3, ly: -0.3, lz: 0.9, le: 30, lt: 40, lk: 75, rt: 40, rk: 75, sp: 18, hd: -30 },
+    { lx: 0.25, ly: 1, lz: 0.35, le: 22, lt: 8, lk: 30, rt: 2, rk: 24, sp: 4, hd: -32 },
+    { lx: 0.3, ly: 0.55, lz: 0.75, le: 95, lt: 100, lk: 130, rt: 20, rk: 50, sp: 26, hd: -26, rf: 10 },
+    { lx: 0.25, ly: -0.95, lz: 0.3, le: 10, lt: 85, lk: 125, rt: 80, rk: 125, sp: 32, hd: -20 },
+    { lx: 0.25, ly: -0.9, lz: -0.2, le: 8, lt: 70, lk: 110, rt: 75, rk: 115, sp: 28, hd: -20 },
+    { lx: 0.6, ly: -0.3, lz: 0.55, le: 25, lt: 20, lk: 25, rt: 15, rk: 25, sp: 6, hd: -10 },
+    { lx: 0.5, ly: -0.35, lz: 0.75, le: 35, lt: 65, lk: 105, rt: 60, rk: 100, sp: 26, hd: -18 },
+    { lx: 0.3, ly: -1, lz: 0.1, le: 10, lt: 0, lk: 4, rt: 0, rk: 4, sp: 0, hd: -10 },
+  ]);
+  const climbOver: Clip = {
+    name: 'ClimbOver',
+    duration: overT,
+    loop: false,
+    travel: [0, 0, 1.35 * legLen],
+    sample: (t) => {
+      const ky = (a: number[]) => keys(overTimes.map((tt, i) => [tt, a[i]] as [number, number]), t);
+      return framePose(overF(t), (ky(overY) - 1) * legLen, ky(overZ) * legLen);
+    },
+  };
+
+  /** running slide (stays in place like Run: the game drives the speed). Drop in, hold, get up. */
+  const slideT = 1.3;
+  const slide: Clip = {
+    name: 'Slide',
+    duration: slideT,
+    loop: false,
+    sample: (t) => {
+      const s = keys([[0, 0], [0.22, 1], [0.95, 1], [1.3, 0]], t);
+      const rot: Record<string, Quat> = {};
+      const leadTh = lerp(10, 62, s);
+      const leadKn = lerp(20, 14, s);
+      rot.LeftUpperLeg = qx(-leadTh * DEG);
+      rot.LeftLowerLeg = qx(leadKn * DEG);
+      rot.LeftFoot = qx(lerp(0, 30, s) * DEG); // toes up, sliding on the heel
+      rot.RightUpperLeg = qChain(qz(-8 * s * DEG), qx(-lerp(-10, 4, s) * DEG));
+      rot.RightLowerLeg = qx(lerp(25, 145, s) * DEG);
+      rot.RightFoot = qx(lerp(0, 40, s) * DEG);
+      setArms(rot, armTo(1, [lerp(0.25, 0.45, s), lerp(-0.6, -0.95, s), 0.7], lerp(40, 30, s)), armTo(-1, [lerp(-0.25, -0.35, s), -0.75, lerp(0.5, -0.85, s)], lerp(40, 8, s)));
+      rot.Spine = qChain(qx(lerp(12, -24, s) * DEG), qy(-8 * s * DEG));
+      rot.Chest = qx(lerp(4, -6, s) * DEG);
+      rot.Head = qx(lerp(-6, 26, s) * DEG);
+      const drop = plant(leadTh, leadKn).drop;
+      return { rot, hips: [0, -drop, -0.15 * s * legLen] };
+    },
+  };
+
+  /** treading water upright; the hips stay put, so put the water line at the chest */
+  const floatT = 2.4;
+  const float: Clip = {
+    name: 'Float',
+    duration: floatT,
+    loop: true,
+    sample: (t) => {
+      const ph = (TAU * t) / floatT;
+      const rot: Record<string, Quat> = {};
+      // sculling: hands sweep in and out just under the surface
+      const scull = (s: number) => armTo(s, [s * (0.85 + 0.1 * sin(ph * 2)), -0.45, 0.2 + 0.25 * sin(ph * 2 + s)], 45, 10 * sin(ph * 2));
+      setArms(rot, scull(1), scull(-1));
+      const kick = (p: number): [Quat, Quat, Quat] => [qChain(qz(0.0), qx(-(25 + 15 * sin(p)) * DEG)), qx((45 + 30 * pos(sin(p + 1))) * DEG), qx(35 * DEG)];
+      setLegs(rot, kick(ph * 2), kick(ph * 2 + Math.PI));
+      rot.Spine = qx(-4 * DEG);
+      rot.Head = qChain(qx(-6 * DEG), qy(10 * sin(ph * 0.5) * DEG));
+      return { rot, hips: [0, 0.025 * legLen * sin(ph * 2), 0] };
+    },
+  };
+
+  /** dive from an edge into water: wind up, spring out, enter head first. Ends below the start. */
+  const diveT = 1.4;
+  const diveTimes = [0, 0.35, 0.55, 0.8, 1.1, 1.4];
+  const diveY = [1.0, 0.78, 1.15, 1.0, 0.2, -0.6];
+  const diveZ = [0, 0, 0.35, 0.95, 1.45, 1.75];
+  const diveP = [0, 25, 40, 85, 140, 165];
+  const diveF = track(diveTimes, [
+    { lx: 0.3, ly: -1, lz: 0.1, le: 10, lt: 0, lk: 4, rt: 0, rk: 4, sp: 0, hd: -6 },
+    { lx: 0.25, ly: -0.5, lz: -0.8, le: 10, lt: 55, lk: 90, rt: 55, rk: 90, sp: 20, hd: -25 },
+    { lx: 0.15, ly: 0.6, lz: 0.8, le: 10, lt: 10, lk: 10, rt: 10, rk: 10, sp: 8, hd: -15, lf: -30, rf: -30 },
+    { lx: 0.1, ly: 1, lz: 0.15, le: 0, lt: 0, lk: 2, rt: 0, rk: 2, sp: 4, hd: 10, lf: -40, rf: -40 },
+    { lx: 0.08, ly: 1, lz: 0.05, le: 0, lt: -4, lk: 0, rt: -4, rk: 0, sp: 0, hd: 15, lf: -45, rf: -45 },
+    { lx: 0.08, ly: 1, lz: 0.05, le: 0, lt: -6, lk: 0, rt: -6, rk: 0, sp: 0, hd: 15, lf: -45, rf: -45 },
+  ]);
+  const dive: Clip = {
+    name: 'Dive',
+    duration: diveT,
+    loop: false,
+    travel: [0, -1.6 * legLen, 1.75 * legLen],
+    sample: (t) => {
+      const ky = (a: number[]) => keys(diveTimes.map((tt, i) => [tt, a[i]] as [number, number]), t);
+      const f = diveF(t);
+      f.hp = ky(diveP);
+      return framePose(f, (ky(diveY) - 1) * legLen, ky(diveZ) * legLen);
+    },
+  };
+
+  /** underwater swimming, diver style: flat, arms back along the body, slow flutter kick */
+  const uwT = 2.0;
+  const swimUnderwater: Clip = {
+    name: 'SwimUnderwater',
+    duration: uwT,
+    loop: true,
+    sample: (t) => {
+      const ph = (TAU * t) / uwT;
+      const rot: Record<string, Quat> = {};
+      rot.Hips = qx(85 * DEG);
+      // body frame: +Y is forward through the water, -Y back toward the feet, +Z is down
+      setArms(rot, armTo(1, [0.28, -0.95, 0.1 + 0.05 * sin(ph)], 25), armTo(-1, [-0.28, -0.95, 0.1 + 0.05 * sin(ph + 1)], 25));
+      const kick = (p: number) => leg(14 * sin(p), 18 + 16 * pos(sin(p + 1.2)), -50);
+      setLegs(rot, kick(ph * 2), kick(ph * 2 + Math.PI));
+      rot.Spine = qChain(qx(-4 * sin(ph * 2) * DEG), qy(4 * sin(ph) * DEG));
+      rot.Neck = qx(-45 * DEG);
+      rot.Head = qx(-20 * DEG);
+      return { rot, hips: [0, -0.15 * legLen + 0.01 * legLen * sin(ph * 2), 0] };
+    },
+  };
+
+  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot, rifleAim, rifleReady, zombieWalk, sprint, vault, climbOver, slide, float, dive, swimUnderwater];
 
   const tpose: Clip = {
     name: 'RestPose',

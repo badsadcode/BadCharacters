@@ -32,7 +32,10 @@ Root
 - **Every bone's rest rotation is identity.** Bones are pure translations from their parent, so
   a bone's local rotation *is* its rotation away from the rest pose, expressed in world axes.
 - `Root` stays at the origin and is never animated. Use it for root motion if you add your own.
-- `Hips` carries the only translation channel (bob, crouch, jump height). All clips are in place.
+- `Hips` carries the only translation channel (bob, crouch, jump height). Clips are in place, except
+  the traversal clips (`Vault`, `ClimbOver`, `Dive`), whose hips travel; each one's `extras.travel`
+  says where the hips end up (metres, +Z forward), so move your character controller by that much
+  when the clip ends (or use root motion from `Hips`).
 
 ## Sockets
 
@@ -80,6 +83,13 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `CrossbowShoot` | ✅ | shouldered aim, recoil, lower to reload |
 | `RifleAim`, `RifleReady` | ✅ | shouldered with breathing sway / low ready |
 | `ZombieWalk` | ✅ | reaching arms, dragged left foot |
+| `Sprint` | ✅ | flat-out run, stronger lean and arm drive |
+| `Vault` | ❌ | two-handed vault over a waist-high obstacle (0.85 × hip height); `extras.travel` ≈ 1.5 × hip height forward |
+| `ClimbOver` | ❌ | grab, pull up, kneel on top, drop down the far side of a wall ≈ 1.4 × hip height; `extras.travel` ≈ 1.35 × hip height |
+| `Slide` | ❌ | running slide: drop in, lead leg out, trailing hand down, get up. In place (the game drives the speed) |
+| `Float` | ✅ | treading water upright; water line around the chest |
+| `Dive` | ❌ | dive from an edge into water, head first; `extras.travel` goes forward and down |
+| `SwimUnderwater` | ✅ | diver style: body flat, arms back along the sides, slow flutter kick |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation

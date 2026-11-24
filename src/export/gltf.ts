@@ -302,7 +302,7 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
         for (const p of poses) out.push(...(p.trans?.[b.name] ?? rest));
         channel(sk.index[b.name], 'translation', out, 3);
       }
-      json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop } });
+      json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, ...(clip.travel ? { travel: clip.travel.map(r6) } : {}) } });
     }
   }
 
@@ -316,7 +316,7 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
           species: (ch as Creature).recipe.species,
           modelLength: (ch as Creature).build.length,
           motion: (ch as Creature).motion,
-          clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop })),
+          clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop, ...(c.travel ? { travel: c.travel.map(r6) } : {}) })),
           recipe: ch.recipe,
         },
       }
@@ -331,7 +331,7 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
           propBones: sk.bones.filter((b) => b.name === 'BowString').map((b) => b.name),
           sockets: ch.skeleton.sockets.map((s) => s.name),
           morphTargets: ch.morphs.map((m) => m.name),
-          clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop })),
+          clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop, ...(c.travel ? { travel: c.travel.map(r6) } : {}) })),
           recipe: ch.recipe,
         },
       };

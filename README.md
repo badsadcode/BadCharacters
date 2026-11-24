@@ -26,7 +26,7 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 | Props | staff, bow, crossbow, rifle: **previewed in the viewer, not exported unless you tick "Props"** (bring your own weapons; the animations never need them) |
 | Presets | Alden Wayfarer (Thornwake), Mannequin, Sir Clanksalot, Pip the Apprentice |
 | Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 6 sockets (+ `BowString` helper bone when a bow is exported) |
-| Animations | 22: Idle, Walk, Run, Jump, Wave, Punch, Crouch, CrouchWalk, ClimbUp/Down/Left/Right, LadderUp/Down, Swim, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
+| Animations | 29: Idle, Walk, Run, Sprint, Jump, Wave, Punch, Crouch, CrouchWalk, Slide, Vault, ClimbOver, ClimbUp/Down/Left/Right, LadderUp/Down, Swim, Float, Dive, SwimUnderwater, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
 | Export | GLB (validator-clean), editable `.badchar.json` recipe, share links |
 | Budget | low 1.5k–2.8k · medium 1.7k–4.0k (median 2.7k) · high 2.5k–6.7k triangles; Alden is 2,880 |
 

@@ -133,8 +133,45 @@ describe('animation', () => {
   it('ships the standard clip set', () => {
     expect(clips.map((c) => c.name)).toEqual([
       'Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight',
-      'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'ZombieWalk', 'RestPose',
+      'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'ZombieWalk',
+      'Sprint', 'Vault', 'ClimbOver', 'Slide', 'Float', 'Dive', 'SwimUnderwater', 'RestPose',
     ]);
+  });
+  it('a swinging foot hangs off the shin instead of folding back toward the knee', () => {
+    // angle between the shin (knee→ankle) and the foot (ankle→toes): ~70° standing, smaller when
+    // pointed. Keeping the foot level while the shin swings up behind folds it toward 170°.
+    const sub3 = (a: number[], b: number[]) => a.map((v, i) => v - b[i]);
+    const ang = (a: number[], b: number[]) => Math.acos(a.reduce((s, v, i) => s + v * b[i], 0) / Math.hypot(...a) / Math.hypot(...b)) / (Math.PI / 180);
+    for (const n of ['Walk', 'Run', 'Sprint']) {
+      const c = clip(n);
+      for (let i = 0; i < 24; i++) {
+        const wp = worldPose(sk, c.sample((i / 24) * c.duration));
+        for (const s of ['Left', 'Right']) {
+          const k = wp.pos[sk.index[`${s}LowerLeg`]];
+          const f = wp.pos[sk.index[`${s}Foot`]];
+          const t = wp.pos[sk.index[`${s}Toes`]];
+          expect(ang(sub3(f, k), sub3(t, f))).toBeLessThan(150);
+        }
+      }
+    }
+  });
+  it('traversal clips report their travel and end standing there', () => {
+    for (const n of ['Vault', 'ClimbOver']) {
+      const c = clip(n);
+      expect(c.loop).toBe(false);
+      expect(c.travel![2]).toBeGreaterThan(sk.dims.hipY);
+      const end = c.sample(c.duration);
+      expect(end.hips[2]).toBeCloseTo(c.travel![2], 3);
+      // back on its feet: hips near standing height at the end
+      expect(Math.abs(end.hips[1])).toBeLessThan(0.06 * sk.dims.hipY);
+    }
+    const dive = clip('Dive');
+    expect(dive.travel![1]).toBeLessThan(0);
+  });
+  it('vaulting lifts the feet above a waist-high obstacle', () => {
+    const c = clip('Vault');
+    const wp = worldPose(sk, c.sample(0.52));
+    for (const s of ['Left', 'Right']) expect(wp.pos[sk.index[`${s}Foot`]][1]).toBeGreaterThan(0.8 * sk.dims.hipY);
   });
   it('a punch goes forward, not sideways', () => {
     const wp = worldPose(sk, clip('Punch').sample(0.35));
