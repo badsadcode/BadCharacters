@@ -74,3 +74,25 @@ describe('everyday life', () => {
     expect(a('DriveCar').extras.props.wheelRadius).toBeGreaterThan(0.1);
   });
 });
+
+describe('death animations', () => {
+  for (const style of ['realistic', 'chibi', 'blocky'] as StyleId[]) {
+    const ch = generateCharacter(randomRecipe(8, style, 'athlete', 'human'));
+    const sk = ch.skeleton;
+    const H = sk.dims.H;
+    for (const n of ['DeathForward', 'DeathBackward', 'DeathLeft', 'DeathRight', 'DeathCrumple', 'DeathHeadshot']) {
+      it(`${style}: ${n} starts standing, ends lying flat, never through the floor`, () => {
+        const c = ch.clips.find((x) => x.name === n)!;
+        expect(c.loop).toBe(false);
+        const start = worldPose(sk, c.sample(0));
+        expect(start.pos[sk.index.Head][1]).toBeGreaterThan(0.95 * sk.bones[sk.index.Head].world[1]);
+        for (let i = 0; i <= 16; i++) {
+          const wp = worldPose(sk, c.sample((i / 16) * c.duration));
+          expect(wp.pos[sk.index.Hips][1], `hips @${i}`).toBeGreaterThan(0.02 * H);
+        }
+        const end = worldPose(sk, c.sample(c.duration));
+        for (const b of ['Hips', 'UpperChest', 'Head']) expect(end.pos[sk.index[b]][1], b).toBeLessThan(0.2 * H);
+      });
+    }
+  }
+});

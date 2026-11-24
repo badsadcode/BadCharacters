@@ -9,6 +9,7 @@ import { add, DEG, lerp, norm, qChain, qMul, Quat, qRotate, qx, qy, qz, QI, sub,
 import { Clip, Pose, worldPose } from './anim';
 import { frameMap, solveArm } from './hold';
 import { actionClips } from './actions';
+import { deathClips } from './deaths';
 import type { Skeleton } from './skeleton';
 
 const TAU = Math.PI * 2;
@@ -220,5 +221,5 @@ export function withInteractions(sk: Skeleton, clips: Clip[]): Clip[] {
   const rest = clips.filter((c) => c.name === 'RestPose');
   const others = clips.filter((c) => c.name !== 'RestPose');
   const inter = interactionClips(sk, clips);
-  return [...others, ...inter, ...actionClips(sk, clips), ...rest];
+  return [...others, ...inter, ...actionClips(sk, clips), ...deathClips(sk), ...rest];
 }

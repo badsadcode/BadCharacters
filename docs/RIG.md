@@ -123,6 +123,9 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `Talk` | ✅ | standing, hand gestures and nods |
 | `SitGround` | ✅ | cross-legged on the floor, hands on the knees |
 | `Sleep` | ✅ | lying on the back (head toward −Z), breathing, arms by the sides |
+| `DeathForward`, `DeathBackward`, `DeathLeft`, `DeathRight` | ❌ | knees buckle, the body tips over around the feet (gravity speeds it up), a small bounce, ends lying flat on the front / back / side |
+| `DeathCrumple` | ❌ | knees give way, kneels, slumps, topples onto its side |
+| `DeathHeadshot` | ❌ | head snaps back, the body goes rigid and falls backward |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation
@@ -213,3 +216,4 @@ chair, table, door, wheel or saddle without guessing:
 | `DriveCar` | `wheelCentreAboveHips`, `wheelAheadOfChest`, `wheelRadius`, `wheelTiltDeg`, `seatedHipsAboveFloor` |
 | `Ride*` | `hipsAboveSaddleSeat`, `originBelowSaddleSeat`, `barrelWidth` |
 | `SitGround`, `Sleep` | `seatHeight: 0` / `hipsAboveFloor` |
+| `Death*` | `endsLying` (front / back / side), `bodyThickness`: hand over to a ragdoll at the end, or leave the body |
