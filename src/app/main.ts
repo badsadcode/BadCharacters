@@ -947,4 +947,4 @@ resize();
 }
 loop();
 // for automated screenshots / debugging
-Object.assign(window, { __bc: { get recipe() { return recipe; }, get actors() { return actors; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, showCreatures, buildBestiary, setMode, toggles, applyToggles, stage, camera, controls, rigMode } });
+Object.assign(window, { __bc: { get recipe() { return recipe; }, get actors() { return actors; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, showCreatures, buildBestiary, setMode, toggles, applyToggles, stage, camera, controls, rigMode, THREE } });

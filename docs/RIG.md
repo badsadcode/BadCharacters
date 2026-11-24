@@ -47,6 +47,7 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `Socket_HeadTop` | Head | crown, for hats you add yourself |
 | `Socket_Back` | UpperChest | between the shoulder blades |
 | `Socket_LeftHip`, `Socket_RightHip` | Hips | holster / sword positions |
+| `Socket_LeftHand_Tool`, `Socket_RightHand_Tool` | hands | **oriented** tool mount: a shaft (sword, axe, staff, shovel, hammer, fishing rod) runs through the fist along the thumb. Tool +Z = toward its head / blade tip, +Y = the way the fingers point, origin in the palm. Every tool clip below keeps the tool on this axis |
 | `Socket_LeftHand_Weapon`, `Socket_RightHand_Weapon` | hands | **oriented** weapon mount: parent a grip-origin weapon here (BadGun convention: origin on the trigger grip, +Z muzzle, +Y up) and it sits in the fist, barrel along the fingers, top along the thumb |
 
 ## Mesh
@@ -100,6 +101,17 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `CarryBoxIdle`, `CarryBoxWalk` | ✅ | a box ~0.4 × body unit wide held in front with both hands, leaning back; the walk is 25 % slower |
 | `OpenDoor` | ❌ | door in front: hinge 0.45·u to the left, handle 0.8·u from the hinge at 0.56·H, door plane 0.42·u ahead. Reach (0–0.45 s), press the handle (0.45–0.6 s), push it open 30° (0.7–1.45 s), let go |
 | `CloseDoor` | ❌ | `OpenDoor` backwards: reach the open door's handle, pull it shut, let go |
+| `PunchLeft/Right` + `High/Mid/Low` | ❌ | from a guard, a straight punch to head / chest / belly height on the centre line, torso twisting into it; low punches dip the knees |
+| `KickLeft/Right` + `High/Mid/Low` | ❌ | front kick: chamber, snap out, re-chamber; leaning back more for higher kicks |
+| `SwordSlash`, `SwordOverhead`, `SwordThrust` | ❌ | one-handed sword in the right hand (tool socket), lunging; the free hand out for balance |
+| `StaffThrust`, `StaffSwing`, `StaffOverhead` | ❌ | two hands on a staff (right near the middle, left toward the front end) |
+| `AxeChop` | ✅ | two-handed, wind up over the right shoulder, chop into a tree at hip height front-left |
+| `ShovelDig` | ✅ | foot on the blade, push in, pry, lift, toss to the right |
+| `Saw` | ✅ | hand saw at bench height, the other hand holding the board |
+| `Hammer` | ✅ | driving a nail into a wall at chest height, the other hand holding the nail |
+| `Weld` | ✅ | crouched, torch in the right hand moving along a seam, left hand steadying it |
+| `FishCast` | ❌ | two-handed cast: rod back over the shoulder, whip forward |
+| `FishIdle`, `FishReel` | ✅ | rod held up, waiting; or reeling (left hand cranking beside the grip) |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation

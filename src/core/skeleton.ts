@@ -11,7 +11,7 @@ import { add, clamp, lerp, norm, scale, V3 } from './math';
 import { CharacterRecipe, STYLES } from './recipe';
 import { EarShape, RACES, sv } from './races';
 import { Rng, subSeed } from './rng';
-import { handWeaponFrame } from './hold';
+import { handToolFrame, handWeaponFrame } from './hold';
 
 export interface Bone {
   name: string;
@@ -284,6 +284,12 @@ export function buildSkeleton(rc: CharacterRecipe): Skeleton {
     const side = s > 0 ? 'Left' : 'Right';
     const f = handWeaponFrame(sk, s);
     sockets.push({ name: `Socket_${side}Hand_Weapon`, bone: `${side}Hand`, world: add(bones[index[`${side}Hand`]].world, f.offset), rot: f.rot });
+  }
+  // oriented tool sockets: a shaft through the fist along the thumb (+Z toward the head), +Y along the fingers
+  for (const s of [1, -1] as const) {
+    const side = s > 0 ? 'Left' : 'Right';
+    const f = handToolFrame(sk, s);
+    sockets.push({ name: `Socket_${side}Hand_Tool`, bone: `${side}Hand`, world: add(bones[index[`${side}Hand`]].world, f.offset), rot: f.rot });
   }
   return sk;
 }

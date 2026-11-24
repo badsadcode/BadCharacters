@@ -68,6 +68,17 @@ export function handWeaponFrame(sk: Skeleton, side: 1 | -1): { offset: V3; rot: 
 }
 
 /**
+ * the tool attach frame on a hand, in the rest pose: a shaft (axe, sword, staff, shovel, rod)
+ * runs through the fist along the THUMB (+Z of the tool, toward its head / tip), +Y of the tool
+ * along the fingers, origin in the middle of the palm
+ */
+export function handToolFrame(sk: Skeleton, side: 1 | -1): { offset: V3; rot: Quat } {
+  const d = sk.dims;
+  const dir: V3 = norm([d.armDir[0] * side, d.armDir[1], 0]);
+  return { offset: scale(dir, d.handLen * 0.4), rot: frameMap([0, 0, 1], [0, 1, 0], [0, 0, 1], dir) };
+}
+
+/**
  * two-bone IK for one arm; writes UpperArm, LowerArm and Hand local rotations into `rot`.
  * `elbowDir` is the world direction the elbow points (x is mirrored for the left arm) (default: down, a little out and back).
  */

@@ -136,7 +136,11 @@ describe('animation', () => {
       'Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight',
       'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'ZombieWalk',
       'Sprint', 'Vault', 'ClimbOver', 'Slide', 'Float', 'Dive', 'SwimUnderwater', 'RockClimbUp', 'RockClimbDown', 'RockClimbLeft', 'RockClimbRight',
-      'Crawl', 'CrawlProne', 'CarryBagIdle', 'CarryBagWalk', 'CarryDuffleIdle', 'CarryDuffleWalk', 'CarryBoxIdle', 'CarryBoxWalk', 'OpenDoor', 'CloseDoor', 'RestPose',
+      'Crawl', 'CrawlProne', 'CarryBagIdle', 'CarryBagWalk', 'CarryDuffleIdle', 'CarryDuffleWalk', 'CarryBoxIdle', 'CarryBoxWalk', 'OpenDoor', 'CloseDoor',
+      'PunchLeftHigh', 'PunchLeftMid', 'PunchLeftLow', 'PunchRightHigh', 'PunchRightMid', 'PunchRightLow',
+      'KickLeftHigh', 'KickLeftMid', 'KickLeftLow', 'KickRightHigh', 'KickRightMid', 'KickRightLow',
+      'SwordSlash', 'SwordOverhead', 'SwordThrust', 'StaffThrust', 'StaffSwing', 'StaffOverhead', 'AxeChop', 'ShovelDig',
+      'Saw', 'Hammer', 'Weld', 'FishCast', 'FishIdle', 'FishReel', 'RestPose',
     ]);
   });
   it('a swinging foot hangs off the shin instead of folding back toward the knee', () => {
