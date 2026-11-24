@@ -95,3 +95,10 @@ code { font: 12px 'JetBrains Mono', monospace; color: var(--accent2); }
 
 .tag { font: 700 10px 'JetBrains Mono', monospace; letter-spacing: 0.04em; color: var(--dim); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; text-transform: none; }
 .hint a { color: var(--accent); }
+
+/* export clip picker */
+.clippick summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: var(--dim); font-size: 12.5px; margin: 6px 0; }
+.clippick summary b { color: var(--text); font: 700 12px 'JetBrains Mono', monospace; }
+.clippick input[type='text'] { flex: 2; min-width: 0; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; font: inherit; }
+#clip-list { max-height: 240px; overflow: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; }
+#clip-list label { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

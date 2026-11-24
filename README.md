@@ -45,6 +45,21 @@ observer, abyssal crab, giant isopod, hatcher, rift ray, lantern skate.
   with axes matching Swimmer 1:1
 - Sliders: length, mouth gape, teeth, fins/arms, glow spots, blotches, scars, seven colours
 
+## Factions
+
+Pick a **faction** and every member wears only that faction's kit, in its colours, with its own roles
+(rifleman, machine gunner, radio operator, officer…) each carrying a fitting BadGun weapon, and its own
+spread of bodies. **🎲 New member** rolls another one, **👥 Squad** lines up six; style, race and every
+slider stay yours. Factions: Viet Cong guerrillas, North Vietnamese Army, US Marines (Vietnam era),
+US Marines (modern), US Army (WWII), Resistance fighters (WWII), British infantry (WWI), wasteland
+raiders, orbital infantry, an order of knights and a zombie horde. Generic period kit, no insignia.
+
+## Exporting a selection of animations
+
+One `.glb` holds every clip you tick under **Export settings → Animations** (all by default). In
+Blender (File → Import → glTF 2.0) each clip becomes an **Action**; in Godot they all land in the
+AnimationPlayer. Only tick the ones your game uses and the file shrinks accordingly.
+
 ## Weapons (BadGun inside)
 
 The **Weapon** panel puts a procedural gun from [BadGun](https://github.com/badsadcode/BadGun) in the

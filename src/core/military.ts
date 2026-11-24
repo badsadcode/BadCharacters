@@ -161,6 +161,27 @@ export function buildMilitary(c: WardrobeCtx) {
         ring([0.2 * hh, d.chinY + 1.08 * hh, -0.02 * hh], X, Z, r.a * 0.3, r.b * 0.3, 2.4, hw),
       ],
     });
+  } else if (hd === 'conical') {
+    // nón lá: a wide straw cone sitting on the crown, tall enough to clear every head shape
+    const h = dome('head.conical.inner', mat('head'), 0.72, 0.015 * hh + hairPad + e, 2.4, 0.3);
+    out.pop();
+    const R = Math.max(h.A, h.B) * 2.35;
+    const y0 = h.y0;
+    const apex = d.chinY + 1.58 * hh + hairPad;
+    out.push({
+      name: 'head.conical',
+      material: mat('head'),
+      capStart: true,
+      capEnd: true,
+      rings: [ring([0, y0 - 0.012 * hh, 0], X, Z, R * 0.97, R * 0.97, 2.2, hw), ring([0, y0, 0], X, Z, R, R, 2.2, hw), ring([0, apex, 0], X, Z, 0.02 * hh, 0.02 * hh, 2.2, hw)],
+    });
+    out.push(...strap('head.conical.strap', mat('head', true), y0, 0.015));
+  } else if (hd === 'pith') {
+    // pith helmet: a tall rounded crown, a brim sloping all round, a little vent on top
+    const h = dome('head.pith', mat('head'), 0.56, 0.06 * hh + hairPad + e, 3, -0.25);
+    out.push(slab('head.pith.brim', mat('head'), [0, h.y0 - 0.01 * hh, 0.01 * hh], h.A * 1.32, h.B * 1.42, 0.022 * hh, hw, 2.2));
+    out.push(box('head.pith.vent', mat('head', true), [0, d.chinY + hh + 0.1 * hh + hairPad, 0], [0.05 * hh, 0.025 * hh, 0.05 * hh], hw));
+    out.push(...strap('head.pith.strap', mat('head', true), h.y0));
   } else if (hd === 'boonie') {
     const h = dome('head.boonie', mat('head'), 0.64, 0.02 * hh + hairPad + e, 2.6, 0.5);
     out.push(slab('head.boonie.brim', mat('head'), [0, h.y0 - 0.02 * hh, 0], h.A * 1.6, h.B * 1.55, 0.02 * hh, hw, 2.2));

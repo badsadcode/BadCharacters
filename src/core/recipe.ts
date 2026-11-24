@@ -225,6 +225,8 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     visorhelm: { label: 'Future visor helmet', kind: 'plastic' },
     beret: { label: 'Beret', kind: 'cloth' },
     boonie: { label: 'Boonie hat', kind: 'cloth' },
+    conical: { label: 'Conical straw hat (nón lá)', kind: 'cloth' },
+    pith: { label: 'Pith helmet', kind: 'cloth' },
     patrol: { label: 'Patrol cap', kind: 'cloth' },
     sidecap: { label: 'Side cap', kind: 'cloth' },
     peaked: { label: 'Peaked officer cap', kind: 'cloth' },
@@ -290,6 +292,7 @@ export const GARMENTS: Record<SlotId, Record<string, { label: string; kind: Mate
     leadboots: { label: 'Weighted diving boots', kind: 'metal' },
     fins: { label: 'Dive fins', kind: 'rubber' },
     sabatons: { label: 'Armored boots', kind: 'metal' },
+    sandals: { label: 'Sandals', kind: 'rubber' },
   },
   hands: {
     none: { label: 'Bare hands', kind: 'cloth' },
@@ -363,8 +366,8 @@ export interface Garment {
 }
 
 // ──────────────────────────────────────────────────────────────── themes ──
-type Opt = Partial<Record<string, number>>;
-interface Theme {
+export type Opt = Partial<Record<string, number>>;
+export interface Theme {
   label: string;
   genre: string;
   slots: Partial<Record<SlotId, Opt>>;
@@ -840,9 +843,13 @@ export interface CharacterRecipe {
     /** include hand props (staff, bow, crossbow) in the exported mesh. Off by default:
      *  the animations never need them, and most games bring their own weapons. */
     exportProps?: boolean;
+    /** which animation clips go in the export (names); unset = all of them */
+    clips?: string[];
   };
   /** a BadGun weapon in the hands (archetype + style + seed); unset = none */
   weapon?: WeaponRecipe;
+  /** the faction and role this character was generated from (factions.ts) */
+  faction?: { id: string; role: string };
 }
 
 const IRIS = ['#3b2a1a', '#4a6fa5', '#3f7a4a', '#6b4a2a', '#2a2a2a', '#7a8a9a', '#5a3a6a'];
@@ -889,8 +896,8 @@ export function randomFace(seed: number, style: StyleId): FaceParams {
   };
 }
 
-export function randomOutfit(seed: number, theme: string): Record<SlotId, Garment> {
-  const th = THEMES[theme] ?? THEMES.casual;
+export function randomOutfit(seed: number, theme: string | Theme): Record<SlotId, Garment> {
+  const th = typeof theme === 'string' ? (THEMES[theme] ?? THEMES.casual) : theme;
   const out = {} as Record<SlotId, Garment>;
   for (const slot of SLOTS) {
     const r = new Rng(subSeed(seed, `outfit.${slot}`));

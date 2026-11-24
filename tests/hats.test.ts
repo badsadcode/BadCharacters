@@ -41,6 +41,8 @@ const HATS: [string, string][] = [
   ['beanie', 'head.beanie'],
   ['cap', 'head.cap'],
   ['bandana', 'head.bandana'],
+  ['conical', 'head.conical'],
+  ['pith', 'head.pith'],
 ];
 
 describe('hats enclose heads (no scalp poking through)', () => {

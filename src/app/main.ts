@@ -16,6 +16,7 @@ import { PRESETS } from '../core/presets';
 import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
 import { PATTERNS, PatternId } from '../core/patterns';
 import { createRigMode } from './rigmode';
+import { FACTIONS, factionMember, factionSquad } from '../core/factions';
 import { buildWeapon, WEAPON_ARCHETYPES, WEAPON_STYLES, WeaponArchetype } from '../weapons/badgun';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -30,7 +31,7 @@ let mode: 'characters' | 'creatures' | 'rig' = 'characters';
 let creature: CreatureRecipe = randomCreature('megalodon', 1);
 
 /** the viewer always shows hand props so you can judge the animations; export follows the recipe */
-const preview = (rc: CharacterRecipe): CharacterRecipe => ({ ...rc, mesh: { ...rc.mesh, exportProps: true }, ...(rc.weapon ? { weapon: { ...rc.weapon, embed: true } } : {}) });
+const preview = (rc: CharacterRecipe): CharacterRecipe => ({ ...rc, mesh: { ...rc.mesh, exportProps: true, clips: undefined }, ...(rc.weapon ? { weapon: { ...rc.weapon, embed: true } } : {}) });
 
 // ───────────────────────────────────────────────────────────── scene ──
 const canvas = $<HTMLCanvasElement>('canvas');
@@ -625,6 +626,53 @@ function buildUI() {
   const detail = $<HTMLSelectElement>('in-detail');
   const shading = $<HTMLSelectElement>('in-shading');
   const morphs = $<HTMLInputElement>('in-morphs');
+  // ── factions
+  const fSel = $<HTMLSelectElement>('f-faction');
+  const fRole = $<HTMLSelectElement>('f-role');
+  fSel.innerHTML = `<option value="">None (free design)</option>${Object.entries(FACTIONS).map(([id, f]) => `<option value="${id}">${f.label}</option>`).join('')}`;
+  const syncFaction = () => {
+    const id = recipe.faction?.id ?? '';
+    fSel.value = id;
+    const f = FACTIONS[id];
+    fRole.innerHTML = `<option value="any">Any (rolled)</option>${(f?.roles ?? []).map((r) => `<option value="${r.id}">${r.label}</option>`).join('')}`;
+    fRole.disabled = !f;
+    $<HTMLButtonElement>('f-member').disabled = !f;
+    $<HTMLButtonElement>('f-squad').disabled = !f;
+    if (f) {
+      fRole.value = fRole.dataset.keep === '1' ? (recipe.faction?.role ?? 'any') : 'any';
+      $('f-info').textContent = f.blurb;
+    }
+  };
+  const newMember = (seed = Math.floor(Math.random() * 1e6)) => {
+    const id = fSel.value;
+    if (!id) return;
+    recipe = factionMember(seed, id, recipe.style, recipe.body.race ?? 'human', fRole.value);
+    fRole.dataset.keep = fRole.value === 'any' ? '' : '1';
+    syncAll();
+    if (recipe.weapon) clipName = recipe.weapon.archetype === 'pistol' ? 'PistolReady' : 'RifleReady';
+    rebuild(true);
+  };
+  fSel.addEventListener('change', () => {
+    fRole.dataset.keep = '';
+    if (!fSel.value) {
+      delete recipe.faction;
+      syncFaction();
+      return;
+    }
+    fRole.innerHTML = '<option value="any">Any</option>';
+    fRole.value = 'any';
+    newMember(recipe.seed);
+  });
+  fRole.addEventListener('change', () => newMember());
+  $('f-member').addEventListener('click', () => newMember());
+  $('f-squad').addEventListener('click', () => {
+    if (!fSel.value) return;
+    const squad = factionSquad(Math.floor(Math.random() * 1e6), fSel.value, recipe.style, 6, recipe.body.race ?? 'human');
+    const armed = squad.some((m) => m.weapon);
+    showRow(squad, armed ? 'RifleReady' : 'Idle', 1.0, 0);
+  });
+  syncers.push(syncFaction);
+
   // ── weapon (BadGun)
   const wArch = $<HTMLSelectElement>('w-arch');
   const wStyle = $<HTMLSelectElement>('w-style');
@@ -662,6 +710,57 @@ function buildUI() {
     weaponChanged();
   });
   syncers.push(syncWeapon);
+
+  // ── which animations go in the export
+  const clipList = $('clip-list');
+  const clipFilter = $<HTMLInputElement>('clip-filter');
+  const allClipNames = () => (character?.clips ?? []).map((c) => c.name);
+  const renderClipPick = () => {
+    const names = allClipNames();
+    const sel = recipe.mesh.clips;
+    const f = clipFilter.value.trim().toLowerCase();
+    clipList.innerHTML = '';
+    for (const n of names) {
+      if (f && !n.toLowerCase().includes(f)) continue;
+      const l = document.createElement('label');
+      l.innerHTML = `<input type="checkbox" ${!sel || sel.includes(n) ? 'checked' : ''}> ${n}`;
+      l.querySelector('input')!.addEventListener('change', (e) => {
+        const on = (e.target as HTMLInputElement).checked;
+        const cur = new Set(recipe.mesh.clips ?? names);
+        if (on) cur.add(n);
+        else cur.delete(n);
+        recipe.mesh.clips = cur.size === names.length ? undefined : names.filter((x) => cur.has(x));
+        clipCount();
+      });
+      clipList.appendChild(l);
+    }
+    clipCount();
+  };
+  const clipCount = () => {
+    const total = allClipNames().length;
+    const sel = recipe.mesh.clips;
+    $('clip-count').textContent = !sel ? `all ${total}` : `${sel.length} of ${total}`;
+  };
+  clipFilter.addEventListener('input', renderClipPick);
+  $('clip-pick').addEventListener('toggle', renderClipPick);
+  $('clip-all').addEventListener('click', () => {
+    // with a filter: add the visible ones; without: everything
+    const f = clipFilter.value.trim().toLowerCase();
+    const names = allClipNames();
+    const cur = new Set(recipe.mesh.clips ?? names);
+    for (const n of names) if (!f || n.toLowerCase().includes(f)) cur.add(n);
+    recipe.mesh.clips = cur.size === names.length ? undefined : names.filter((x) => cur.has(x));
+    renderClipPick();
+  });
+  $('clip-none').addEventListener('click', () => {
+    const f = clipFilter.value.trim().toLowerCase();
+    const names = allClipNames();
+    const cur = new Set(recipe.mesh.clips ?? names);
+    for (const n of names) if (!f || n.toLowerCase().includes(f)) cur.delete(n);
+    recipe.mesh.clips = names.filter((x) => cur.has(x));
+    renderClipPick();
+  });
+  syncers.push(() => clipCount());
 
   const propsIn = $<HTMLInputElement>('in-props');
   propsIn.addEventListener('change', () => (recipe.mesh.exportProps = propsIn.checked));

@@ -39,6 +39,16 @@
           <div class="chips" id="presets"></div>
         </section>
         <section>
+          <h2>Faction</h2>
+          <div class="row"><label>Faction</label><select id="f-faction"></select></div>
+          <div class="row"><label>Role</label><select id="f-role"></select></div>
+          <div class="btnrow">
+            <button class="btn" id="f-member" title="Another member of this faction (keeps your style and race)">🎲 New member</button>
+            <button class="btn" id="f-squad" title="Six members side by side">👥 Squad</button>
+          </div>
+          <p class="hint" id="f-info">Pick a faction and every member wears only its kit, with its own roles and weapons. Style, race and sliders stay yours.</p>
+        </section>
+        <section>
           <h2>Style</h2>
           <div class="chips" id="styles"></div>
           <p class="hint" id="style-blurb"></p>
@@ -88,6 +98,16 @@
           <div class="row"><label>Detail</label><select id="in-detail"><option value="low">Low (8 sides)</option><option value="medium">Medium (12)</option><option value="high">High (20)</option></select></div>
           <div class="row"><label>Shading</label><select id="in-shading"><option value="smooth">Smooth</option><option value="flat">Flat / faceted</option></select></div>
           <div class="row"><label>Morphs</label><input id="in-morphs" type="checkbox" /><span class="hint">Fat± / Muscle± blend shapes</span></div>
+          <details id="clip-pick" class="clippick">
+            <summary><span>Animations</span><b id="clip-count">all</b></summary>
+            <div class="btnrow">
+              <button class="btn" id="clip-all">All</button>
+              <button class="btn" id="clip-none">None</button>
+              <input id="clip-filter" type="text" placeholder="filter… (e.g. Sit, Rifle)" />
+            </div>
+            <div id="clip-list"></div>
+            <p class="hint">Every ticked clip goes into the one .glb: in Blender each becomes an Action, in Godot an animation in the AnimationPlayer. The viewer still previews them all.</p>
+          </details>
           <div class="row"><label>Props</label><input id="in-props" type="checkbox" /><span class="hint">export staff / bow / crossbow meshes (the viewer always previews them; animations never need them)</span></div>
         </section>
       </aside>

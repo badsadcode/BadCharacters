@@ -267,7 +267,10 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
   json.scenes[0].nodes.push(meshNode);
 
   // ── animations
-  if (opts.animations ?? true) writeAnimations(json, bb, sk, ch.clips);
+  // a character recipe can pick which clips go in the file (all of them by default)
+  const pick = !isCreature ? (ch as Character).recipe.mesh?.clips : undefined;
+  const clips = pick ? ch.clips.filter((c) => pick.includes(c.name)) : ch.clips;
+  if (opts.animations ?? true) writeAnimations(json, bb, sk, clips);
 
   // a BadGun weapon in the hand: embedded rigidly under the right hand bone if asked to
   const weapon = !isCreature ? (ch as Character).weapon : undefined;
@@ -301,7 +304,7 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
           propBones: sk.bones.filter((b) => b.name === 'BowString').map((b) => b.name),
           sockets: ch.skeleton.sockets.map((s) => s.name),
           morphTargets: ch.morphs.map((m) => m.name),
-          clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop, ...(c.travel ? { travel: c.travel.map(r6) } : {}) })),
+          clips: clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop, ...(c.travel ? { travel: c.travel.map(r6) } : {}) })),
           ...(weapon ? { weapon: { name: weapon.name, badgun: weapon.recipe, url: weapon.url, socket: 'Socket_RightHand_Weapon', embedded: !!(ch as Character).recipe.weapon?.embed } } : {}),
           recipe: ch.recipe,
         },

@@ -225,6 +225,14 @@ export function buildClothing(rc: CharacterRecipe, sk: Skeleton, body: PartMap):
     footwear('feet', 'shin', 0.1, 4 * e);
     soles('feet', d.ankleY * 0.32, 4.5 * e);
     for (const s of sides) band(`feet.cuff.${s}`, mat('feet'), body[`leg.${s}`], K(body[`leg.${s}`], 'shin', 0.2), 0.16, 6.5 * e);
+  } else if (f === 'sandals') {
+    // rubber soles with a strap over the instep and one between the toes: bare feet otherwise
+    soles('feet', d.ankleY * 0.22, 1.5 * e);
+    for (const s of sides) {
+      const F = body[`foot.${s}`];
+      band(`feet.strap.${s}`, mat('feet'), F, K(F, 'instep'), 0.08, 1.4 * e);
+      band(`feet.toe.${s}`, mat('feet'), F, K(F, 'ball'), 0.05, 1.4 * e);
+    }
   } else if (f === 'sabatons') {
     footwear('feet', 'calf', 0.3, 5 * e);
     soles('feet', d.ankleY * 0.3, 5 * e);
