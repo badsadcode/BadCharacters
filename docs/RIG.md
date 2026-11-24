@@ -112,10 +112,17 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `Weld` | ✅ | crouched, torch in the right hand moving along a seam, left hand steadying it |
 | `FishCast` | ❌ | two-handed cast: rod back over the shoulder, whip forward |
 | `FishIdle`, `FishReel` | ✅ | rod held up, waiting; or reeling (left hand cranking beside the grip) |
-| `RideIdle`, `RideWalk`, `RideTrot`, `RideGallop` | ✅ | astride a horse: thighs around a ~0.5 m barrel, feet in stirrups, hands on the reins. The Hips stay at their rest height (plus the gait's bounce): **put the character's origin `hipY` below the saddle's seat point**. Trot posts; gallop leans forward |
+| `RideIdle`, `RideWalk`, `RideTrot`, `RideGallop` | ✅ | astride a horse: thighs around a ~0.5 m barrel, feet in stirrups, hands on the reins. The Hips stay at their rest height (plus the gait's bounce): **put the character's origin `props.originBelowSaddleSeat` below the saddle's seat point**. Trot posts; gallop leans forward |
 | `DriveCar` | ✅ | seated, origin = the floor under the driver, feet toward the pedals (right foot works the accelerator). Hands at ten-to-two on a wheel of radius 0.17·u, centre 0.36·u ahead of the chest, tilted 25° back; the hands follow the rim as it turns (±~35°) |
 | `DriveCart` | ✅ | on a horse cart's bench (origin = the footboard), reins in hand, bumping along |
 | `PushCart` | ✅ | walking behind a handcart, hands on a crossbar at waist height, leaning in |
+| `SitDown`, `StandUp` | ❌ | onto / off a chair, feet staying where the character stood; the seat is **behind** the origin, centred under the seated Hips |
+| `SitIdle` | ✅ | on a chair, hands resting on the thighs |
+| `SitEat`, `SitDrink`, `SitType` | ✅ | at a table: spoon from a bowl to the mouth / cup up, sip, down / typing on a keyboard |
+| `Eat`, `Drink` | ✅ | standing: something hand-held to the mouth, chewing / a bottle tipped up, head back |
+| `Talk` | ✅ | standing, hand gestures and nods |
+| `SitGround` | ✅ | cross-legged on the floor, hands on the knees |
+| `Sleep` | ✅ | lying on the back (head toward −Z), breathing, arms by the sides |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation
@@ -191,3 +198,18 @@ With `embed: true` the weapon GLB is merged into the character's: a node `Weapon
 play them on top of the character's clip. Without `embed`, attach your own copy of the weapon to
 `Socket_RightHand_Weapon`; the fitted clips are exported either way.
 `scenes[0].extras.badcharacters.weapon` records the BadGun recipe and a playground link.
+
+## Clip props
+
+Clips that assume furniture or objects write their measurements (metres, character space: origin
+on the floor between the feet, +Z forward) into the animation's `extras.props`, so you can place the
+chair, table, door, wheel or saddle without guessing:
+
+| Clip | `extras.props` |
+|---|---|
+| `SitDown`, `StandUp`, `SitIdle` | `seatHeight`, `seatCentreZ` (negative: behind the origin), `feetAt` |
+| `SitEat`, `SitDrink`, `SitType` | the above + `tableHeight`, `tableEdgeZ`, and `bowlZ` / `cupZ` / `keyboardZ` |
+| `OpenDoor`, `CloseDoor` | `hinge` [x, y, z], `handleFromHinge`, `handleHeight`, `openDeg`, `pushStart`/`pushEnd` (s), `pullStart`/`pullEnd` (s) |
+| `DriveCar` | `wheelCentreAboveHips`, `wheelAheadOfChest`, `wheelRadius`, `wheelTiltDeg`, `seatedHipsAboveFloor` |
+| `Ride*` | `hipsAboveSaddleSeat`, `originBelowSaddleSeat`, `barrelWidth` |
+| `SitGround`, `Sleep` | `seatHeight: 0` / `hipsAboveFloor` |

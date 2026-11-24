@@ -12,6 +12,7 @@ import { add, cross, DEG, lerp, norm, qChain, qMul, Quat, qRotate, qx, qy, qz, Q
 import { Clip, Pose, worldPose } from './anim';
 import { frameMap, solveArm } from './hold';
 import type { Skeleton } from './skeleton';
+import { everydayClips } from './everyday';
 
 const ease = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 /** smoothed keyframes for numbers */
@@ -456,6 +457,7 @@ export function actionClips(sk: Skeleton, clips: Clip[]): Clip[] {
     name,
     duration: T,
     loop: true,
+    info: { hipsAboveSaddleSeat: 0.6 * d.hipHD, originBelowSaddleSeat: restHipY - 0.6 * d.hipHD, barrelWidth: 0.5 },
     sample: (t) => {
       const ph = (TAU * t) / T;
       const b = idle.sample(t % idle.duration);
@@ -492,6 +494,7 @@ export function actionClips(sk: Skeleton, clips: Clip[]): Clip[] {
     name: 'DriveCar',
     duration: 6,
     loop: true,
+    info: { wheelCentreAboveHips: d.chestHD * 0 + (sk.bones[sk.index.UpperChest].world[1] - restHipY) - 0.1 * u, wheelAheadOfChest: d.chestHD + 0.36 * u, wheelRadius: 0.17 * u, wheelTiltDeg: 25, seatedHipsAboveFloor: seatedHipY(carTh, carKn) },
     sample: (t) => {
       const ph = (TAU * t) / 6;
       const steer = 32 * Math.sin(ph) + 6 * Math.sin(ph * 3.1);
@@ -559,5 +562,20 @@ export function actionClips(sk: Skeleton, clips: Clip[]): Clip[] {
       return pose;
     },
   });
+  // ───────────────────────────────────────────────────────── everyday life (everyday.ts)
+  out.push(...everydayClips({ sk, clips, grips, body, leg, drop, seatLegs, seatedHipY, restHipY }));
   return out;
 }
+
+export interface Kit {
+  sk: Skeleton;
+  clips: Clip[];
+  grips: (pose: Pose, rot: Record<string, Quat>, list: Grip[]) => void;
+  body: (t: number, o: { yaw?: number; lean?: number; tilt?: number; hips?: V3; legs?: [[number, number, number?], [number, number, number?]]; head?: [number, number] }) => { rot: Record<string, Quat>; pose: Pose };
+  leg: (th: number, kn: number, foot?: number) => [Quat, Quat, Quat];
+  drop: (th: number, kn: number) => number;
+  seatLegs: (rot: Record<string, Quat>, th: number, kn: number, spread?: number, foot?: number) => void;
+  seatedHipY: (th: number, kn: number) => number;
+  restHipY: number;
+}
+export type { Grip };

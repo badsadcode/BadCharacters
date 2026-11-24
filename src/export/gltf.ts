@@ -160,6 +160,9 @@ function linear(hex: string): [number, number, number] {
 }
 
 const r6 = (x: number) => Math.round(x * 1e6) / 1e6;
+/** clip prop measurements, rounded to the millimetre */
+const roundInfo = (o: Record<string, number | number[] | string>) =>
+  Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'number' ? Math.round(v * 1000) / 1000 : Array.isArray(v) ? v.map((x) => Math.round(x * 1000) / 1000) : v]));
 
 export interface GltfOptions {
   animations?: boolean;
@@ -382,7 +385,7 @@ export function writeAnimations(json: any, bb: Buf, sk: Skeleton, clips: Clip[])
       for (const p of poses) out.push(...(p.trans?.[b.name] ?? rest));
       channel(sk.index[b.name], 'translation', out, 3);
     }
-    json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, ...(clip.travel ? { travel: clip.travel.map(r6) } : {}) } });
+    json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, ...(clip.travel ? { travel: clip.travel.map(r6) } : {}), ...(clip.info ? { props: roundInfo(clip.info) } : {}) } });
   }
 }
 

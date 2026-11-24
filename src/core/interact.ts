@@ -209,8 +209,9 @@ export function interactionClips(sk: Skeleton, clips: Clip[]): Clip[] {
     }
     return pose;
   };
-  out.push({ name: 'OpenDoor', duration: doorT, loop: false, sample: doorPose });
-  out.push({ name: 'CloseDoor', duration: doorT, loop: false, sample: (t) => doorPose(doorT - t) });
+  const doorInfo = { hinge: [hingeX, 0, doorZ], handleFromHinge: handleR, handleHeight: handleY, openDeg: 30, pushStart: 0.7, pushEnd: 1.45 };
+  out.push({ name: 'OpenDoor', duration: doorT, loop: false, sample: doorPose, info: doorInfo });
+  out.push({ name: 'CloseDoor', duration: doorT, loop: false, sample: (t) => doorPose(doorT - t), info: { ...doorInfo, pullStart: doorT - 1.45, pullEnd: doorT - 0.7 } });
   return out;
 }
 

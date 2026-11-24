@@ -141,7 +141,8 @@ describe('animation', () => {
       'KickLeftHigh', 'KickLeftMid', 'KickLeftLow', 'KickRightHigh', 'KickRightMid', 'KickRightLow',
       'SwordSlash', 'SwordOverhead', 'SwordThrust', 'StaffThrust', 'StaffSwing', 'StaffOverhead', 'AxeChop', 'ShovelDig',
       'Saw', 'Hammer', 'Weld', 'FishCast', 'FishIdle', 'FishReel',
-      'RideIdle', 'RideWalk', 'RideTrot', 'RideGallop', 'DriveCar', 'DriveCart', 'PushCart', 'RestPose',
+      'RideIdle', 'RideWalk', 'RideTrot', 'RideGallop', 'DriveCar', 'DriveCart', 'PushCart',
+      'SitDown', 'StandUp', 'SitIdle', 'SitEat', 'SitDrink', 'SitType', 'Eat', 'Drink', 'Talk', 'SitGround', 'Sleep', 'RestPose',
     ]);
   });
   it('a swinging foot hangs off the shin instead of folding back toward the knee', () => {
