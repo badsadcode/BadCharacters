@@ -43,7 +43,7 @@ export interface MorphTarget {
 /** clips that make sense as upper-body layers over locomotion */
 export const UPPER_LAYERS = [
   'Wave', 'Talk', 'Eat', 'Drink', 'Point', 'Shrug', 'Clap', 'CrossArms', 'Listen', 'HandsInPockets', 'ScratchHead', 'CheckWatch',
-  'Yawn', 'PhoneCall', 'PhoneText', 'Read', 'KnockDoor', 'CarryBagIdle', 'CarryDuffleIdle', 'CarryBoxIdle',
+  'Yawn', 'PhoneCall', 'PhoneText', 'Read', 'KnockDoor', 'CarryBagIdle', 'CarryDuffleIdle', 'CarryBoxIdle', 'CarryLantern',
   'RifleAim', 'RifleReady', 'PistolAim', 'PistolReady', 'BowShoot', 'CrossbowShoot', 'Punch',
 ];
 

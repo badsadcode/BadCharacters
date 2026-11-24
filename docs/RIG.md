@@ -132,10 +132,16 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `CrossArms`, `Listen`, `HandsInPockets`, `HandsInPocketsWalk`, `LeanWall` | ✅ | idles: arms folded (Listen nods), hands in the front pockets (also walking), leaning back on a wall (`wallBehindZ`) |
 | `Point`, `Shrug`, `Stretch`, `Yawn`, `CheckWatch`, `KnockDoor` | ❌ | one-off gestures (KnockDoor: a door `doorAheadZ` ahead) |
 | `Clap`, `ScratchHead`, `PhoneCall`, `PhoneText`, `Read` | ✅ | looping gestures |
-| `Upper_*` | per source | **upper-body layers** (Export settings → Layers): the spine and everything above it only, no hips, for Wave, Talk, Eat, Drink, Point, Shrug, Clap, CrossArms, Listen, HandsInPockets, ScratchHead, CheckWatch, Yawn, PhoneCall, PhoneText, Read, KnockDoor, CarryBag/Duffle/Box idle, Rifle/Pistol aim and ready, BowShoot, CrossbowShoot, Punch. In Godot, blend one over Walk/Run with an AnimationTree filter (or a Blend2 node with the upper-body bones filtered); `extras.layer` is `"upper"` |
+| `Upper_*` | per source | **upper-body layers** (Export settings → Layers): the spine and everything above it only, no hips, for Wave, Talk, Eat, Drink, Point, Shrug, Clap, CrossArms, Listen, HandsInPockets, ScratchHead, CheckWatch, Yawn, PhoneCall, PhoneText, Read, KnockDoor, CarryBag/Duffle/Box idle, CarryLantern, Rifle/Pistol aim and ready, BowShoot, CrossbowShoot, Punch. In Godot, blend one over Walk/Run with an AnimationTree filter (or a Blend2 node with the upper-body bones filtered); `extras.layer` is `"upper"` |
 | `GetUpFromBack` | ❌ | from lying on the back (where `DeathBackward` / `DeathHeadshot` end): sit up on the hands, tuck the feet, squat, stand. Blend a face-up ragdoll into it |
 | `GetUpFromFront` | ❌ | from lying face down (where `DeathForward` ends): push up to hands and knees, kneel, one foot forward, stand |
 | `HitHeadFront/Back`, `HitTorsoFront/Back`, `HitArmLeft/Right`, `HitLegLeft/Right` | ❌ | 0.75 s jolts from the side that was hit, starting and ending exactly at `Idle`, so they can interrupt anything (play as a one-shot, or as an additive) |
+| `SweepOar`, `SweepOarHold` | ✅ | steering a raft with a long sweep oar: facing the crutch, both hands overhand on the handle, walking it left and right (Hold: small corrections) |
+| `PoleRaft` | ✅ | poling on the right of the deck: plant forward to the bed, push back hand under hand, lift, swing forward. In place: the bed point slides back under the character |
+| `DropAnchor` | ❌ | an anchor stone held in both hands: dip, swing, throw forward over the side; release at `releaseTime` |
+| `RaiseAnchor` | ✅ | hauling the anchor rope up hand over hand, rope coming up over the edge in front |
+| `ClimbOutOfWater` | ❌ | treading water at a deck edge → hands on deck, press up, knee up, stand. Origin = the feet at the start; ends standing `travel` away, on the deck |
+| `CarryLantern`, `CarryLanternWalk` | ✅ | a lantern held up by its bail in the left hand, out in front at shoulder height (also an upper-body layer) |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation
@@ -227,4 +233,10 @@ chair, table, door, wheel or saddle without guessing:
 | `Ride*` | `hipsAboveSaddleSeat`, `originBelowSaddleSeat`, `barrelWidth` |
 | `SitGround`, `Sleep` | `seatHeight: 0` / `hipsAboveFloor` |
 | `TurnLeft90`, `TurnRight90`, `Turn180` | `turnDeg` |
+| `SweepOar*` | `handle`, `pivot` (the crutch) [x, y, z], `slope` (rad, handle above pivot), `sweepDeg` |
+| `PoleRaft` | `poleSide`, `poleX`, `bedDepthBelowDeck`, `poleLength` |
+| `DropAnchor` | `releaseTime` (s), `releaseAt` [x, y, z], `throwVelocity` [x, y, z] m/s |
+| `RaiseAnchor` | `ropeFrom` [x, y, z] (where the rope comes up), `ropeEdgeAhead` |
+| `ClimbOutOfWater` | `deckAbove` (deck top above the start origin), `edgeAhead` (deck edge, +Z) |
+| `CarryLantern*` | `lanternDrop`, `hand`, `hangs`: hang the lantern under `Socket_LeftHand_Tool` |
 | `Death*` | `endsLying` (front / back / side), `bodyThickness`: hand over to a ragdoll at the end, or leave the body |

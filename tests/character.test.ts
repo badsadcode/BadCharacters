@@ -145,8 +145,10 @@ describe('animation', () => {
       'WalkBackward', 'CrouchWalkBackward', 'StrafeLeft', 'StrafeRight', 'CrouchStrafeLeft', 'CrouchStrafeRight', 'TurnLeft90', 'TurnRight90', 'Turn180',
       'SitDown', 'StandUp', 'SitIdle', 'SitEat', 'SitDrink', 'SitType', 'Eat', 'Drink', 'Talk', 'SitGround', 'Sleep',
       'CrossArms', 'Listen', 'HandsInPockets', 'HandsInPocketsWalk', 'LeanWall', 'Point', 'Shrug', 'Clap', 'Stretch', 'Yawn', 'ScratchHead', 'CheckWatch', 'KnockDoor', 'PhoneCall', 'PhoneText', 'Read',
+      'SweepOar', 'SweepOarHold', 'PoleRaft', 'DropAnchor', 'RaiseAnchor', 'ClimbOutOfWater', 'CarryLantern', 'CarryLanternWalk',
       'DeathForward', 'DeathBackward', 'DeathLeft', 'DeathRight', 'DeathCrumple', 'DeathHeadshot',
-      'GetUpFromBack', 'GetUpFromFront', 'HitHeadFront', 'HitHeadBack', 'HitTorsoFront', 'HitTorsoBack', 'HitArmLeft', 'HitLegLeft', 'HitArmRight', 'HitLegRight', 'RestPose',
+      'GetUpFromBack', 'GetUpFromFront', 'HitHeadFront', 'HitHeadBack', 'HitTorsoFront', 'HitTorsoBack', 'HitArmLeft', 'HitLegLeft', 'HitArmRight', 'HitLegRight',
+      'RestPose',
     ]);
   });
   it('a swinging foot hangs off the shin instead of folding back toward the knee', () => {

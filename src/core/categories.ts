@@ -20,6 +20,7 @@ export const CLIP_CATEGORIES: ClipCategory[] = [
   { id: 'water', label: 'Water', icon: '🌊', match: /^(Swim|Float|Dive)/ },
   { id: 'ride', label: 'Ride & drive', icon: '🐎', match: /^(Ride|Drive|PushCart)/ },
   { id: 'tools', label: 'Tools & work', icon: '🪓', match: /^(Craft|Axe|Shovel|Saw|Hammer|Weld|Fish)/ },
+  { id: 'boat', label: 'Boat & raft', icon: '🛶', match: /^(SweepOar|PoleRaft|DropAnchor|RaiseAnchor)/ },
   { id: 'carry', label: 'Carry & doors', icon: '📦', match: /^(Carry|OpenDoor|CloseDoor)/ },
   { id: 'everyday', label: 'Everyday', icon: '☕', match: /^(Sit|Stand|Eat|Drink|Talk|Sleep|Wave|Lean|Cross|Hands|Point|Shrug|Clap|Stretch|Yawn|Scratch|Check|Knock|Phone|Read|Listen)/ },
   { id: 'move', label: 'Locomotion', icon: '🏃', match: /^(Idle|RestPose|Walk|Run|Sprint|Jump|Crouch|Slide|Crawl|Zombie|Strafe|Turn)/ },
