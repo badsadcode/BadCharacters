@@ -795,7 +795,7 @@ function buildUI() {
     if (w) {
       try {
         const b = buildWeapon(w);
-        info.innerHTML = `<b>${b.name}</b> · <a href="${b.url}" target="_blank" rel="noopener">open in BadGun ↗</a><br>Clips: ${b.hold.kind === 'long' ? 'RifleAim, RifleReady, RifleReadyWalk' : 'PistolAim, PistolReady, PistolReadyWalk'} fitted to this weapon. Its own Fire / Reload clips export as <code>Weapon_*</code>.`;
+        info.innerHTML = `<b>${b.name}</b> · <a href="${b.url}" target="_blank" rel="noopener">open in BadGun ↗</a><br>Clips fitted to this weapon (🔫 Weapons tab): ${b.hold.kind === 'long' ? 'RifleAim, RifleReady, RifleReadyWalk, RifleRun, RifleSprint, RifleCrawl' : 'PistolAim, PistolReady, PistolReadyWalk, PistolRun, PistolSprint'}. Its own Fire / Reload clips export as <code>Weapon_*</code>.`;
       } catch (err) {
         info.textContent = `BadGun couldn't build that: ${(err as Error).message}`;
       }
