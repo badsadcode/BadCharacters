@@ -15,7 +15,7 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 
 | | |
 |---|---|
-| Styles | Blocky, **Boxy** (bevelled rectangles, Noor's design), Chibi, Stylized, Faceted (flat-shaded, like the race sheets), Realistic, Heroic, Stocky, plus slimmer newer styles: **Voxel** and **Voxel Slim** (plain rectangular blocks, ~850 triangles), **Brick**, **Brick Slim** and **Capsule** (no taper: straight pillar limbs and torso), **Mannequin** (wooden ball joints) and **Action Figure** (glossy, peg joints) |
+| Styles | Blocky, **Boxy** (bevelled rectangles, Noor's design), Chibi, Stylized, Faceted (flat-shaded, like the race sheets), Realistic, Heroic, Stocky, plus slimmer newer styles: **Voxel** and **Voxel Slim** (plain rectangular blocks, ~850 triangles), **Brick**, **Brick Slim** and **Capsule** (no taper: straight pillar limbs and torso), and two styles with a different *construction*: **Segments** and **Puppet** (a separate rigid block per bone, recessed hinges at every joint), **Mannequin** (wooden ball joints) and **Action Figure** (glossy, peg joints) |
 | Races | Human, Orc, Elf, Dwarf, Hobbit, Goblin, Gremlin, Mutant, Stone golem, Flower golem: work with every style |
 | Body sliders | height, masculine↔feminine build, muscle, fat, head size, leg length, roundness, skin, plus 21 fine sliders (shoulders, chest, waist, hips, belly, arm length/thickness, leg thickness, neck, head width/depth, jaw, hands, feet, ears, nose, eyes, mouth, posture) |
 | Face | pixel-art texture: 8 eye styles (incl. zombie, third eye), 7 mouths, optional brows/blush/scars, modelled nose, race ears, tusks |

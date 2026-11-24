@@ -405,6 +405,78 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
     }
   }
 
+  // segmented construction (toy-figure blocks): every bone gets its own rigid, untapered block, and
+  // each joint is a recessed hinge ring between two blocks. Same rings, same tags, same order (so all
+  // clothing, culling and fitting code works unchanged), but moved to make square block ends, and
+  // hard-skinned so blocks never bend, only the hinge between them does.
+  if (st.segmented) {
+    const notch = st.segmented;
+    const set = (part: Part, tag: string, f: (r: Ring) => Partial<Ring>) => {
+      const i = part.rings.findIndex((r) => r.tag === tag);
+      part.rings[i] = { ...part.rings[i], fb: 0, bb: 0, ...f(part.rings[i]) };
+    };
+    const sq = (R: number, depth = 1) => ({ a: R, b: R * depth });
+    for (const s of [1, -1]) {
+      const k = s > 0 ? 'L' : 'R';
+      const side = s > 0 ? 'Left' : 'Right';
+      const UL = `${side}UpperLeg`, LL = `${side}LowerLeg`, FT = `${side}Foot`;
+      // legs: thigh block, knee hinge, shin block, ankle hinge (into the foot)
+      const leg = parts[`leg.${k}`];
+      const Rt = Math.max(d.thighR * 0.9, d.calfR);
+      const Rs = Math.max(d.calfR * 0.95, d.thighR * 0.74);
+      const Rk = Math.min(Rt, Rs) * notch;
+      const ck = Math.max(0.012 * u, (Math.min(Rt, Rs) - Rk) * 0.7);
+      const at = (y: number) => (r: Ring): V3 => [r.c[0], y, r.c[2]];
+      set(leg, 'thighTop', () => ({ ...sq(Rt), w: W([UL, 1]) }));
+      set(leg, 'midThigh', () => ({ ...sq(Rt), w: W([UL, 1]) }));
+      set(leg, 'aboveKnee', (r) => ({ ...sq(Rt), c: at(d.kneeY + ck)(r), w: W([UL, 1]) }));
+      set(leg, 'knee', () => ({ ...sq(Rk), w: W([UL, 0.5], [LL, 0.5]) }));
+      set(leg, 'belowKnee', (r) => ({ ...sq(Rs), c: at(d.kneeY - ck)(r), w: W([LL, 1]) }));
+      set(leg, 'calf', () => ({ ...sq(Rs), w: W([LL, 1]) }));
+      set(leg, 'shin', () => ({ ...sq(Rs), w: W([LL, 1]) }));
+      set(leg, 'ankle', () => ({ ...sq(Rs), w: W([LL, 1]) }));
+      set(leg, 'end', () => ({ ...sq(Math.max(d.ankleR, Rs * notch)), w: W([FT, 1]) }));
+
+      // arms: shoulder hinge, upper-arm block, elbow hinge, forearm block, wrist hinge (into the hand)
+      const arm = parts[`arm.${k}`];
+      const am = s > 0 ? d.armL : d.armR;
+      const SH = `${side}Shoulder`, UA = `${side}UpperArm`, LA = `${side}LowerArm`, HA = `${side}Hand`;
+      const sh = sk.bones[sk.index[UA]].world;
+      const el = sk.bones[sk.index[LA]].world;
+      const wr = sk.bones[sk.index[HA]].world;
+      const dir: V3 = [d.armDir[0] * s, d.armDir[1], 0];
+      const along = (o: V3, t: number) => () => ({ c: add(o, scale(dir, t)) });
+      const Ru = Math.max(d.upperArmR, d.foreArmR) * am;
+      const Rf = Math.max(d.foreArmR, d.upperArmR * 0.8) * am;
+      const Re = Math.min(Ru, Rf) * notch;
+      const ce = Math.max(0.01 * u, (Math.min(Ru, Rf) - Re) * 0.7);
+      const dp = 0.92;
+      set(arm, 'shoulder', () => ({ ...sq(Ru * lerp(notch, 1, 0.4), dp), w: W([SH, 0.35], [UA, 0.65]) }));
+      set(arm, 'deltoid', (r) => ({ ...sq(Ru, dp), ...along(sh, ce)(), w: W([UA, 1]) }));
+      set(arm, 'bicep', () => ({ ...sq(Ru, dp), w: W([UA, 1]) }));
+      set(arm, 'aboveElbow', () => ({ ...sq(Ru, dp), ...along(el, -ce)(), w: W([UA, 1]) }));
+      set(arm, 'elbow', () => ({ ...sq(Re, dp), w: W([UA, 0.5], [LA, 0.5]) }));
+      set(arm, 'belowElbow', () => ({ ...sq(Rf, dp), ...along(el, ce)(), w: W([LA, 1]) }));
+      set(arm, 'forearm', () => ({ ...sq(Rf, dp), w: W([LA, 1]) }));
+      set(arm, 'wristUp', () => ({ ...sq(Rf, dp), ...along(wr, -ce)(), w: W([LA, 1]) }));
+      set(arm, 'wrist', () => ({ ...sq(Rf * notch, dp), w: W([LA, 0.5], [HA, 0.5]) }));
+      set(arm, 'end', () => ({ ...sq(Rf * notch, dp), w: W([HA, 1]) }));
+    }
+    // torso: a pelvis block and a chest block with a waist hinge between them
+    const torso = parts.torso;
+    const wy = hy + 0.38 * tl;
+    const PA = d.hipHW, PB = d.hipHD;
+    const CA = Math.max(d.chestHW, d.hipHW * 0.95), CB = Math.max(d.chestHD, d.hipHD * 0.95);
+    const cw = Math.max(0.012 * u, Math.min(PB, CB) * (1 - notch) * 0.7);
+    const ty = (y: number) => (r: Ring): Partial<Ring> => ({ c: [r.c[0], y, r.c[2]] });
+    set(torso, 'hip', () => ({ a: PA, b: PB, w: W(['Hips', 1]) }));
+    set(torso, 'lowWaist', (r) => ({ a: PA, b: PB, ...ty(wy - cw)(r), w: W(['Hips', 1]) }));
+    set(torso, 'waist', () => ({ a: Math.min(PA, CA) * lerp(notch, 1, 0.45), b: Math.min(PB, CB) * lerp(notch, 1, 0.45), w: W(['Spine', 1]) }));
+    set(torso, 'ribs', (r) => ({ a: CA, b: CB, ...ty(wy + cw)(r), w: W(['Chest', 1]) }));
+    set(torso, 'chest', (r) => ({ a: CA, b: CB, fb: r.fb, fbDouble: r.fbDouble }));
+    set(torso, 'armpit', (r) => ({ a: CA, b: CB * 0.97, fb: (r.fb ?? 0) * 0.6, fbDouble: r.fbDouble }));
+  }
+
   // visible joints (Mannequin: wooden balls, Action Figure: toy pegs). Each is skinned 100% to the
   // child bone and centred on the pivot, so it turns in place and never drifts off the joint.
   if (st.joints) {

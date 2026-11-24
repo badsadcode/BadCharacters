@@ -8,7 +8,7 @@ import { RaceId, RACES, Shape } from './races';
 import type { PatternId } from './patterns';
 
 // ─────────────────────────────────────────────────────────────── styles ──
-export type StyleId = 'blocky' | 'boxy' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky' | 'voxel' | 'voxelslim' | 'mannequin' | 'figure' | 'brick' | 'brickslim' | 'capsule';
+export type StyleId = 'blocky' | 'boxy' | 'chibi' | 'stylized' | 'faceted' | 'realistic' | 'heroic' | 'stocky' | 'voxel' | 'voxelslim' | 'mannequin' | 'figure' | 'brick' | 'brickslim' | 'capsule' | 'segments' | 'puppet';
 
 export interface Style {
   label: string;
@@ -57,6 +57,8 @@ export interface Style {
   straightLimbs?: boolean;
   /** no taper at all: constant-thickness limbs and a straight pillar torso */
   uniform?: boolean;
+  /** segmented construction: rigid per-bone blocks with recessed hinges (value = hinge size as a fraction of the block) */
+  segmented?: number;
 }
 
 export const STYLES: Record<StyleId, Style> = {
@@ -158,6 +160,21 @@ export const STYLES: Record<StyleId, Style> = {
     headsTall: 5.6, headW: 0.42, headD: 0.44, arm: 1.0, leg: 1.0, torso: 1.0, definition: 0.3,
     legFrac: 0.55, armFrac: 0.48, neck: 0.1, hand: 1.0, foot: 1.0, roundness: 0.95, eyeLine: 0.45, faceScale: 1.15,
     simplify: 5, raceBlend: 0.4, shading: 'smooth', uniform: true,
+  },
+  // ── segmented construction: separate rigid blocks per bone, hinged at every joint ──
+  segments: {
+    label: 'Segments',
+    blurb: 'Toy-figure construction: a separate block per bone, recessed hinges at every joint.',
+    headsTall: 5.8, headW: 0.44, headD: 0.46, arm: 1.0, leg: 1.0, torso: 1.0, definition: 0.3,
+    legFrac: 0.55, armFrac: 0.48, neck: 0.12, hand: 1.0, foot: 1.0, roundness: 0, eyeLine: 0.45, faceScale: 1.15,
+    section: 'box', simplify: 5, raceBlend: 0.4, shading: 'flat', segmented: 0.62,
+  },
+  puppet: {
+    label: 'Puppet',
+    blurb: 'Rounded wooden segments with deep hinges, like a jointed marionette.',
+    headsTall: 6.4, headW: 0.4, headD: 0.44, arm: 0.92, leg: 0.95, torso: 0.95, definition: 0.4,
+    legFrac: 0.57, armFrac: 0.48, neck: 0.2, hand: 0.95, foot: 0.95, roundness: 1, eyeLine: 0.46, faceScale: 1.05,
+    simplify: 5, raceBlend: 0.4, shading: 'smooth', segmented: 0.45,
   },
 };
 
