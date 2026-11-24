@@ -47,6 +47,7 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `Socket_HeadTop` | Head | crown, for hats you add yourself |
 | `Socket_Back` | UpperChest | between the shoulder blades |
 | `Socket_LeftHip`, `Socket_RightHip` | Hips | holster / sword positions |
+| `Socket_LeftHand_Weapon`, `Socket_RightHand_Weapon` | hands | **oriented** weapon mount: parent a grip-origin weapon here (BadGun convention: origin on the trigger grip, +Z muzzle, +Y up) and it sits in the fist, barrel along the fingers, top along the thumb |
 
 ## Mesh
 
@@ -141,3 +142,29 @@ bones, names, identity rest rotations, sockets and clips. Differences:
   little to keep the straightened feet on the floor; hip joints sit where the thighs start.
 - `scenes[0].extras.badcharacters.source` is `"auto-rigged import"` and `markers` holds the joint
   markers used, so a rig can be reproduced.
+
+## Weapons (BadGun)
+
+A recipe can carry `weapon: { archetype, style, seed, embed }`, a procedural weapon from
+[BadGun](https://github.com/badsadcode/BadGun) (vendored as a git submodule in `vendor/BadGun`).
+The weapon's own sockets drive the character:
+
+| BadGun socket | Used for |
+|---|---|
+| `SOCKET_Hand_Grip` (origin) | trigger hand: lands on `Socket_RightHand_Weapon` |
+| `SOCKET_Hand_Support` | support hand (palm), by two-bone IK every frame; on long guns it slides back along the handguard if the arm can't reach |
+| `SOCKET_Shoulder` | stock butt, placed in the right shoulder pocket |
+
+Clips fitted to that exact weapon (both hands on it, every frame):
+
+| Weapon | Clips |
+|---|---|
+| rifle, SMG, shotgun, sniper, LMG, crossbow | `RifleAim` (shouldered, bladed stance, cheek down), `RifleReady` (low ready), `RifleReadyWalk` (these replace the generic RifleAim / RifleReady) |
+| pistol | `PistolAim` (two-handed, arms out), `PistolReady` (low and close), `PistolReadyWalk` |
+
+With `embed: true` the weapon GLB is merged into the character's: a node `Weapon_<name>` under the
+`RightHand` bone (a rigid attachment, no skinning), its materials untouched, and its own clips
+(Fire, Reload, Cycle…) as `Weapon_Fire`, `Weapon_Reload`… which animate only the gun's parts, so
+play them on top of the character's clip. Without `embed`, attach your own copy of the weapon to
+`Socket_RightHand_Weapon`; the fitted clips are exported either way.
+`scenes[0].extras.badcharacters.weapon` records the BadGun recipe and a playground link.

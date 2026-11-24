@@ -92,3 +92,6 @@ code { font: 12px 'JetBrains Mono', monospace; color: var(--accent2); }
 .btnrow { display: flex; gap: 8px; margin: 8px 0; }
 .btnrow .btn { flex: 1; }
 .viewport.dropping::after { content: 'Drop your .glb 🦴'; position: absolute; inset: 12px; border: 3px dashed var(--accent); border-radius: 14px; display: grid; place-items: center; font: 800 22px Nunito, sans-serif; color: var(--text); background: rgba(20, 16, 32, 0.6); pointer-events: none; }
+
+.tag { font: 700 10px 'JetBrains Mono', monospace; letter-spacing: 0.04em; color: var(--dim); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; text-transform: none; }
+.hint a { color: var(--accent); }

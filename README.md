@@ -25,7 +25,7 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 | Opt-in extras | voxel hair, beards (the base brief is bald and clean-shaven) |
 | Props | staff, bow, crossbow, rifle: **previewed in the viewer, not exported unless you tick "Props"** (bring your own weapons; the animations never need them) |
 | Presets | Alden Wayfarer (Thornwake), Mannequin, Sir Clanksalot, Pip the Apprentice |
-| Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 6 sockets (+ `BowString` helper bone when a bow is exported) |
+| Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 8 sockets incl. oriented weapon mounts (+ `BowString` helper bone when a bow is exported) |
 | Animations | 33: Idle, Walk, Run, Sprint, Jump, Wave, Punch, Crouch, CrouchWalk, Slide, Vault, ClimbOver, ClimbUp/Down/Left/Right, RockClimbUp/Down/Left/Right, LadderUp/Down, Swim, Float, Dive, SwimUnderwater, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
 | Export | GLB (validator-clean), editable `.badchar.json` recipe, share links |
 | Budget | low 1.5k–2.8k · medium 1.7k–4.0k (median 2.7k) · high 2.5k–6.7k triangles; Alden is 2,880 |
@@ -44,6 +44,16 @@ observer, abyssal crab, giant isopod, hatcher, rift ray, lantern skate.
   writes a ready-to-paste `CreatureProfile` for Solitude's Swimmer ("🐚 Solitude profile" button),
   with axes matching Swimmer 1:1
 - Sliders: length, mouth gape, teeth, fins/arms, glow spots, blotches, scars, seven colours
+
+## Weapons (BadGun inside)
+
+The **Weapon** panel puts a procedural gun from [BadGun](https://github.com/badsadcode/BadGun) in the
+character's hands: pick a type (rifle, SMG, shotgun, sniper, LMG, pistol, crossbow), a style (modern,
+steampunk, sci-fi, scrap, fantasy, WW1, WW2, Vietnam, diesel, cyber) and a seed. The aim and ready
+clips are rebuilt for that exact weapon: the trigger hand on its grip, the support hand on its
+handguard (two-bone IK, every frame), the stock in the shoulder pocket. Tick *Export* to put the gun in
+the GLB on the right hand, or attach your own copy to `Socket_RightHand_Weapon`. BadGun is a git
+submodule: `git submodule update --init` after cloning.
 
 ## Rig my model (bring your own GLB)
 

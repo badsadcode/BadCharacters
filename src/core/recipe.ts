@@ -3,6 +3,7 @@
  * generator builds is a pure function of the recipe, so a saved .badchar.json always rebuilds
  * the exact same mesh, rig and animations.
  */
+import type { WeaponRecipe } from '../weapons/badgun';
 import { Rng, subSeed } from './rng';
 import { RaceId, RACES, Shape } from './races';
 import type { PatternId } from './patterns';
@@ -840,6 +841,8 @@ export interface CharacterRecipe {
      *  the animations never need them, and most games bring their own weapons. */
     exportProps?: boolean;
   };
+  /** a BadGun weapon in the hands (archetype + style + seed); unset = none */
+  weapon?: WeaponRecipe;
 }
 
 const IRIS = ['#3b2a1a', '#4a6fa5', '#3f7a4a', '#6b4a2a', '#2a2a2a', '#7a8a9a', '#5a3a6a'];

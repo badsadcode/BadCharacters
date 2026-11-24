@@ -13,6 +13,8 @@ import { cullHidden } from './shell';
 import { addPropBones } from './props';
 import { CharacterRecipe, GARMENTS, MaterialKind, SlotId, STYLES } from './recipe';
 import { buildSkeleton, computeDims, Skeleton } from './skeleton';
+import { weaponClips } from './hold';
+import { buildWeapon, BuiltWeapon } from '../weapons/badgun';
 
 export interface MaterialDef {
   name: string;
@@ -50,6 +52,8 @@ export interface Character {
   texture: Texture;
   clips: Clip[];
   morphs: MorphTarget[];
+  /** the BadGun weapon in the hands, if the recipe has one */
+  weapon?: BuiltWeapon;
   stats: { triangles: number; vertices: number; bones: number; parts: number; /** triangles before hidden-layer culling and ring simplification */ unoptimized: number };
 }
 
@@ -200,7 +204,9 @@ function meshesFor(parts: Part[], K: number, bevel = 0, section?: 'box'): Map<st
   return by;
 }
 
-export function generateCharacter(rc: CharacterRecipe): Character {
+export function generateCharacter(recipe: CharacterRecipe): Character {
+  // a real weapon in the hands replaces the outfit's own hand prop (staff, rifle...)
+  const rc: CharacterRecipe = recipe.weapon && recipe.outfit.prop ? { ...recipe, outfit: { ...recipe.outfit, prop: { ...recipe.outfit.prop, id: 'none' } } } : recipe;
   const sk = buildSkeleton(rc);
   addPropBones(rc, sk);
   const K = DETAIL[rc.mesh.detail] ?? 12;
@@ -263,13 +269,23 @@ export function generateCharacter(rc: CharacterRecipe): Character {
     return s + (p.rings.length - 1) * k * 2 + ((p.capStart ? 1 : 0) + (p.capEnd ? 1 : 0)) * k;
   }, 0);
   const vertices = primitives.reduce((s, p) => s + p.mesh.positions.length / 3, 0);
+  let clips = buildClips(sk, { rightHandProp: rc.outfit.prop?.id });
+  const weapon = recipe.weapon ? buildWeapon(recipe.weapon) : undefined;
+  if (weapon) {
+    // the weapon's own aim / ready clips replace the generic ones (same names) or join them
+    const wc = weaponClips(sk, clips, weapon.hold);
+    const names = new Set(wc.map((c) => c.name));
+    const rest = clips.filter((c) => !names.has(c.name) && c.name !== 'RestPose');
+    clips = [...rest, ...wc, ...clips.filter((c) => c.name === 'RestPose')];
+  }
   return {
-    recipe: rc,
+    recipe,
     skeleton: sk,
     primitives,
     materials,
     texture,
-    clips: buildClips(sk, { rightHandProp: rc.outfit.prop?.id }),
+    clips,
+    weapon,
     morphs,
     stats: { triangles, vertices, bones: sk.bones.length, parts: parts.length, unoptimized },
   };

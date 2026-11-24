@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 
 // GitHub Pages serves the site from /<repo>/; a relative base works for any repo name.
@@ -9,4 +10,6 @@ export default defineConfig({
     rollupOptions: { input: { main: 'index.html', devlog: 'devlog.html' } },
   },
   server: { host: true },
+  // BadGun is a git submodule with its own test suite (run in its own repo)
+  test: { exclude: ['**/node_modules/**', 'vendor/**'] },
 });

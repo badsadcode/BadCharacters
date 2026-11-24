@@ -16,6 +16,7 @@ import { PRESETS } from '../core/presets';
 import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
 import { PATTERNS, PatternId } from '../core/patterns';
 import { createRigMode } from './rigmode';
+import { buildWeapon, WEAPON_ARCHETYPES, WEAPON_STYLES, WeaponArchetype } from '../weapons/badgun';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -29,7 +30,7 @@ let mode: 'characters' | 'creatures' | 'rig' = 'characters';
 let creature: CreatureRecipe = randomCreature('megalodon', 1);
 
 /** the viewer always shows hand props so you can judge the animations; export follows the recipe */
-const preview = (rc: CharacterRecipe): CharacterRecipe => ({ ...rc, mesh: { ...rc.mesh, exportProps: true } });
+const preview = (rc: CharacterRecipe): CharacterRecipe => ({ ...rc, mesh: { ...rc.mesh, exportProps: true }, ...(rc.weapon ? { weapon: { ...rc.weapon, embed: true } } : {}) });
 
 // ───────────────────────────────────────────────────────────── scene ──
 const canvas = $<HTMLCanvasElement>('canvas');
@@ -132,7 +133,9 @@ function applyToggles() {
 }
 
 /** the clip bar shows exactly the clips the loaded model exports */
-function renderClipBar(names: string[]) {
+function renderClipBar(all: string[]) {
+  // a held weapon's own clips (Weapon_Fire, Weapon_Reload…) move only the gun: exported, not listed
+  const names = all.filter((n) => !n.startsWith('Weapon_'));
   const bar = $('clips');
   if (bar.dataset.names === names.join(',')) return;
   bar.dataset.names = names.join(',');
@@ -622,6 +625,44 @@ function buildUI() {
   const detail = $<HTMLSelectElement>('in-detail');
   const shading = $<HTMLSelectElement>('in-shading');
   const morphs = $<HTMLInputElement>('in-morphs');
+  // ── weapon (BadGun)
+  const wArch = $<HTMLSelectElement>('w-arch');
+  const wStyle = $<HTMLSelectElement>('w-style');
+  const wSeed = $<HTMLInputElement>('w-seed');
+  const wEmbed = $<HTMLInputElement>('w-embed');
+  wArch.innerHTML = `<option value="">None</option>${WEAPON_ARCHETYPES.map((a) => `<option value="${a}">${a === 'smg' ? 'SMG' : a === 'lmg' ? 'LMG' : a[0].toUpperCase() + a.slice(1)}</option>`).join('')}`;
+  wStyle.innerHTML = WEAPON_STYLES.map((st) => `<option value="${st}">${st === 'scifi' ? 'Sci-fi' : st === 'ww1' ? 'WW1' : st === 'ww2' ? 'WW2' : st[0].toUpperCase() + st.slice(1)}</option>`).join('');
+  const weaponChanged = () => {
+    if (!wArch.value) delete recipe.weapon;
+    else recipe.weapon = { archetype: wArch.value as WeaponArchetype, style: wStyle.value, seed: Math.max(1, Number(wSeed.value) || 1), embed: wEmbed.checked };
+    syncWeapon();
+    if (recipe.weapon) clipName = recipe.weapon.archetype === 'pistol' ? 'PistolAim' : 'RifleAim';
+    changed();
+  };
+  const syncWeapon = () => {
+    const w = recipe.weapon;
+    wArch.value = w?.archetype ?? '';
+    wStyle.value = w?.style ?? 'modern';
+    wSeed.value = String(w?.seed ?? 1);
+    wEmbed.checked = !!w?.embed;
+    for (const el of [wStyle, wSeed, wEmbed, $('w-btn-seed')]) (el as HTMLInputElement).disabled = !w;
+    const info = $('w-info');
+    if (w) {
+      try {
+        const b = buildWeapon(w);
+        info.innerHTML = `<b>${b.name}</b> · <a href="${b.url}" target="_blank" rel="noopener">open in BadGun ↗</a><br>Clips: ${b.hold.kind === 'long' ? 'RifleAim, RifleReady, RifleReadyWalk' : 'PistolAim, PistolReady, PistolReadyWalk'} fitted to this weapon. Its own Fire / Reload clips export as <code>Weapon_*</code>.`;
+      } catch (err) {
+        info.textContent = `BadGun couldn't build that: ${(err as Error).message}`;
+      }
+    }
+  };
+  for (const el of [wArch, wStyle, wSeed, wEmbed]) el.addEventListener('change', weaponChanged);
+  $('w-btn-seed').addEventListener('click', () => {
+    wSeed.value = String(1 + Math.floor(Math.random() * 9999));
+    weaponChanged();
+  });
+  syncers.push(syncWeapon);
+
   const propsIn = $<HTMLInputElement>('in-props');
   propsIn.addEventListener('change', () => (recipe.mesh.exportProps = propsIn.checked));
   pose.addEventListener('change', () => ((recipe.rig.restPose = pose.value as 'T' | 'A'), changed()));

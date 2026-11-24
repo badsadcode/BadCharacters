@@ -11,6 +11,7 @@ import { add, clamp, lerp, norm, scale, V3 } from './math';
 import { CharacterRecipe, STYLES } from './recipe';
 import { EarShape, RACES, sv } from './races';
 import { Rng, subSeed } from './rng';
+import { handWeaponFrame } from './hold';
 
 export interface Bone {
   name: string;
@@ -23,6 +24,8 @@ export interface Socket {
   name: string;
   bone: string;
   world: V3;
+  /** orientation (world, rest pose); unset = aligned with the bone (identity) */
+  rot?: [number, number, number, number];
 }
 
 /** Every number the mesh builders need, in metres. */
@@ -274,7 +277,15 @@ export function buildSkeleton(rc: CharacterRecipe): Skeleton {
     sockets.push({ name: `Socket_${side}Hand`, bone: `${side}Hand`, world: add(wr, scale(dir, d.handLen * 0.5)) });
     sockets.push({ name: `Socket_${side}Hip`, bone: 'Hips', world: [s * d.hipHW * 1.05, d.hipY + 0.05 * tl, 0] });
   }
-  return { bones, sockets, dims: d, index };
+  const sk: Skeleton = { bones, sockets, dims: d, index };
+  // oriented weapon sockets: a grip-origin weapon (BadGun convention: +Z muzzle, +Y up) parented
+  // here sits in the fist, barrel along the fingers, top along the thumb
+  for (const s of [1, -1] as const) {
+    const side = s > 0 ? 'Left' : 'Right';
+    const f = handWeaponFrame(sk, s);
+    sockets.push({ name: `Socket_${side}Hand_Weapon`, bone: `${side}Hand`, world: add(bones[index[`${side}Hand`]].world, f.offset), rot: f.rot });
+  }
+  return sk;
 }
 
 function mutantArms(rc: CharacterRecipe, mutant: boolean) {

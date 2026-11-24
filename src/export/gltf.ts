@@ -7,6 +7,9 @@
 import { fullPose, type Clip } from '../core/anim';
 import type { Skeleton } from '../core/skeleton';
 import type { Character } from '../core/character';
+import { handWeaponFrame } from '../core/hold';
+import { embedGlb } from './embed';
+import type { Quat, V3 } from '../core/math';
 import type { Creature } from '../creatures/generate';
 
 /** anything with a skeleton, skinned primitives, materials and clips */
@@ -95,6 +98,18 @@ export class Buf {
     this.chunks.push(bytes);
     this.length += bytes.byteLength;
     return this.views.length - 1;
+  }
+  /** append raw bytes (4-aligned) without making a view; returns their byte offset */
+  raw(bytes: Uint8Array) {
+    const pad = (4 - (this.length % 4)) % 4;
+    if (pad) {
+      this.chunks.push(new Uint8Array(pad));
+      this.length += pad;
+    }
+    const at = this.length;
+    this.chunks.push(bytes);
+    this.length += bytes.byteLength;
+    return at;
   }
   f32(data: ArrayLike<number>, type: 'SCALAR' | 'VEC2' | 'VEC3' | 'VEC4' | 'MAT4', target?: number, minmax = false) {
     const arr = Float32Array.from(data);
@@ -251,6 +266,13 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
   // ── animations
   if (opts.animations ?? true) writeAnimations(json, bb, sk, ch.clips);
 
+  // a BadGun weapon in the hand: embedded rigidly under the right hand bone if asked to
+  const weapon = !isCreature ? (ch as Character).weapon : undefined;
+  if (weapon && (ch as Character).recipe.weapon?.embed) {
+    const fr = handWeaponFrame(sk, -1);
+    embedGlb(json, bb, weapon.glb, sk.index.RightHand, { t: fr.offset.map(r6) as V3, r: fr.rot.map(r6) as Quat }, { name: `Weapon_${weapon.name.replace(/\s+/g, '_')}`, animPrefix: 'Weapon_' });
+  }
+
   json.scenes[0].extras = isCreature
     ? {
         badcreatures: {
@@ -277,6 +299,7 @@ export function buildGltf(ch: Exportable, opts: GltfOptions = {}): { json: any; 
           sockets: ch.skeleton.sockets.map((s) => s.name),
           morphTargets: ch.morphs.map((m) => m.name),
           clips: ch.clips.map((c) => ({ name: c.name, duration: c.duration, loop: c.loop, ...(c.travel ? { travel: c.travel.map(r6) } : {}) })),
+          ...(weapon ? { weapon: { name: weapon.name, badgun: weapon.recipe, url: weapon.url, socket: 'Socket_RightHand_Weapon', embedded: !!(ch as Character).recipe.weapon?.embed } } : {}),
           recipe: ch.recipe,
         },
       };
@@ -305,7 +328,7 @@ export function writeBones(json: any, sk: Skeleton) {
   for (const s of sk.sockets) {
     const bi = sk.index[s.bone];
     const idx = json.nodes.length;
-    json.nodes.push({ name: s.name, translation: sub(s.world, sk.bones[bi].world).map(r6), extras: { badcharacters: { socket: true } } });
+    json.nodes.push({ name: s.name, translation: sub(s.world, sk.bones[bi].world).map(r6), ...(s.rot ? { rotation: s.rot.map(r6) } : {}), extras: { badcharacters: { socket: true } } });
     (json.nodes[bi].children ??= []).push(idx);
   }
 

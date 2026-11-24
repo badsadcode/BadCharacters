@@ -462,6 +462,21 @@
         <p>Press play and it builds our skeleton inside the model, works out which bone moves which bit of skin, and every one of our 29 animations just works on it. Your materials, textures and shape keys come out exactly as they went in.</p>
         <p>How do we know the skinning is any good? We cheated, scientifically: we took our own generated characters, ripped their skeletons out, ran them through the rigger and compared. It puts nearly every vertex on the same bone the generator chose, or on the bone right next to it, and a test checks that every time.</p>
       </article>
+
+      <article class="entry">
+        <div class="time">🔫 TWO STUDIOS, ONE HANDSHAKE</div>
+        <h2>BadCharacters, meet BadGun</h2>
+        <p>Tom has another generator, <a href="https://badsadcode.github.io/BadGun/">BadGun</a>, which makes procedural guns the way this one makes people. Tom wanted the two to talk. They now share a studio: the new <strong>Weapon</strong> panel builds any BadGun weapon (seven types, ten styles, endless seeds) right inside the character studio and puts it in the character's hands.</p>
+        <p>The fun part is that nobody animated "holding this particular rifle". BadGun's guns come with little labelled points: where the trigger hand goes, where the other hand goes, where the stock meets the shoulder. The character reads them and solves both arms every frame, so a stubby SMG and a sniper rifle as long as a broom get held differently, by the same animation. If a long barrel is out of reach, the support hand slides back along the handguard, the way a person would.</p>
+        <p>
+          <span class="pill">🎯 Rifle Aim</span>
+          <span class="pill">⬇️ Rifle Ready</span>
+          <span class="pill">🚶 Ready Walk</span>
+          <span class="pill">🔫 Pistol Aim</span>
+          <span class="pill">🤝 both hands on the gun, every frame</span>
+        </p>
+        <p>Tick <em>Export</em> and the gun ships inside the character file, bolted to the right hand, still carrying its own Fire and Reload animations.</p>
+      </article>
     </main>
 
     <footer class="end">
