@@ -233,6 +233,8 @@ const lowerHalves = new WeakMap<THREE.AnimationClip, THREE.AnimationClip>();
 function playClip(name: string) {
   if (mode === 'rig' && rigMode.beforePlay(name)) return;
   clipName = name;
+  // the "over …" picker only means something while a layer plays
+  $('layer-wrap').hidden = clipCat !== 'layers' && !clipName.startsWith('Upper_');
   for (const a of actors) {
     a.mixer.stopAllAction();
     const c = a.clips.find((x) => x.name === name) ?? a.clips[0];
