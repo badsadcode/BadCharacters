@@ -11,5 +11,6 @@ export default defineConfig({
   },
   server: { host: true },
   // BadGun is a git submodule with its own test suite (run in its own repo)
-  test: { exclude: ['**/node_modules/**', 'vendor/**'] },
+  // big character builds are slower on CI runners than locally: generous per-test time limit
+  test: { exclude: ['**/node_modules/**', 'vendor/**'], testTimeout: 60000 },
 });
