@@ -51,6 +51,36 @@ describe('fighting, tools and fishing', () => {
       }
     });
 
+    it(`${style}: riders straddle the horse (knees wider than hips) with hands on the reins in front`, () => {
+      for (const n of ['RideIdle', 'RideWalk', 'RideTrot', 'RideGallop']) {
+        const c = clip(n);
+        for (let i = 0; i < 8; i++) {
+          const wp = worldPose(sk, c.sample((i / 8) * c.duration));
+          const kneeGap = wp.pos[sk.index.LeftLowerLeg][0] - wp.pos[sk.index.RightLowerLeg][0];
+          const hipGap = wp.pos[sk.index.LeftUpperLeg][0] - wp.pos[sk.index.RightUpperLeg][0];
+          expect(kneeGap, n).toBeGreaterThan(hipGap + 0.08 * H);
+          for (const s of [1, -1] as const) expect(tool(wp, s).palm[2] - wp.pos[sk.index.Hips][2], n).toBeGreaterThan(0.08 * H);
+        }
+      }
+    });
+
+    it(`${style}: the driver's hands stay on the steering wheel rim as it turns, feet on the floor`, () => {
+      const c = clip('DriveCar');
+      const angles: number[] = [];
+      for (let i = 0; i < 12; i++) {
+        const wp = worldPose(sk, c.sample((i / 12) * c.duration));
+        const l = tool(wp, 1).palm;
+        const r = tool(wp, -1).palm;
+        // both palms the same distance from the wheel centre (half-way between them, on the rim)
+        const mid: V3 = [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2, (l[2] + r[2]) / 2];
+        expect(Math.abs(Math.hypot(...subV(l, mid)) - Math.hypot(...subV(r, mid)))).toBeLessThan(0.01 * H);
+        angles.push(Math.atan2(l[1] - r[1], l[0] - r[0]));
+        for (const s of ['Left', 'Right']) expect(wp.pos[sk.index[`${s}Foot`]][1]).toBeLessThan(sk.dims.ankleY + 0.04 * H);
+      }
+      // the wheel actually turns
+      expect(Math.max(...angles) - Math.min(...angles)).toBeGreaterThan(0.6);
+    });
+
     it(`${style}: two-handed tools have both hands on the same shaft`, () => {
       for (const n of ['StaffThrust', 'StaffSwing', 'StaffOverhead', 'AxeChop', 'ShovelDig', 'FishCast']) {
         const c = clip(n);

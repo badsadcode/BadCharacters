@@ -429,5 +429,135 @@ export function actionClips(sk: Skeleton, clips: Clip[]): Clip[] {
     },
   });
   out.push(fishHold('FishIdle', 4, 0), fishHold('FishReel', 1.2, 2));
+
+  // ───────────────────────────────────────────────────────── riding & driving
+  const TAU = Math.PI * 2;
+  /** seated legs: thigh lift, knee bend, optional spread (abduction) and foot pitch */
+  const seatLegs = (rot: Record<string, Quat>, th: number, kn: number, spread = 0, foot = kn - th) => {
+    for (const s of [1, -1]) {
+      const S = s > 0 ? 'Left' : 'Right';
+      rot[`${S}UpperLeg`] = qChain(qz(s * spread * DEG), qx(-th * DEG));
+      rot[`${S}LowerLeg`] = qx(kn * DEG);
+      rot[`${S}Foot`] = qx(-foot * DEG);
+    }
+  };
+  /** hips height above the floor when both feet rest on it with these leg angles */
+  const seatedHipY = (th: number, kn: number) => d.ankleY + thighLen * Math.cos(th * DEG) + shinLen * Math.cos((kn - th) * DEG);
+  const restHipY = sk.bones[sk.index.Hips].world[1];
+  /** a fist around a rein (thumb up and forward) in the upper-chest frame */
+  const rein = (s: 1 | -1, at: V3): Grip => ({ side: s, at, axis: [-s * 0.2, 0.75, 0.6], fingers: [-s, -0.3, 0.2] });
+
+  /**
+   * Horse riding. The Hips stay at their rest height (plus the gait's bounce), so to mount a rider
+   * put the character's origin hipY below the saddle's seat point. Thighs wrap a ~0.5 m barrel,
+   * feet in the stirrups, both hands on the reins.
+   */
+  const ride = (name: string, T: number, o: { lean: number; bounce: number; rock: number; reach: number; post?: boolean }): Clip => ({
+    name,
+    duration: T,
+    loop: true,
+    sample: (t) => {
+      const ph = (TAU * t) / T;
+      const b = idle.sample(t % idle.duration);
+      const rot: Record<string, Quat> = { ...b.rot };
+      const rock = o.rock * Math.sin(ph);
+      rot.Hips = qChain(qx((o.lean * 0.3 + rock) * DEG), qz(1.5 * Math.sin(ph / 2) * DEG));
+      rot.Spine = qMul(qx((o.lean * 0.4 - rock * 0.6) * DEG), rot.Spine ?? QI);
+      rot.Chest = qMul(qx((o.lean * 0.3 - rock * 0.4) * DEG), rot.Chest ?? QI);
+      rot.Head = qMul(qx((-o.lean * 0.7) * DEG), rot.Head ?? QI);
+      // posting trot: up out of the saddle every other beat; otherwise a soft bounce
+      const lift = o.post ? Math.max(0, Math.sin(ph)) : 0.5 + 0.5 * Math.sin(ph * 2);
+      seatLegs(rot, 42 - 12 * lift * (o.post ? 1 : 0), 78 - 18 * lift * (o.post ? 1 : 0), 26, 32);
+      const pose: Pose = { rot, hips: [0, o.bounce * u * lift, 0] };
+      const pull = 0.02 * u * Math.sin(ph * 2);
+      grips(pose, rot, [rein(1, [0.08 * u, -0.27 * u, d.chestHD + (o.reach + 0.0) * u + pull]), rein(-1, [-0.08 * u, -0.27 * u, d.chestHD + o.reach * u + pull])]);
+      return pose;
+    },
+  });
+  out.push(
+    ride('RideIdle', 3, { lean: 0, bounce: 0.004, rock: 0.5, reach: 0.18 }),
+    ride('RideWalk', 1.3, { lean: 3, bounce: 0.012, rock: 3, reach: 0.2 }),
+    ride('RideTrot', 0.7, { lean: 8, bounce: 0.06, rock: 2, reach: 0.22, post: true }),
+    ride('RideGallop', 0.5, { lean: 26, bounce: 0.03, rock: 7, reach: 0.3 }),
+  );
+
+  /**
+   * Driving a car: seated, feet on the floor toward the pedals (the origin is the floor under the
+   * driver), hands at ten-to-two on a wheel in front of the chest; the hands follow the rim as it
+   * turns. Wheel: radius 0.17·u, centre 0.36·u ahead of the chest, tilted 25° back toward the driver.
+   */
+  const carTh = 72;
+  const carKn = 54;
+  out.push({
+    name: 'DriveCar',
+    duration: 6,
+    loop: true,
+    sample: (t) => {
+      const ph = (TAU * t) / 6;
+      const steer = 32 * Math.sin(ph) + 6 * Math.sin(ph * 3.1);
+      const b = idle.sample(t % idle.duration);
+      const rot: Record<string, Quat> = { ...b.rot };
+      rot.Spine = qMul(qx(-9 * DEG), rot.Spine ?? QI);
+      rot.Head = qMul(qChain(qx(8 * DEG), qy(steer * 0.25 * DEG)), rot.Head ?? QI);
+      seatLegs(rot, carTh, carKn, 6);
+      // right foot rocks on the accelerator
+      rot.RightFoot = qx(-(carKn - carTh - 8 - 6 * Math.sin(ph * 2)) * DEG);
+      const pose: Pose = { rot, hips: [0, seatedHipY(carTh, carKn) - restHipY, 0] };
+      const centre: V3 = [0, -0.1 * u, d.chestHD + 0.36 * u];
+      const R = 0.17 * u;
+      const tilt = 25 * DEG;
+      // wheel plane: x across, "up" leaning back toward the driver
+      const wUp: V3 = [0, Math.cos(tilt), -Math.sin(tilt)];
+      const wX: V3 = [1, 0, 0];
+      const hands = ([1, -1] as const).map((s) => {
+        const a = (s * 60 + steer) * DEG; // 60° from the top: ten-to-two
+        const radial = add(scale(wUp, Math.cos(a)), scale(wX, Math.sin(a)));
+        const tangent = norm(add(scale(wUp, -Math.sin(a)), scale(wX, Math.cos(a))));
+        // thumb along the rim (toward the top of the wheel), fingers wrapping outward over it
+        return { side: s, at: add(centre, scale(radial, R)), axis: scale(tangent, -s), fingers: radial } as Grip;
+      });
+      grips(pose, rot, hands);
+      return pose;
+    },
+  });
+
+  /** driving a horse cart: on the bench, feet on the footboard, reins in hand, bumping along */
+  out.push({
+    name: 'DriveCart',
+    duration: 3.2,
+    loop: true,
+    sample: (t) => {
+      const ph = (TAU * t) / 3.2;
+      const bump = 0.5 * Math.sin(ph * 4) + 0.3 * Math.sin(ph * 7 + 1) + 0.2 * Math.sin(ph * 11 + 2);
+      const b = idle.sample(t % idle.duration);
+      const rot: Record<string, Quat> = { ...b.rot };
+      rot.Hips = qz(2.5 * Math.sin(ph) * DEG);
+      rot.Spine = qMul(qChain(qx((6 + 1.5 * bump) * DEG), qz(-2 * Math.sin(ph) * DEG)), rot.Spine ?? QI);
+      rot.Head = qMul(qx(-6 * DEG), rot.Head ?? QI);
+      seatLegs(rot, 80, 92, 10);
+      const pose: Pose = { rot, hips: [0, seatedHipY(80, 92) - restHipY + 0.006 * u * bump, 0] };
+      grips(pose, rot, [rein(1, [0.09 * u, -0.3 * u, d.chestHD + 0.24 * u]), rein(-1, [-0.09 * u, -0.3 * u, d.chestHD + 0.24 * u])]);
+      return pose;
+    },
+  });
+
+  /** pushing a handcart: walking, leaning in, both hands on a crossbar at waist height */
+  const walk = clip('Walk');
+  out.push({
+    name: 'PushCart',
+    duration: walk.duration * 1.15,
+    loop: true,
+    sample: (t) => {
+      const p = walk.sample(t / 1.15);
+      const rot: Record<string, Quat> = { ...p.rot };
+      rot.Spine = qMul(qx(12 * DEG), rot.Spine ?? QI);
+      rot.Chest = qMul(qx(5 * DEG), rot.Chest ?? QI);
+      rot.Head = qMul(qx(-12 * DEG), rot.Head ?? QI);
+      const pose: Pose = { ...p, rot };
+      const bar = (s: 1 | -1): Grip => ({ side: s, at: [s * 0.21 * u, -0.22 * u, d.chestHD + 0.36 * u], axis: [-s, 0, 0], fingers: [0, -0.4, 1] });
+      grips(pose, rot, [bar(1), bar(-1)]);
+      return pose;
+    },
+  });
   return out;
 }

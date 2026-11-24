@@ -26,7 +26,7 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 | Props | staff, bow, crossbow, rifle: **previewed in the viewer, not exported unless you tick "Props"** (bring your own weapons; the animations never need them) |
 | Presets | Alden Wayfarer (Thornwake), Mannequin, Sir Clanksalot, Pip the Apprentice |
 | Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 10 sockets incl. oriented weapon and tool mounts (+ `BowString` helper bone when a bow is exported) |
-| Animations | 70 (+ up to 6 per held weapon): punches and kicks (left/right × high/mid/low), sword, staff, axe, shovel, saw, hammer, weld, fishing, Idle, Walk, Run, Sprint, Jump, Wave, Punch, Crouch, CrouchWalk, Crawl, CrawlProne, Slide, Vault, ClimbOver, ClimbUp/Down/Left/Right, RockClimbUp/Down/Left/Right, CarryBag/Duffle/Box (Idle, Walk), OpenDoor, CloseDoor, LadderUp/Down, Swim, Float, Dive, SwimUnderwater, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
+| Animations | 77 (+ up to 6 per held weapon): riding (idle, walk, trot, gallop), driving a car, a horse cart, pushing a handcart, punches and kicks (left/right × high/mid/low), sword, staff, axe, shovel, saw, hammer, weld, fishing, Idle, Walk, Run, Sprint, Jump, Wave, Punch, Crouch, CrouchWalk, Crawl, CrawlProne, Slide, Vault, ClimbOver, ClimbUp/Down/Left/Right, RockClimbUp/Down/Left/Right, CarryBag/Duffle/Box (Idle, Walk), OpenDoor, CloseDoor, LadderUp/Down, Swim, Float, Dive, SwimUnderwater, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
 | Export | GLB (validator-clean), editable `.badchar.json` recipe, share links |
 | Budget | low 1.5k–2.8k · medium 1.7k–4.0k (median 2.7k) · high 2.5k–6.7k triangles; Alden is 2,880 |
 

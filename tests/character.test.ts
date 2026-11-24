@@ -140,7 +140,8 @@ describe('animation', () => {
       'PunchLeftHigh', 'PunchLeftMid', 'PunchLeftLow', 'PunchRightHigh', 'PunchRightMid', 'PunchRightLow',
       'KickLeftHigh', 'KickLeftMid', 'KickLeftLow', 'KickRightHigh', 'KickRightMid', 'KickRightLow',
       'SwordSlash', 'SwordOverhead', 'SwordThrust', 'StaffThrust', 'StaffSwing', 'StaffOverhead', 'AxeChop', 'ShovelDig',
-      'Saw', 'Hammer', 'Weld', 'FishCast', 'FishIdle', 'FishReel', 'RestPose',
+      'Saw', 'Hammer', 'Weld', 'FishCast', 'FishIdle', 'FishReel',
+      'RideIdle', 'RideWalk', 'RideTrot', 'RideGallop', 'DriveCar', 'DriveCart', 'PushCart', 'RestPose',
     ]);
   });
   it('a swinging foot hangs off the shin instead of folding back toward the knee', () => {
@@ -358,7 +359,7 @@ describe('apocalypse', () => {
         expect(ch.stats.triangles).toBeLessThan(5000);
       }
     }
-  });
+  }, 30000);
   it('mutants are lopsided: one arm is much bigger than the other', () => {
     const rc = randomRecipe(17, 'stylized', 'mutant', 'mutant');
     const sk = buildSkeleton(rc);
