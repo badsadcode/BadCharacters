@@ -845,6 +845,8 @@ export interface CharacterRecipe {
     exportProps?: boolean;
     /** which animation clips go in the export (names); unset = all of them */
     clips?: string[];
+    /** also export upper-body layer versions (Upper_*) of gesture / carry / aim clips */
+    upperLayers?: boolean;
   };
   /** a BadGun weapon in the hands (archetype + style + seed); unset = none */
   weapon?: WeaponRecipe;

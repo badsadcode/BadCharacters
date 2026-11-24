@@ -126,6 +126,13 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `DeathForward`, `DeathBackward`, `DeathLeft`, `DeathRight` | ❌ | knees buckle, the body tips over around the feet (gravity speeds it up), a small bounce, ends lying flat on the front / back / side |
 | `DeathCrumple` | ❌ | knees give way, kneels, slumps, topples onto its side |
 | `DeathHeadshot` | ❌ | head snaps back, the body goes rigid and falls backward |
+| `WalkBackward`, `CrouchWalkBackward` | ✅ | walking / crouch-walking backward, in place |
+| `StrafeLeft`, `StrafeRight`, `CrouchStrafeLeft`, `CrouchStrafeRight` | ✅ | side-stepping, standing or crouched, in place |
+| `TurnLeft90`, `TurnRight90`, `Turn180` | ❌ | turning on the spot with two small steps; the hips end rotated by `extras.props.turnDeg` (rotate the character by that much when the clip ends) |
+| `CrossArms`, `Listen`, `HandsInPockets`, `HandsInPocketsWalk`, `LeanWall` | ✅ | idles: arms folded (Listen nods), hands in the front pockets (also walking), leaning back on a wall (`wallBehindZ`) |
+| `Point`, `Shrug`, `Stretch`, `Yawn`, `CheckWatch`, `KnockDoor` | ❌ | one-off gestures (KnockDoor: a door `doorAheadZ` ahead) |
+| `Clap`, `ScratchHead`, `PhoneCall`, `PhoneText`, `Read` | ✅ | looping gestures |
+| `Upper_*` | per source | **upper-body layers** (Export settings → Layers): the spine and everything above it only, no hips, for Wave, Talk, Eat, Drink, Point, Shrug, Clap, CrossArms, Listen, HandsInPockets, ScratchHead, CheckWatch, Yawn, PhoneCall, PhoneText, Read, KnockDoor, CarryBag/Duffle/Box idle, Rifle/Pistol aim and ready, BowShoot, CrossbowShoot, Punch. In Godot, blend one over Walk/Run with an AnimationTree filter (or a Blend2 node with the upper-body bones filtered); `extras.layer` is `"upper"` |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation
@@ -216,4 +223,5 @@ chair, table, door, wheel or saddle without guessing:
 | `DriveCar` | `wheelCentreAboveHips`, `wheelAheadOfChest`, `wheelRadius`, `wheelTiltDeg`, `seatedHipsAboveFloor` |
 | `Ride*` | `hipsAboveSaddleSeat`, `originBelowSaddleSeat`, `barrelWidth` |
 | `SitGround`, `Sleep` | `seatHeight: 0` / `hipsAboveFloor` |
+| `TurnLeft90`, `TurnRight90`, `Turn180` | `turnDeg` |
 | `Death*` | `endsLying` (front / back / side), `bodyThickness`: hand over to a ragdoll at the end, or leave the body |

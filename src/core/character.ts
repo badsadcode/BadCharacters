@@ -40,6 +40,13 @@ export interface MorphTarget {
   deltas: { positions: number[]; normals: number[] }[];
 }
 
+/** clips that make sense as upper-body layers over locomotion */
+export const UPPER_LAYERS = [
+  'Wave', 'Talk', 'Eat', 'Drink', 'Point', 'Shrug', 'Clap', 'CrossArms', 'Listen', 'HandsInPockets', 'ScratchHead', 'CheckWatch',
+  'Yawn', 'PhoneCall', 'PhoneText', 'Read', 'KnockDoor', 'CarryBagIdle', 'CarryDuffleIdle', 'CarryBoxIdle',
+  'RifleAim', 'RifleReady', 'PistolAim', 'PistolReady', 'BowShoot', 'CrossbowShoot', 'Punch',
+];
+
 export interface Primitive {
   material: string;
   mesh: MeshData;
@@ -278,6 +285,13 @@ export function generateCharacter(recipe: CharacterRecipe): Character {
     const names = new Set(wc.map((c) => c.name));
     const rest = clips.filter((c) => !names.has(c.name) && c.name !== 'RestPose');
     clips = [...rest, ...wc, ...clips.filter((c) => c.name === 'RestPose')];
+  }
+  if (rc.mesh.upperLayers) {
+    // upper-body layers: the same motion, spine and up only, to play over any walk or run
+    const byName = new Map(clips.map((c) => [c.name, c]));
+    const layers = UPPER_LAYERS.filter((n) => byName.has(n)).map((n) => ({ ...byName.get(n)!, name: `Upper_${n}`, mask: 'upper' as const }));
+    const rest = clips.filter((c) => c.name === 'RestPose');
+    clips = [...clips.filter((c) => c.name !== 'RestPose'), ...layers, ...rest];
   }
   return {
     recipe,

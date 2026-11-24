@@ -99,6 +99,7 @@
           <div class="row"><label>Shading</label><select id="in-shading"><option value="smooth">Smooth</option><option value="flat">Flat / faceted</option></select></div>
           <div class="row"><label>Morphs</label><input id="in-morphs" type="checkbox" /><span class="hint">Fat± / Muscle± blend shapes</span></div>
           <div class="row"><label>Animations</label><b id="clip-count" class="mono">all</b><span></span></div>
+          <div class="row"><label>Layers</label><input id="in-layers" type="checkbox" /><span class="hint">also export upper-body layers (<code>Upper_*</code>): gestures, carrying and aiming that play over any walk or run</span></div>
           <p class="hint">Tick clips in the animation browser above the viewport (☑ next to each clip, or "all / none" per category). Every ticked clip goes into the one .glb: in Blender each becomes an Action, in Godot an animation in the AnimationPlayer.</p>
           <div class="row"><label>Props</label><input id="in-props" type="checkbox" /><span class="hint">export staff / bow / crossbow meshes (the viewer always previews them; animations never need them)</span></div>
         </section>
@@ -167,7 +168,7 @@
       <main class="viewport" id="viewport">
         <canvas id="canvas"></canvas>
         <div class="hud top">
-          <div class="anim" id="clips"><div class="cats" id="clip-cats"></div><div class="cliprow"><input id="clip-search" type="search" placeholder="🔍 find a clip…" /><span class="exp" id="clip-exp"></span></div><div class="chips2" id="clip-list2"></div></div>
+          <div class="anim" id="clips"><div class="cats" id="clip-cats"></div><div class="cliprow"><input id="clip-search" type="search" placeholder="🔍 find a clip…" /><label class="layerbase" id="layer-wrap" hidden>over <select id="layer-base"><option>Walk</option><option>Run</option><option>Idle</option><option>CrouchWalk</option><option>WalkBackward</option><option>StrafeLeft</option><option>Sprint</option></select></label><span class="exp" id="clip-exp"></span></div><div class="chips2" id="clip-list2"></div></div>
           <div class="seg" id="toggles">
             <button data-t="skeleton" title="Show bones">🦴 Bones</button>
             <button data-t="wire" title="Wireframe">🕸 Wire</button>

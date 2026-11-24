@@ -25,6 +25,8 @@ export interface Clip {
   loop: boolean;
   /** where the hips end up relative to the start (traversal clips: vault, climb over, dive) */
   travel?: V3;
+  /** 'upper': an upper-body layer: only the spine and everything above it is animated (no hips) */
+  mask?: 'upper';
   /** props the clip assumes, in metres (seat height, table height, door, wheel…), exported as extras */
   info?: Record<string, number | number[] | string>;
   sample: (t: number) => Pose;

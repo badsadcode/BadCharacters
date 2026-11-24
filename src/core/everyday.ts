@@ -307,6 +307,145 @@ export function everydayClips(kit: Kit): Clip[] {
       return pose;
     },
   });
+  // ───────────────────────────────────────────────────────── gestures & idles
+  /** a standing clip: idle (or another base) breathing, plus per-frame body tweaks and hand grips (chest frame) */
+  const gesture = (name: string, T: number, loop: boolean, hands: (t: number, rot: Record<string, Quat>, pose: Pose) => Grip[], o: { base?: string; info?: Clip['info'] } = {}): Clip => {
+    const base = clips.find((c) => c.name === (o.base ?? 'Idle'))!;
+    return {
+      name,
+      duration: T,
+      loop,
+      ...(o.info ? { info: o.info } : {}),
+      sample: (t) => {
+        const b = base.sample(t % base.duration);
+        const rot: Record<string, Quat> = { ...b.rot };
+        const pose: Pose = { ...b, rot };
+        const g = hands(t, rot, pose);
+        if (g.length) grips(pose, rot, g);
+        return pose;
+      },
+    };
+  };
+  const C = (x: number, y: number, z: number): V3 => [x * u, y * u, d.chestHD + z * u];
+  const wave = (t: number, T: number, k = 1) => Math.sin((t / T) * TAU * k);
+  /** a fist / relaxed hand: thumb up, fingers forward (chest frame) */
+  const relaxed = (s: 1 | -1, at: V3, fingers: V3 = [0, -0.3, 1]): Grip => ({ side: s, at, axis: [-s * 0.3, 0.9, 0.2], fingers });
+
+  // arms folded across the chest; the right forearm on top
+  const folded = (): Grip[] => [
+    { side: 1, at: C(-0.11, -0.16, 0.03), axis: [-0.2, 0.3, 0.9], fingers: [-0.8, 0, -0.4] },
+    { side: -1, at: C(0.11, -0.13, 0.07), axis: [0.2, 0.3, 0.9], fingers: [0.8, 0, -0.4] },
+  ];
+  out.push(gesture('CrossArms', 4, true, (t, rot) => {
+    rot.Head = qMul(qy(6 * wave(t, 4) * DEG), rot.Head ?? QI);
+    return folded();
+  }));
+  out.push(gesture('Listen', 3, true, (t, rot) => {
+    rot.Head = qMul(qChain(qx(7 * Math.max(0, wave(t, 3, 2)) * DEG), qz(5 * DEG)), rot.Head ?? QI);
+    return folded();
+  }));
+  // hands in the front pockets (world: at the hip joints)
+  const pockets = (pose: Pose): Grip[] => {
+    const wp = worldPose(sk, pose);
+    return ([1, -1] as const).map((s) => {
+      const hip = wp.pos[sk.index[s > 0 ? 'LeftUpperLeg' : 'RightUpperLeg']];
+      return { side: s, at: [hip[0] + s * 0.035 * u, hip[1] - 0.07 * u, hip[2] + d.hipHD * 0.75], world: true, axis: [0, -0.2, 1], fingers: [-s * 0.2, -1, 0.2] } as Grip;
+    });
+  };
+  out.push(gesture('HandsInPockets', 4, true, (_t, _rot, pose) => pockets(pose)));
+  out.push(gesture('HandsInPocketsWalk', clips.find((c) => c.name === 'Walk')!.duration, true, (_t, rot, pose) => {
+    rot.Spine = qMul(qx(4 * DEG), rot.Spine ?? QI);
+    return pockets(pose);
+  }, { base: 'Walk' }));
+  // leaning back against a wall, arms folded, one foot crossed over the other
+  out.push(gesture('LeanWall', 4, true, (t, rot, pose) => {
+    rot.Hips = qMul(qx(-7 * DEG), rot.Hips ?? QI);
+    rot.Spine = qMul(qx(-4 * DEG), rot.Spine ?? QI);
+    rot.LeftUpperLeg = qChain(qz(-8 * DEG), qx(-4 * DEG));
+    rot.LeftLowerLeg = qx(10 * DEG);
+    rot.LeftFoot = qx(-20 * DEG);
+    rot.Head = qMul(qy(10 * wave(t, 4) * DEG), rot.Head ?? QI);
+    pose.hips = [0, pose.hips[1] - 0.01 * u, -0.06 * u];
+    return folded();
+  }, { info: { wallBehindZ: -(d.chestHD + 0.12 * u) } }));
+  // pointing ahead and up a little, then lowering the arm
+  out.push(gesture('Point', 1.8, false, (t, rot) => {
+    const k = Math.sin(Math.PI * Math.min(1, t / 1.8)) ** 0.5;
+    rot.Head = qMul(qy(-8 * k * DEG), rot.Head ?? QI);
+    return [{ side: -1, at: C(lerp(-0.1, -0.15, k), lerp(-0.45, 0.08, k), lerp(-0.1, 0.55, k)), axis: [0.1, 0.9, 0.2], fingers: [0, lerp(-1, 0.05, k), lerp(0, 1, k)] }];
+  }));
+  // shrug: shoulders up, palms up and out
+  out.push(gesture('Shrug', 1.5, false, (t, rot) => {
+    const k = Math.sin(Math.PI * Math.min(1, t / 1.5));
+    for (const s of [1, -1]) rot[s > 0 ? 'LeftShoulder' : 'RightShoulder'] = qz(s * 12 * k * DEG);
+    rot.Head = qMul(qz(8 * k * DEG), rot.Head ?? QI);
+    return ([1, -1] as const).map((s) => ({ side: s, at: C(s * lerp(0.12, 0.27, k), lerp(-0.42, -0.24, k), lerp(-0.05, 0.12, k)), axis: [s * 0.2, 0.1, 1], fingers: [s * 0.9, 0.4 * k, 0.3] }));
+  }));
+  out.push(gesture('Clap', 0.55, true, (t) => {
+    const open = 0.5 + 0.5 * Math.cos((t / 0.55) * TAU);
+    return ([1, -1] as const).map((s) => ({ side: s, at: C(s * (0.015 + 0.08 * open), -0.1, 0.2), axis: [0, 0.95, 0.3], fingers: [-s * 0.4, 0.2, 1] }));
+  }));
+  // stretch: arms up overhead, a lean back, back down
+  out.push(gesture('Stretch', 3, false, (t, rot) => {
+    const k = Math.sin(Math.PI * Math.min(1, t / 3)) ** 0.6;
+    rot.Spine = qMul(qx(-8 * k * DEG), rot.Spine ?? QI);
+    rot.Head = qMul(qx(-12 * k * DEG), rot.Head ?? QI);
+    return ([1, -1] as const).map((s) => ({ side: s, at: C(s * lerp(0.2, 0.12, k), lerp(-0.45, 0.62, k), lerp(-0.1, -0.05, k)), axis: [-s * 0.3, 0.2, 0.9], fingers: [0, lerp(-1, 1, k), 0.1] }));
+  }));
+  // yawn: the hand comes up to the mouth, the head tips back
+  out.push(gesture('Yawn', 2.6, false, (t, rot, pose) => {
+    const k = Math.sin(Math.PI * Math.min(1, t / 2.6)) ** 0.7;
+    rot.Neck = qMul(qx(-10 * k * DEG), rot.Neck ?? QI);
+    rot.Head = qMul(qx(-14 * k * DEG), rot.Head ?? QI);
+    const m = mouth(pose);
+    const wp = worldPose(sk, pose);
+    const sh = wp.pos[sk.index.RightUpperArm];
+    const from: V3 = [sh[0] + 0.03 * u, sh[1] - 0.42 * u, sh[2] + 0.05 * u];
+    return [{ side: -1, at: mix(from, [m[0], m[1], m[2] + 0.03 * u], k), world: true, axis: [0.9, 0.1, 0.1], fingers: mix([0, -1, 0], [0, 0.2, -1], k) }];
+  }));
+  // scratching the back of the head
+  out.push(gesture('ScratchHead', 2, true, (t, rot, pose) => {
+    const wp = worldPose(sk, pose);
+    const head = wp.pos[sk.index.Head];
+    rot.Head = qMul(qChain(qz(-8 * DEG), qx(6 * DEG)), rot.Head ?? QI);
+    const sc = 0.012 * u * Math.sin(t * 22);
+    return [{ side: -1, at: [head[0] - d.headHW * 0.75, head[1] + d.headH * 0.45 + sc, head[2] - d.headHD * 0.1], world: true, axis: [0, 0.2, 1], fingers: [0.6, 0.7, 0] }];
+  }));
+  // checking a wristwatch on the left wrist
+  out.push(gesture('CheckWatch', 2.2, false, (t, rot) => {
+    const k = Math.sin(Math.PI * Math.min(1, t / 2.2)) ** 0.5;
+    rot.Head = qMul(qChain(qx(18 * k * DEG), qy(10 * k * DEG)), rot.Head ?? QI);
+    return [{ side: 1, at: C(lerp(0.18, 0.06, k), lerp(-0.45, -0.12, k), lerp(-0.05, 0.22, k)), axis: [-1, 0.2, 0.3], fingers: [0, lerp(-1, -0.2, k), lerp(0, 1, k)] }];
+  }));
+  // knocking on a door ahead: three raps
+  out.push(gesture('KnockDoor', 1.6, false, (t, rot) => {
+    const reach = Math.min(1, t / 0.35) * Math.min(1, (1.6 - t) / 0.35);
+    const rap = Math.max(0, Math.sin(Math.max(0, t - 0.35) * Math.PI * 2 * 2.6)) * (t > 0.35 && t < 1.25 ? 1 : 0);
+    rot.Head = qMul(qx(-4 * DEG), rot.Head ?? QI);
+    return [{ side: -1, at: C(-0.05, lerp(-0.45, 0.12, reach), lerp(-0.1, 0.36 - 0.05 * rap, reach)), axis: [0.4, 0.9, 0], fingers: [0.3, 0, 1] }];
+  }, { info: { doorAheadZ: d.chestHD + 0.42 * u } }));
+  // phone: at the ear (call) or held in front, thumbs typing (text)
+  out.push(gesture('PhoneCall', 4, true, (t, rot, pose) => {
+    rot.Head = qMul(qChain(qz(-7 * DEG), qy(8 * wave(t, 4) * DEG)), rot.Head ?? QI);
+    const wp = worldPose(sk, pose);
+    const head = wp.pos[sk.index.Head];
+    const free = 0.5 + 0.5 * wave(t, 4, 2);
+    return [
+      { side: -1, at: [head[0] - d.headHW * 1.05, head[1] + d.headH * 0.3, head[2] + d.headHD * 0.25], world: true, axis: [0.1, 0.95, 0.2], fingers: [0.9, 0, 0.3] },
+      relaxed(1, C(0.18, lerp(-0.4, -0.22, free), lerp(-0.02, 0.14, free))),
+    ];
+  }));
+  out.push(gesture('PhoneText', 2, true, (t, rot) => {
+    rot.Head = qMul(qx(24 * DEG), rot.Head ?? QI);
+    rot.Neck = qMul(qx(10 * DEG), rot.Neck ?? QI);
+    const tap = (s: number) => 0.008 * u * Math.max(0, Math.sin(t * TAU * (s > 0 ? 3.3 : 2.9) + s));
+    return ([1, -1] as const).map((s) => ({ side: s, at: [s * 0.035 * u, -0.22 * u + tap(s), d.chestHD + 0.2 * u], axis: [-s * 0.3, 0.6, 0.7], fingers: [-s, 0, 0] }));
+  }));
+  // reading a book held in both hands
+  out.push(gesture('Read', 5, true, (t, rot) => {
+    rot.Head = qMul(qChain(qx(20 * DEG), qy(5 * wave(t, 5) * DEG)), rot.Head ?? QI);
+    return ([1, -1] as const).map((s) => ({ side: s, at: C(s * 0.09, -0.18, 0.24), axis: [0, 0.85, 0.5], fingers: [-s * 0.8, 0, 0.6] }));
+  }));
   void H;
   return out;
 }

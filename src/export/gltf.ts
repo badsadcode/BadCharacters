@@ -371,26 +371,45 @@ export function writeAnimations(json: any, bb: Buf, sk: Skeleton, clips: Clip[])
       channels.push({ sampler: samplers.length - 1, target: { node, path } });
     };
     const full = poses.map((p) => fullPose(sk, p));
+    // an upper-body layer animates only the Spine and what hangs off it
+    const upper = clip.mask === 'upper' ? upperBones(sk) : null;
     for (const b of sk.bones) {
       if (b.name === 'Root') continue;
+      if (upper && !upper.has(b.name)) continue;
       const out: number[] = [];
       for (const fp of full) out.push(...fp[b.name]);
       channel(sk.index[b.name], 'rotation', out, 4);
     }
     const tr: number[] = [];
     for (const p of poses) tr.push(hipsRest[0] + p.hips[0], hipsRest[1] + p.hips[1], hipsRest[2] + p.hips[2]);
-    channel(sk.index[moveName], 'translation', tr, 3);
+    if (!upper) channel(sk.index[moveName], 'translation', tr, 3);
     // extra prop bones (BowString) get a translation track in EVERY clip, so switching clips
     // in an engine always puts them back where they belong
     for (const b of sk.bones) {
-      if (b.name !== 'BowString') continue;
+      if (b.name !== 'BowString' || upper) continue;
       const rest = sub(b.world, sk.bones[b.parent].world);
       const out: number[] = [];
       for (const p of poses) out.push(...(p.trans?.[b.name] ?? rest));
       channel(sk.index[b.name], 'translation', out, 3);
     }
-    json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, category: clipCategory(clip.name), ...(clip.travel ? { travel: clip.travel.map(r6) } : {}), ...(clip.info ? { props: roundInfo(clip.info) } : {}) } });
+    json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, category: clipCategory(clip.name), ...(clip.mask ? { layer: clip.mask } : {}), ...(clip.travel ? { travel: clip.travel.map(r6) } : {}), ...(clip.info ? { props: roundInfo(clip.info) } : {}) } });
   }
+}
+
+/** the Spine and every bone below it in the hierarchy (the upper body) */
+export function upperBones(sk: Skeleton): Set<string> {
+  const out = new Set<string>(['Spine']);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const b of sk.bones) {
+      if (b.parent >= 0 && out.has(sk.bones[b.parent].name) && !out.has(b.name)) {
+        out.add(b.name);
+        grew = true;
+      }
+    }
+  }
+  return out;
 }
 
 export function toGlb(json: any, bin: Uint8Array): Uint8Array {

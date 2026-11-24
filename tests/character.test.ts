@@ -142,7 +142,9 @@ describe('animation', () => {
       'SwordSlash', 'SwordOverhead', 'SwordThrust', 'StaffThrust', 'StaffSwing', 'StaffOverhead', 'AxeChop', 'ShovelDig',
       'Saw', 'Hammer', 'Weld', 'FishCast', 'FishIdle', 'FishReel',
       'RideIdle', 'RideWalk', 'RideTrot', 'RideGallop', 'DriveCar', 'DriveCart', 'PushCart',
+      'WalkBackward', 'CrouchWalkBackward', 'StrafeLeft', 'StrafeRight', 'CrouchStrafeLeft', 'CrouchStrafeRight', 'TurnLeft90', 'TurnRight90', 'Turn180',
       'SitDown', 'StandUp', 'SitIdle', 'SitEat', 'SitDrink', 'SitType', 'Eat', 'Drink', 'Talk', 'SitGround', 'Sleep',
+      'CrossArms', 'Listen', 'HandsInPockets', 'HandsInPocketsWalk', 'LeanWall', 'Point', 'Shrug', 'Clap', 'Stretch', 'Yawn', 'ScratchHead', 'CheckWatch', 'KnockDoor', 'PhoneCall', 'PhoneText', 'Read',
       'DeathForward', 'DeathBackward', 'DeathLeft', 'DeathRight', 'DeathCrumple', 'DeathHeadshot', 'RestPose',
     ]);
   });

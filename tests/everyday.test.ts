@@ -96,3 +96,52 @@ describe('death animations', () => {
     }
   }
 });
+
+describe('directional locomotion and upper-body layers', () => {
+  const rc = randomRecipe(8, 'realistic', 'athlete', 'human');
+  rc.mesh.upperLayers = true;
+  const ch = generateCharacter(rc);
+  const sk = ch.skeleton;
+  const H = sk.dims.H;
+  const clip = (n: string) => ch.clips.find((c) => c.name === n)!;
+
+  it('turns end rotated by the angle they report', () => {
+    for (const n of ['TurnLeft90', 'TurnRight90', 'Turn180']) {
+      const c = clip(n);
+      const wp = worldPose(sk, c.sample(c.duration));
+      const f = qRotate(wp.rot[sk.index.Hips], [0, 0, 1]);
+      const yaw = (Math.atan2(f[0], f[2]) * 180) / Math.PI;
+      const want = c.info!.turnDeg as number;
+      expect(Math.abs(((yaw - want + 540) % 360) - 180), n).toBeLessThan(3);
+      // both feet end up pointing the new way too
+      for (const s of ['LeftFoot', 'RightFoot']) {
+        const ff = qRotate(wp.rot[sk.index[s]], [0, 0, 1]);
+        expect(Math.abs(((Math.atan2(ff[0], ff[2]) * 180) / Math.PI - want + 540) % 360 - 180), `${n} ${s}`).toBeLessThan(15);
+      }
+    }
+  });
+
+  it('strafing keeps one foot on the floor and moves sideways, not forward', () => {
+    for (const n of ['StrafeLeft', 'StrafeRight', 'CrouchStrafeLeft']) {
+      const c = clip(n);
+      for (let i = 0; i < 12; i++) {
+        const wp = worldPose(sk, c.sample((i / 12) * c.duration));
+        const low = Math.min(wp.pos[sk.index.LeftFoot][1], wp.pos[sk.index.RightFoot][1]);
+        expect(low, `${n} @${i}`).toBeLessThan(sk.dims.ankleY + 0.03 * H);
+        expect(Math.abs(wp.pos[sk.index.LeftFoot][2]), n).toBeLessThan(0.12 * H);
+      }
+    }
+  });
+
+  it('Upper_* layers animate only the upper body (no legs, no hips)', () => {
+    const g = parseGlb(exportGlb(ch));
+    const names = g.json.nodes.map((nd: any) => nd.name);
+    const layer = g.json.animations.find((a: any) => a.name === 'Upper_PhoneCall');
+    expect(layer).toBeTruthy();
+    expect(layer.extras.layer).toBe('upper');
+    const targets = new Set(layer.channels.map((c: any) => names[c.target.node]));
+    for (const t of targets) expect(t).toMatch(/^(Spine|Chest|UpperChest|Neck|Head|(Left|Right)(Shoulder|UpperArm|LowerArm|Hand|ThumbProximal))$/);
+    expect(targets.has('Head')).toBe(true);
+    expect(layer.channels.some((c: any) => c.target.path === 'translation')).toBe(false);
+  });
+});

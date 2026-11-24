@@ -13,6 +13,7 @@ import { Clip, Pose, worldPose } from './anim';
 import { frameMap, solveArm } from './hold';
 import type { Skeleton } from './skeleton';
 import { everydayClips } from './everyday';
+import { locomotionClips } from './locomotion';
 
 const ease = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 /** smoothed keyframes for numbers */
@@ -563,7 +564,8 @@ export function actionClips(sk: Skeleton, clips: Clip[]): Clip[] {
     },
   });
   // ───────────────────────────────────────────────────────── everyday life (everyday.ts)
-  out.push(...everydayClips({ sk, clips, grips, body, leg, drop, seatLegs, seatedHipY, restHipY }));
+  const kit = { sk, clips, grips, body, leg, drop, seatLegs, seatedHipY, restHipY };
+  out.push(...locomotionClips(kit), ...everydayClips(kit));
   return out;
 }
 
