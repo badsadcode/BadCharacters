@@ -11,6 +11,7 @@ import type { Markers } from './markers';
 import type { Model } from './model';
 import { computeWeights } from './weights';
 import { computeRetarget, retargetClip } from './retarget';
+import { withInteractions } from '../core/interact';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const ARRAY_BUFFER = 34962;
@@ -27,7 +28,7 @@ export function rigModel(model: Model, markers: Markers, name = 'Imported'): Rig
   const sk = fitted.skeleton;
   // clips are written for straight legs and arms along armDir: play them on the model's own pose
   const rt = computeRetarget(sk);
-  const clips = buildClips(sk).map((c) => retargetClip(c, sk, rt));
+  const clips = withInteractions(sk, buildClips(sk)).map((c) => retargetClip(c, sk, rt));
   const { joints, weights } = computeWeights(model.positions, model.triangles, fitted);
   const warnings = [...model.warnings];
 

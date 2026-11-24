@@ -67,8 +67,11 @@ export function handWeaponFrame(sk: Skeleton, side: 1 | -1): { offset: V3; rot: 
   return { offset: scale(dir, d.handLen * 0.45), rot };
 }
 
-/** two-bone IK for one arm; writes UpperArm, LowerArm and Hand local rotations into `rot` */
-function solveArm(sk: Skeleton, pose: Pose, side: 1 | -1, wristTarget: V3, handWorld: Quat, rot: Record<string, Quat>) {
+/**
+ * two-bone IK for one arm; writes UpperArm, LowerArm and Hand local rotations into `rot`.
+ * `elbowDir` is the world direction the elbow points (x is mirrored for the left arm) (default: down, a little out and back).
+ */
+export function solveArm(sk: Skeleton, pose: Pose, side: 1 | -1, wristTarget: V3, handWorld: Quat, rot: Record<string, Quat>, elbowDir?: V3) {
   const S = side > 0 ? 'Left' : 'Right';
   const d = sk.dims;
   const B = (n: string) => sk.bones[sk.index[n]];
@@ -82,7 +85,7 @@ function solveArm(sk: Skeleton, pose: Pose, side: 1 | -1, wristTarget: V3, handW
   const dist = Math.min(l1 + l2 - 1e-4, Math.max(Math.abs(l1 - l2) + 1e-4, len(toT)));
   const ax = norm(toT);
   // elbows hang down and a little out and back
-  const pole0: V3 = [side * 0.45, -1, -0.25];
+  const pole0: V3 = elbowDir ? [elbowDir[0] * side, elbowDir[1], elbowDir[2]] : [side * 0.45, -1, -0.25];
   const pole = norm(sub(pole0, scale(ax, dot(pole0, ax))));
   const a = (l1 * l1 - l2 * l2 + dist * dist) / (2 * dist);
   const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
@@ -115,6 +118,8 @@ function holding(
   place: (wp: ReturnType<typeof worldPose>, t: number) => { pos: V3; rot: Quat; head?: Quat },
   /** bladed stance: turn the torso right by this much (deg) so the support shoulder comes forward */
   blade = 0,
+  /** the support arm keeps the base clip's motion (one-handed: sprinting with a pistol) */
+  supportFree = false,
 ): Clip {
   const fr = handWeaponFrame(sk, -1);
   const frL = handWeaponFrame(sk, 1);
@@ -140,7 +145,7 @@ function holding(
       const rHand = qMul(w.rot, inv(fr.rot));
       solveArm(sk, p, -1, sub(w.pos, qRotate(rHand, fr.offset)), rHand, rot);
       // support hand: under the handguard (long guns) or wrapped around the trigger hand (pistols)
-      if (hold.support) {
+      if (hold.support && !supportFree) {
         let sp = add(w.pos, qRotate(w.rot, hold.support));
         // out of reach (long barrel, short arms)? grip the handguard further back, the way a person
         // would, but never behind the magazine well
@@ -189,10 +194,26 @@ export function weaponClips(sk: Skeleton, clips: Clip[], hold: WeaponHold): Clip
       const r = qChain(qy(yaw * DEG), qx(pitch * DEG));
       return { pos: sub(pocket, qRotate(r, shoulder)), rot: r, head: pitch < 5 ? qChain(qx(12 * DEG), qz(-8 * DEG)) : undefined };
     };
+    /** "high port" for sprinting: muzzle up across the chest, carried in front of the body */
+    const port = (wp: ReturnType<typeof worldPose>) => {
+      const ucW = wp.rot[ix('UpperChest')];
+      const grip = add(wp.pos[ix('UpperChest')], qRotate(ucW, [-0.05 * d.H, -0.11 * d.H, d.chestHD + 0.06 * d.H]));
+      const r = qMul(ucW, frameMap([0, 0, 1], [0, 1, 0], norm([0.55, 0.78, 0.3]), [0, 0, 1]));
+      return { pos: grip, rot: r };
+    };
+    /** prone: the gun just off the ground ahead of the face, level, both hands on it */
+    const prone = (wp: ReturnType<typeof worldPose>) => {
+      const uc = wp.pos[ix('UpperChest')];
+      return { pos: [uc[0] - 0.035 * d.H, Math.max(0.05 * d.H, uc[1] - 0.02 * d.H), uc[2] + 0.17 * d.H] as V3, rot: qChain(qy(4 * DEG)) };
+    };
+    const has = (n: string) => clips.some((c) => c.name === n);
     return [
       holding(sk, hold, clip('RifleAim'), 'RifleAim', longGun(0, 3), BLADE),
       holding(sk, hold, clip('RifleReady'), 'RifleReady', longGun(38, 22), BLADE),
       holding(sk, hold, clip('Walk'), 'RifleReadyWalk', longGun(38, 22), BLADE * 0.7),
+      holding(sk, hold, clip('Run'), 'RifleRun', longGun(40, 24), BLADE * 0.5),
+      ...(has('Sprint') ? [holding(sk, hold, clip('Sprint'), 'RifleSprint', port)] : []),
+      ...(has('CrawlProne') ? [holding(sk, hold, clip('CrawlProne'), 'RifleCrawl', prone)] : []),
     ];
   }
   // pistols: two-handed, out in front at eye level (aim) or low and close (ready)
@@ -209,6 +230,16 @@ export function weaponClips(sk: Skeleton, clips: Clip[], hold: WeaponHold): Clip
     holding(sk, hold, clip('RifleAim'), 'PistolAim', pistol(0.86, 0.01, 0)),
     holding(sk, hold, clip('RifleReady'), 'PistolReady', pistol(0.5, 0.12, 45)),
     holding(sk, hold, clip('Walk'), 'PistolReadyWalk', pistol(0.5, 0.12, 45)),
+    holding(sk, hold, clip('Run'), 'PistolRun', pistol(0.48, 0.13, 50)),
+    // sprinting: gun tucked to the chest muzzle-down, the free arm pumps
+    ...(clips.some((c) => c.name === 'Sprint')
+      ? [
+          holding(sk, hold, clip('Sprint'), 'PistolSprint', (wp) => {
+            const ucW = wp.rot[ix('UpperChest')];
+            return { pos: add(wp.pos[ix('UpperChest')], qRotate(ucW, [-0.03 * d.H, -0.07 * d.H, d.chestHD + 0.04 * d.H])), rot: qMul(ucW, frameMap([0, 0, 1], [0, 1, 0], [0, -1, 0.15], [0, 0, 1])) };
+          }, 0, true),
+        ]
+      : []),
   ];
 }
 

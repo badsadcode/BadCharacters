@@ -14,6 +14,7 @@ import { addPropBones } from './props';
 import { CharacterRecipe, GARMENTS, MaterialKind, SlotId, STYLES } from './recipe';
 import { buildSkeleton, computeDims, Skeleton } from './skeleton';
 import { weaponClips } from './hold';
+import { withInteractions } from './interact';
 import { buildWeapon, BuiltWeapon } from '../weapons/badgun';
 
 export interface MaterialDef {
@@ -269,7 +270,7 @@ export function generateCharacter(recipe: CharacterRecipe): Character {
     return s + (p.rings.length - 1) * k * 2 + ((p.capStart ? 1 : 0) + (p.capEnd ? 1 : 0)) * k;
   }, 0);
   const vertices = primitives.reduce((s, p) => s + p.mesh.positions.length / 3, 0);
-  let clips = buildClips(sk, { rightHandProp: rc.outfit.prop?.id });
+  let clips = withInteractions(sk, buildClips(sk, { rightHandProp: rc.outfit.prop?.id }));
   const weapon = recipe.weapon ? buildWeapon(recipe.weapon) : undefined;
   if (weapon) {
     // the weapon's own aim / ready clips replace the generic ones (same names) or join them

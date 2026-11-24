@@ -7,6 +7,7 @@ import { qRotate, sub } from '../src/core/math';
 import { PRESETS } from '../src/core/presets';
 import { randomRecipe, StyleId, STYLES, THEMES } from '../src/core/recipe';
 import { buildSkeleton } from '../src/core/skeleton';
+import { withInteractions } from '../src/core/interact';
 import { exportGlb } from '../src/export/gltf';
 
 const require = createRequire(import.meta.url);
@@ -127,14 +128,15 @@ describe('body', () => {
 describe('animation', () => {
   const rc = randomRecipe(26, 'realistic', 'athlete');
   const sk = buildSkeleton(rc);
-  const clips = buildClips(sk);
+  const clips = withInteractions(sk, buildClips(sk));
   const clip = (n: string) => clips.find((c) => c.name === n)!;
 
   it('ships the standard clip set', () => {
     expect(clips.map((c) => c.name)).toEqual([
       'Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight',
       'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'ZombieWalk',
-      'Sprint', 'Vault', 'ClimbOver', 'Slide', 'Float', 'Dive', 'SwimUnderwater', 'RockClimbUp', 'RockClimbDown', 'RockClimbLeft', 'RockClimbRight', 'RestPose',
+      'Sprint', 'Vault', 'ClimbOver', 'Slide', 'Float', 'Dive', 'SwimUnderwater', 'RockClimbUp', 'RockClimbDown', 'RockClimbLeft', 'RockClimbRight',
+      'Crawl', 'CrawlProne', 'CarryBagIdle', 'CarryBagWalk', 'CarryDuffleIdle', 'CarryDuffleWalk', 'CarryBoxIdle', 'CarryBoxWalk', 'OpenDoor', 'CloseDoor', 'RestPose',
     ]);
   });
   it('a swinging foot hangs off the shin instead of folding back toward the knee', () => {

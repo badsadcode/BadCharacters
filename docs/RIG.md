@@ -93,6 +93,13 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `Float` | ✅ | treading water upright; water line around the chest |
 | `Dive` | ❌ | dive from an edge into water, head first; `extras.travel` goes forward and down |
 | `SwimUnderwater` | ✅ | diver style: body flat, arms back along the sides, slow flutter kick |
+| `Crawl` | ✅ | hands and knees; body pitch solved so straight arms reach the floor, hands placed by IK |
+| `CrawlProne` | ✅ | army crawl on the belly: forearms on the floor, one knee drawn up along the floor at a time |
+| `CarryBagIdle`, `CarryBagWalk` | ✅ | a bag in the right hand, arm straight, body leaning away from the weight |
+| `CarryDuffleIdle`, `CarryDuffleWalk` | ✅ | a duffle over the right shoulder, hand on the strap |
+| `CarryBoxIdle`, `CarryBoxWalk` | ✅ | a box ~0.4 × body unit wide held in front with both hands, leaning back; the walk is 25 % slower |
+| `OpenDoor` | ❌ | door in front: hinge 0.45·u to the left, handle 0.8·u from the hinge at 0.56·H, door plane 0.42·u ahead. Reach (0–0.45 s), press the handle (0.45–0.6 s), push it open 30° (0.7–1.45 s), let go |
+| `CloseDoor` | ❌ | `OpenDoor` backwards: reach the open door's handle, pull it shut, let go |
 | `RestPose` | ✅ | the bind pose |
 
 Baked at 30 fps, `LINEAR` interpolation, then **keyframe-reduced** (keys that linear interpolation
@@ -159,8 +166,8 @@ Clips fitted to that exact weapon (both hands on it, every frame):
 
 | Weapon | Clips |
 |---|---|
-| rifle, SMG, shotgun, sniper, LMG, crossbow | `RifleAim` (shouldered, bladed stance, cheek down), `RifleReady` (low ready), `RifleReadyWalk` (these replace the generic RifleAim / RifleReady) |
-| pistol | `PistolAim` (two-handed, arms out), `PistolReady` (low and close), `PistolReadyWalk` |
+| rifle, SMG, shotgun, sniper, LMG, crossbow | `RifleAim` (shouldered, bladed stance, cheek down), `RifleReady` (low ready), `RifleReadyWalk`, `RifleRun` (low ready), `RifleSprint` (high port across the chest), `RifleCrawl` (prone, gun ahead of the face) (RifleAim / RifleReady replace the generic ones) |
+| pistol | `PistolAim` (two-handed, arms out), `PistolReady` (low and close), `PistolReadyWalk`, `PistolRun`, `PistolSprint` (one-handed, gun tucked muzzle-down, the free arm pumps) |
 
 With `embed: true` the weapon GLB is merged into the character's: a node `Weapon_<name>` under the
 `RightHand` bone (a rigid attachment, no skinning), its materials untouched, and its own clips

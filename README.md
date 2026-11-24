@@ -26,7 +26,7 @@ runtime fat/muscle morphs, and a seed-reproducible recipe.
 | Props | staff, bow, crossbow, rifle: **previewed in the viewer, not exported unless you tick "Props"** (bring your own weapons; the animations never need them) |
 | Presets | Alden Wayfarer (Thornwake), Mannequin, Sir Clanksalot, Pip the Apprentice |
 | Rig | 25 bones, Unity `HumanBodyBones` names, identity rest rotations, 8 sockets incl. oriented weapon mounts (+ `BowString` helper bone when a bow is exported) |
-| Animations | 33: Idle, Walk, Run, Sprint, Jump, Wave, Punch, Crouch, CrouchWalk, Slide, Vault, ClimbOver, ClimbUp/Down/Left/Right, RockClimbUp/Down/Left/Right, LadderUp/Down, Swim, Float, Dive, SwimUnderwater, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
+| Animations | 43 (+ up to 6 per held weapon): Idle, Walk, Run, Sprint, Jump, Wave, Punch, Crouch, CrouchWalk, Crawl, CrawlProne, Slide, Vault, ClimbOver, ClimbUp/Down/Left/Right, RockClimbUp/Down/Left/Right, CarryBag/Duffle/Box (Idle, Walk), OpenDoor, CloseDoor, LadderUp/Down, Swim, Float, Dive, SwimUnderwater, Craft, BowShoot, CrossbowShoot, RifleAim, RifleReady, ZombieWalk, RestPose |
 | Export | GLB (validator-clean), editable `.badchar.json` recipe, share links |
 | Budget | low 1.5k–2.8k · medium 1.7k–4.0k (median 2.7k) · high 2.5k–6.7k triangles; Alden is 2,880 |
 
@@ -65,7 +65,7 @@ The **🦴 Rig my model** mode skins *your* humanoid model with our skeleton and
 3. Press ▶ or pick any clip to preview, then **📦 Export GLB**.
 
 You get your mesh, materials, textures and shape keys untouched, plus the same 25-bone Unity-named skeleton,
-sockets and all 33 clips as a generated character. Skin weights are automatic (distance to each bone relative
+sockets and all the clips as a generated character. Skin weights are automatic (distance to each bone relative
 to the thickness of that body part, soft blending at joints, smoothing across the surface, UV seams welded so
 nothing tears). Tests strip the skeletons off our own characters, re-rig them and check that nearly every
 vertex lands on the generator's bone or its direct neighbour. Long coats, capes and tails may need touch-ups

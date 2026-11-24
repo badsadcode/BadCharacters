@@ -61,7 +61,14 @@ describe('BadGun weapons in the hands', () => {
       const aim = a === 'pistol' ? 'PistolAim' : 'RifleAim';
       const ready = a === 'pistol' ? 'PistolReady' : 'RifleReady';
       const walk = a === 'pistol' ? 'PistolReadyWalk' : 'RifleReadyWalk';
-      for (const n of [aim, ready, walk]) expect(ch.clips.some((c) => c.name === n), n).toBe(true);
+      const run = a === 'pistol' ? 'PistolRun' : 'RifleRun';
+      for (const n of [aim, ready, walk, run]) expect(ch.clips.some((c) => c.name === n), n).toBe(true);
+      expect(holdQuality(ch, run).worst).toBeLessThan(0.04);
+      if (a === 'pistol') {
+        expect(ch.clips.some((c) => c.name === 'PistolSprint')).toBe(true);
+      } else {
+        for (const n of ['RifleSprint', 'RifleCrawl']) expect(holdQuality(ch, n).worst, n).toBeLessThan(0.04);
+      }
       const q = holdQuality(ch, aim);
       expect(q.worst).toBeLessThan(0.025);
       expect(q.fwd).toBeGreaterThan(0.97);
