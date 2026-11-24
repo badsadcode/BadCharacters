@@ -108,9 +108,13 @@ export function computeDims(rc: CharacterRecipe): Dims {
   const f = clamp(b.fat);
   const H = b.height;
   const race = RACES[b.race ?? 'human'] ?? RACES.human;
+  // newer styles soften how much a race's bulk stacks on the style's own thickness
+  // (styles without raceBlend keep the original, full multiplication: unchanged output)
+  const rb = st.raceBlend;
+  const R = (x: number) => (rb === undefined ? x : 1 + (x - 1) * rb);
   const sh = b.shape;
   const k = (key: Parameters<typeof sv>[1], amt: number) => 1 + amt * sv(sh, key);
-  const headH = (H / (st.headsTall * race.headsTall)) * b.headScale;
+  const headH = (H / (st.headsTall * R(race.headsTall))) * b.headScale;
   const neckLen = st.neck * headH * race.neckLen * k('neckLength', 0.6);
   const chinY = H - headH;
   const neckBaseY = chinY - neckLen;
@@ -119,19 +123,19 @@ export function computeDims(rc: CharacterRecipe): Dims {
   const legLen = bodyRest * Math.min(0.72, st.legFrac * race.legFrac) * (1 + 0.08 * b.legLength);
   const hipY = legLen;
   const torsoLen = neckBaseY - hipY;
-  const T = st.torso * race.torso;
-  const L = st.leg * race.leg * k('legThickness', 0.25);
-  const A = st.arm * race.arm * k('armThickness', 0.25);
+  const T = st.torso * R(race.torso);
+  const L = st.leg * R(race.leg) * k('legThickness', 0.25);
+  const A = st.arm * R(race.arm) * k('armThickness', 0.25);
   // `def` flattens anatomical taper toward the limb's average for blocky styles
   const def = (avg: number, x: number) => lerp(avg, x, st.definition);
 
-  const chestHW = u * T * (lerp(0.165, 0.145, g) + 0.02 * m + 0.03 * f) * k('shoulders', 0.1) * Math.sqrt(race.shoulders);
+  const chestHW = u * T * (lerp(0.165, 0.145, g) + 0.02 * m + 0.03 * f) * k('shoulders', 0.1) * Math.sqrt(R(race.shoulders));
   const chestHD = u * T * (lerp(0.105, 0.092, g) + 0.02 * m + 0.03 * f) * lerp(1, 0.85, 1 - st.definition) * k('chest', 0.08);
   const waistHW = u * T * (def(0.15, lerp(0.135, 0.112, g)) + 0.004 * m + 0.075 * f) * k('waist', 0.2);
   const waistHD = u * T * (lerp(0.088, 0.08, g) + 0.004 * m + 0.07 * f) * lerp(1, 0.85, 1 - st.definition) * k('waist', 0.15);
   let hipHW = u * T * (def(0.155, lerp(0.148, 0.172, g)) + 0.035 * f) * k('hips', 0.2);
   const hipHD = u * T * (lerp(0.098, 0.108, g) + 0.035 * f) * lerp(1, 0.85, 1 - st.definition) * k('hips', 0.12);
-  const shoulderHW = u * T * (lerp(0.19, 0.162, g) + 0.025 * m + 0.015 * f) * race.shoulders * k('shoulders', 0.22);
+  const shoulderHW = u * T * (lerp(0.19, 0.162, g) + 0.025 * m + 0.015 * f) * R(race.shoulders) * k('shoulders', 0.22);
 
   const thighR = u * L * (def(0.07, 0.082) + 0.018 * m + 0.035 * f + 0.008 * g);
   const hipJX = Math.max(hipHW - thighR + 0.006 * u, thighR * 0.96);
@@ -145,7 +149,7 @@ export function computeDims(rc: CharacterRecipe): Dims {
   const deltR = u * A * (def(0.047, 0.056) + 0.024 * m + 0.018 * f - 0.006 * g);
   const restAngle = rc.rig.restPose === 'A' ? -38 : 0;
   const armDir = norm([Math.cos((restAngle * Math.PI) / 180), Math.sin((restAngle * Math.PI) / 180), 0]);
-  const handK = race.hand * k('handSize', 0.3);
+  const handK = R(race.hand) * k('handSize', 0.3);
   const handLen = armLen * 0.25 * st.hand * Math.max(1, Math.sqrt(A) * 0.85) * handK;
   const roundness = clamp(b.roundness + 0.15 * f);
 
@@ -157,7 +161,7 @@ export function computeDims(rc: CharacterRecipe): Dims {
     headHD: headH * st.headD * k('headDepth', 0.2),
     chinY,
     neckBaseY,
-    neckR: Math.min(headH * st.headW * 0.6 * race.headW, u * (lerp(0.058, 0.046, g) + 0.018 * m + 0.016 * f) * Math.sqrt(T) * race.neckThick * k('neckThickness', 0.3)),
+    neckR: Math.min(headH * st.headW * 0.6 * race.headW, u * (lerp(0.058, 0.046, g) + 0.018 * m + 0.016 * f) * Math.sqrt(T) * R(race.neckThick) * k('neckThickness', 0.3)),
     hipY,
     torsoLen,
     shoulderY: neckBaseY - 0.1 * torsoLen,
@@ -181,8 +185,8 @@ export function computeDims(rc: CharacterRecipe): Dims {
     kneeR: u * L * (def(legAvg, 0.047) + 0.006 * m + 0.012 * f),
     calfR: u * L * (def(legAvg, 0.055) + 0.014 * m + 0.014 * f),
     ankleR: u * L * (def(legAvg, 0.034) + 0.004 * m + 0.006 * f),
-    footLen: u * 0.27 * st.foot * lerp(1, 0.92, g) * Math.max(1, L * 0.85) * race.foot * k('footSize', 0.3),
-    footHW: u * 0.27 * st.foot * 0.2 * Math.max(1, L * 0.9) * Math.sqrt(race.foot) * k('footSize', 0.2),
+    footLen: u * 0.27 * st.foot * lerp(1, 0.92, g) * Math.max(1, L * 0.85) * R(race.foot) * k('footSize', 0.3),
+    footHW: u * 0.27 * st.foot * 0.2 * Math.max(1, L * 0.9) * Math.sqrt(R(race.foot)) * k('footSize', 0.2),
     armDir,
     upperArmLen: (armLen - handLen) * 0.53,
     foreArmLen: (armLen - handLen) * 0.47,
@@ -194,7 +198,9 @@ export function computeDims(rc: CharacterRecipe): Dims {
     elbowR: u * A * (def(0.042, 0.036) + 0.006 * m + 0.01 * f),
     foreArmR: u * A * (def(0.042, 0.042) + 0.012 * m + 0.01 * f - 0.004 * g),
     wristR: u * A * (def(0.042, 0.029) + 0.004 * m + 0.004 * f),
-    n: lerp(10, 2.2, roundness),
+    // box-section styles have true corners: describe them as (nearly) perfect boxes so hats and
+    // shells size themselves to enclose the corners, not a rounded approximation
+    n: st.section === 'box' ? 60 : lerp(10, 2.2, roundness),
     eyeLine: st.eyeLine,
     faceScale: st.faceScale * race.face,
     jaw: race.jaw * k('jaw', 0.2),

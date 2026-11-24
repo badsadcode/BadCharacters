@@ -60,6 +60,8 @@ export interface Part {
   spec?: ShellSpec;
   /** bevelled-box cross-section: chamfer size as a fraction of the smaller half-extent */
   bevel?: number;
+  /** 'box': the simplest cross-section, a plain 4-cornered rectangle (voxel styles) */
+  section?: 'box';
   /** torn edges: jag the first/last ring along the direction of travel (metres, seeded) */
   ragged?: { start?: number; end?: number; seed: number };
 }
@@ -215,7 +217,7 @@ export function loftPart(part: Part, K: number, m: MeshData) {
   // (K may be overridden for boxes below)
   const rings = part.rings;
   const base = m.positions.length / 3;
-  const isBox = part.lod === 'box';
+  const isBox = part.lod === 'box' || part.section === 'box';
   const bevel = !isBox && part.bevel ? part.bevel : 0;
   if (isBox) K = 4;
   if (bevel) K = 8;
@@ -282,7 +284,8 @@ export function loftPart(part: Part, K: number, m: MeshData) {
       // head: normalized cylinder for the face texture; everything else: metres / tile, so
       // fabric patterns keep the same scale on every part
       // (bevelled rings start at a corner, not the back centre: shift so the face stays at u = 0.5)
-      if (uvMode === 'head') m.uvs.push((arc[k] + (bevel ? bevelPoint(r, 0)[0] : 0)) / per, 1 - v);
+      // (box and bevelled rings start at a corner, not the back centre: shift so the face stays at u = 0.5)
+      if (uvMode === 'head') m.uvs.push((arc[k] + (bevel ? bevelPoint(r, 0)[0] : isBox ? r.a : 0)) / per, 1 - v);
       // creatures: once around the body (u, for countershading), metres along it (v)
       else if (uvMode === 'wrap') m.uvs.push(arc[k] / per, cum[i] / CREATURE_TILE);
       else m.uvs.push(arc[k] / PATTERN_TILE, (cum[i] / PATTERN_TILE));

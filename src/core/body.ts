@@ -358,6 +358,32 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
       }
     }
   }
+  // visible joints (Mannequin: wooden balls, Action Figure: toy pegs). Each is skinned 100% to the
+  // child bone and centred on the pivot, so it turns in place and never drifts off the joint.
+  if (st.joints) {
+    const J = (name: string, bone: string, r: number, axis: V3) => {
+      const c = sk.bones[sk.index[bone]].world;
+      const w = W([bone, 1]);
+      const { p, q } = limbFrame(norm(axis));
+      // cheap on purpose: 6 sides, 2-3 rings (13 joints add ~300-450 triangles, not ~1000)
+      const prof: [number, number][] = st.joints === 'ball' ? [[-1, 0.35], [0, 1], [1, 0.35]] : [[-1, 1], [1, 1]];
+      const len = st.joints === 'ball' ? r : r * 1.25;
+      const rr = st.joints === 'ball' ? r : r * 0.85;
+      parts[name] = { name, material: 'joint', sides: 6, capStart: true, capEnd: true, rings: prof.map(([t, k]) => ring(add(c, scale(norm(axis), t * len)), p, q, rr * k, rr * k, st.joints === 'ball' ? 2.2 : 2, w)) };
+    };
+    J('joint.neck', 'Neck', d.neckR * 1.1, Y);
+    for (const s of [1, -1]) {
+      const side = s > 0 ? 'Left' : 'Right';
+      const dir: V3 = [d.armDir[0] * s, d.armDir[1], 0];
+      const bend = cross([0, 0, 1], dir); // elbows and wrists bend about this axis
+      J(`joint.shoulder.${side}`, `${side}UpperArm`, d.deltR * 1.08, dir);
+      J(`joint.elbow.${side}`, `${side}LowerArm`, d.elbowR * 1.18, bend);
+      J(`joint.wrist.${side}`, `${side}Hand`, d.wristR * 1.12, bend);
+      J(`joint.hip.${side}`, `${side}UpperLeg`, d.thighR * 0.95, X);
+      J(`joint.knee.${side}`, `${side}LowerLeg`, d.kneeR * 1.2, X);
+      J(`joint.ankle.${side}`, `${side}Foot`, d.ankleR * 1.15, X);
+    }
+  }
   const race = RACES[rc.body.race ?? 'human'];
   if (race?.rocky || race?.sprout) {
     const rr = new Rng(subSeed(rc.seed, 'golem'));

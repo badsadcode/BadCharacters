@@ -66,7 +66,8 @@ export const DETAIL = { low: 8, medium: 12, high: 20 } as const;
 
 function materialsFor(rc: CharacterRecipe): Record<string, MaterialDef> {
   const m: Record<string, MaterialDef> = {
-    skin: { name: 'Skin', color: rc.body.skin, metallic: 0, roughness: 0.75 },
+    skin: { name: 'Skin', color: rc.body.skin, metallic: 0, roughness: STYLES[rc.style]?.gloss ?? 0.75 },
+    joint: { name: 'Joints', color: shade(rc.body.skin, 0.72), metallic: 0, roughness: STYLES[rc.style]?.gloss ?? 0.6 },
     face: { name: 'Face', color: '#ffffff', metallic: 0, roughness: 0.75, textured: true },
     visor: { name: 'Visor', color: '#0b0b0d', metallic: 0.2, roughness: 0.6 },
     tusk: { name: 'Tusk', color: '#ece2c6', metallic: 0, roughness: 0.5 },
@@ -130,9 +131,34 @@ const SIMPLIFY = { low: 0.006, medium: 0.0022, high: 0.0008 } as const;
  * The parts that actually get meshed: hidden stretches culled, redundant rings dropped.
  * `masks` (kept ring indices per part) can be passed in so morph variants share topology.
  */
+/** visible joints (mannequin balls, toy pegs) only show where no garment covers that spot of the limb */
+const JOINT_SPOTS: Record<string, [string, string]> = {
+  neck: ['neck', 'low'],
+  shoulder: ['arm', 'shoulder'],
+  elbow: ['arm', 'elbow'],
+  wrist: ['arm', 'wrist'],
+  hip: ['leg', 'top'],
+  knee: ['leg', 'knee'],
+  ankle: ['leg', 'ankle'],
+};
+function hideCoveredJoints(parts: Part[]): Part[] {
+  const byId = new Map(parts.filter((p) => p.id).map((p) => [p.id!, p]));
+  return parts.filter((p) => {
+    if (!p.name.startsWith('joint.')) return true;
+    const [, spot, side] = p.name.split('.');
+    const [limb, tag] = JOINT_SPOTS[spot] ?? [];
+    if (!limb) return true;
+    const src = limb === 'neck' ? 'neck' : `${limb}.${side === 'Left' ? 'L' : 'R'}`;
+    const body = byId.get(src);
+    if (!body) return true;
+    const k = body.rings.findIndex((r) => r.tag === tag);
+    return !parts.some((q) => q.spec && !q.spec.body && q.spec.src === src && q.spec.k0 <= k + 0.3 && q.spec.k1 >= k - 0.3);
+  });
+}
+
 export function buildParts(rc: CharacterRecipe, sk: Skeleton, masks?: number[][]): { parts: Part[]; masks: number[][] } {
-  const parts = cullHidden(buildRawParts(rc, sk));
-  const tol = SIMPLIFY[rc.mesh.detail] * sk.dims.u;
+  const parts = cullHidden(hideCoveredJoints(buildRawParts(rc, sk)));
+  const tol = SIMPLIFY[rc.mesh.detail] * sk.dims.u * (STYLES[rc.style]?.simplify ?? 1);
   const outMasks: number[][] = [];
   const out = parts.map((p, i) => {
     let keep = masks?.[i];
@@ -146,7 +172,7 @@ export function buildParts(rc: CharacterRecipe, sk: Skeleton, masks?: number[][]
 /** sides around each ring for a part, from the detail level and the part's size class */
 export function sidesFor(p: Part, K: number): number {
   if (p.sides) return p.sides;
-  if (p.lod === 'box') return 4;
+  if (p.lod === 'box' || p.section === 'box') return 4;
   if (p.bevel) return 8;
   if (p.lod === 'small') return K >= 20 ? 12 : K >= 12 ? 8 : 6;
   // near-boxy cross-sections: extra sides would only sit on flat faces
@@ -155,16 +181,17 @@ export function sidesFor(p: Part, K: number): number {
   return K;
 }
 
-function meshesFor(parts: Part[], K: number, bevel = 0): Map<string, MeshData> {
+function meshesFor(parts: Part[], K: number, bevel = 0, section?: 'box'): Map<string, MeshData> {
   const by = new Map<string, MeshData>();
   for (const p0 of parts) {
     // Boxy style: every body part, garment and hat gets the bevelled-box profile (props stay round)
-    const p = bevel && p0.lod !== 'box' && !/^prop|^glass/.test(p0.material) ? { ...p0, bevel } : p0;
+    const keepRound = p0.lod === 'box' || /^prop|^glass/.test(p0.material);
+    const p = keepRound ? p0 : section ? { ...p0, section } : bevel ? { ...p0, bevel } : p0;
     if (!by.has(p.material)) by.set(p.material, emptyMesh());
     const m = emptyMesh();
     loftPart(p, sidesFor(p, K), m);
     // boxes get hard edges; everything else is smooth within the part
-    if (p.lod === 'box') appendMesh(by.get(p.material)!, unweld(m));
+    if (p.lod === 'box' || p.section === 'box') appendMesh(by.get(p.material)!, unweld(m));
     else {
       computeNormals(m);
       appendMesh(by.get(p.material)!, m);
@@ -179,7 +206,8 @@ export function generateCharacter(rc: CharacterRecipe): Character {
   const K = DETAIL[rc.mesh.detail] ?? 12;
   const { parts, masks } = buildParts(rc, sk);
   const bevel = STYLES[rc.style]?.bevel ?? 0;
-  const by = meshesFor(parts, K, bevel);
+  const section = STYLES[rc.style]?.section;
+  const by = meshesFor(parts, K, bevel, section);
   const order = [...by.keys()];
 
   // morph targets: rebuild with fat/muscle pushed to the extremes, on the SAME skeleton
@@ -194,7 +222,7 @@ export function generateCharacter(rc: CharacterRecipe): Character {
     for (const [name, patch] of variants) {
       const vr: CharacterRecipe = { ...rc, body: { ...rc.body, ...patch } };
       const vsk: Skeleton = { ...sk, dims: { ...computeDims(vr), armDir: sk.dims.armDir } };
-      const vby = meshesFor(buildParts(vr, vsk, masks).parts, K, bevel);
+      const vby = meshesFor(buildParts(vr, vsk, masks).parts, K, bevel, section);
       const deltas = order.map((mat) => {
         const a = by.get(mat)!;
         const b = vby.get(mat);
