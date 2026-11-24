@@ -144,12 +144,15 @@ let clipCat = (() => {
     return 'move';
   }
 })();
-const label = (c: string) => (c === 'RestPose' ? 'Rest' : c.replace(/([a-z])([A-Z])/g, '$1 $2'));
+const label = (c: string) => (c === 'RestPose' ? 'Rest' : c.replace(/^Upper_/, '').replace(/([a-z])([A-Z])/g, '$1 $2'));
+/** clips the export can contain: upper-body layers only when Export settings → Layers is on */
+const exportable = () => clipNames.filter((n) => !n.startsWith('Upper_') || !!recipe.mesh.upperLayers);
 /** names ticked for export (all when the recipe has no list) */
-const exported = () => (mode === 'characters' ? new Set(recipe.mesh.clips ?? clipNames) : new Set(clipNames));
+const exported = () => (mode === 'characters' ? new Set(recipe.mesh.clips ?? exportable()) : new Set(clipNames));
 function setExported(set: Set<string>) {
-  recipe.mesh.clips = clipNames.every((n) => set.has(n)) ? undefined : clipNames.filter((n) => set.has(n));
-  const total = clipNames.length;
+  const names = exportable();
+  recipe.mesh.clips = names.every((n) => set.has(n)) ? undefined : names.filter((n) => set.has(n));
+  const total = names.length;
   const sel = recipe.mesh.clips;
   const cc = document.getElementById('clip-count');
   if (cc) cc.textContent = !sel ? `all ${total}` : `${sel.length} of ${total}`;
@@ -194,7 +197,8 @@ function renderClipBar(all: string[]) {
   for (const n of shown) {
     const el = document.createElement('div');
     el.className = `clip${n === clipName ? ' on' : ''}${exp.has(n) ? '' : ' off'}`;
-    el.innerHTML = `<input type="checkbox" title="include in the export" ${exp.has(n) ? 'checked' : ''}><button data-clip="${n}">${label(n)}</button>`;
+    const layerOff = n.startsWith('Upper_') && !recipe.mesh.upperLayers;
+    el.innerHTML = `<input type="checkbox" title="${layerOff ? 'turn on Export settings → Layers to export upper-body layers' : 'include in the export'}" ${exp.has(n) && !layerOff ? 'checked' : ''} ${layerOff ? 'disabled' : ''}><button data-clip="${n}" title="${n}">${label(n)}</button>`;
     el.querySelector('input')!.addEventListener('change', (e) => {
       const set = exported();
       if ((e.target as HTMLInputElement).checked) set.add(n);
@@ -207,12 +211,13 @@ function renderClipBar(all: string[]) {
   }
   // export: this tab (or these search hits) all / none, plus the total
   const ex = $('clip-exp');
-  const ticked = clipNames.filter((n) => exp.has(n)).length;
-  ex.innerHTML = `export ${ticked === clipNames.length ? 'all' : ticked}/${clipNames.length} · <button data-x="all">☑ ${q ? 'these' : 'this tab'}</button><button data-x="none">☐ ${q ? 'these' : 'this tab'}</button><button data-x="reset">all clips</button>`;
+  const exNames = mode === 'characters' ? exportable() : clipNames;
+  const ticked = exNames.filter((n) => exp.has(n)).length;
+  ex.innerHTML = `export ${ticked === exNames.length ? 'all' : ticked}/${exNames.length} · <button data-x="all">☑ ${q ? 'these' : 'this tab'}</button><button data-x="none">☐ ${q ? 'these' : 'this tab'}</button><button data-x="reset">all clips</button>`;
   ex.querySelectorAll<HTMLButtonElement>('button').forEach((bt) =>
     bt.addEventListener('click', () => {
       const set = exported();
-      if (bt.dataset.x === 'reset') clipNames.forEach((n) => set.add(n));
+      if (bt.dataset.x === 'reset') exportable().forEach((n) => set.add(n));
       else for (const n of shown) bt.dataset.x === 'all' ? set.add(n) : set.delete(n);
       setExported(set);
       renderClipBar(clipNames);
@@ -807,7 +812,12 @@ function buildUI() {
   $('clip-search').addEventListener('input', () => renderClipBar(clipNames));
   $('layer-base').addEventListener('change', () => clipName.startsWith('Upper_') && playClip(clipName));
   const layersIn = $<HTMLInputElement>('in-layers');
-  layersIn.addEventListener('change', () => (recipe.mesh.upperLayers = layersIn.checked));
+  layersIn.addEventListener('change', () => {
+    recipe.mesh.upperLayers = layersIn.checked;
+    // newly exportable layers start ticked
+    if (recipe.mesh.clips && layersIn.checked) recipe.mesh.clips = [...recipe.mesh.clips, ...clipNames.filter((n) => n.startsWith('Upper_'))];
+    renderClipBar(clipNames);
+  });
   syncers.push(() => (layersIn.checked = !!recipe.mesh.upperLayers));
 
   const propsIn = $<HTMLInputElement>('in-props');
