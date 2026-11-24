@@ -98,16 +98,8 @@
           <div class="row"><label>Detail</label><select id="in-detail"><option value="low">Low (8 sides)</option><option value="medium">Medium (12)</option><option value="high">High (20)</option></select></div>
           <div class="row"><label>Shading</label><select id="in-shading"><option value="smooth">Smooth</option><option value="flat">Flat / faceted</option></select></div>
           <div class="row"><label>Morphs</label><input id="in-morphs" type="checkbox" /><span class="hint">Fat± / Muscle± blend shapes</span></div>
-          <details id="clip-pick" class="clippick">
-            <summary><span>Animations</span><b id="clip-count">all</b></summary>
-            <div class="btnrow">
-              <button class="btn" id="clip-all">All</button>
-              <button class="btn" id="clip-none">None</button>
-              <input id="clip-filter" type="text" placeholder="filter… (e.g. Sit, Rifle)" />
-            </div>
-            <div id="clip-list"></div>
-            <p class="hint">Every ticked clip goes into the one .glb: in Blender each becomes an Action, in Godot an animation in the AnimationPlayer. The viewer still previews them all.</p>
-          </details>
+          <div class="row"><label>Animations</label><b id="clip-count" class="mono">all</b><span></span></div>
+          <p class="hint">Tick clips in the animation browser above the viewport (☑ next to each clip, or "all / none" per category). Every ticked clip goes into the one .glb: in Blender each becomes an Action, in Godot an animation in the AnimationPlayer.</p>
           <div class="row"><label>Props</label><input id="in-props" type="checkbox" /><span class="hint">export staff / bow / crossbow meshes (the viewer always previews them; animations never need them)</span></div>
         </section>
       </aside>
@@ -175,7 +167,7 @@
       <main class="viewport" id="viewport">
         <canvas id="canvas"></canvas>
         <div class="hud top">
-          <div class="seg" id="clips"></div>
+          <div class="anim" id="clips"><div class="cats" id="clip-cats"></div><div class="cliprow"><input id="clip-search" type="search" placeholder="🔍 find a clip…" /><span class="exp" id="clip-exp"></span></div><div class="chips2" id="clip-list2"></div></div>
           <div class="seg" id="toggles">
             <button data-t="skeleton" title="Show bones">🦴 Bones</button>
             <button data-t="wire" title="Wireframe">🕸 Wire</button>

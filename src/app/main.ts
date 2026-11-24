@@ -16,6 +16,7 @@ import { PRESETS } from '../core/presets';
 import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
 import { PATTERNS, PatternId } from '../core/patterns';
 import { createRigMode } from './rigmode';
+import { CLIP_CATEGORIES, clipCategory } from '../core/categories';
 import { FACTIONS, factionMember, factionSquad } from '../core/factions';
 import { buildWeapon, WEAPON_ARCHETYPES, WEAPON_STYLES, WeaponArchetype } from '../weapons/badgun';
 
@@ -133,21 +134,91 @@ function applyToggles() {
   document.querySelectorAll<HTMLButtonElement>('#toggles button').forEach((b) => b.classList.toggle('on', toggles[b.dataset.t as keyof typeof toggles]));
 }
 
-/** the clip bar shows exactly the clips the loaded model exports */
-function renderClipBar(all: string[]) {
-  // a held weapon's own clips (Weapon_Fire, Weapon_Reload…) move only the gun: exported, not listed
-  const names = all.filter((n) => !n.startsWith('Weapon_'));
-  const bar = $('clips');
-  if (bar.dataset.names === names.join(',')) return;
-  bar.dataset.names = names.join(',');
-  bar.innerHTML = '';
-  for (const c of names) {
-    const b = document.createElement('button');
-    b.textContent = c === 'RestPose' ? 'Rest' : c.replace(/([a-z])([A-Z])/g, '$1 $2');
-    b.dataset.clip = c;
-    b.addEventListener('click', () => playClip(c));
-    bar.appendChild(b);
+// ───────────────────────────────────────────────────────────── animation browser ──
+/** category tabs + search + one row of clips; each clip has an export tick (characters mode) */
+let clipNames: string[] = [];
+let clipCat = (() => {
+  try {
+    return localStorage.getItem('bc.clipCat') ?? 'move';
+  } catch {
+    return 'move';
   }
+})();
+const label = (c: string) => (c === 'RestPose' ? 'Rest' : c.replace(/([a-z])([A-Z])/g, '$1 $2'));
+/** names ticked for export (all when the recipe has no list) */
+const exported = () => (mode === 'characters' ? new Set(recipe.mesh.clips ?? clipNames) : new Set(clipNames));
+function setExported(set: Set<string>) {
+  recipe.mesh.clips = clipNames.every((n) => set.has(n)) ? undefined : clipNames.filter((n) => set.has(n));
+  const total = clipNames.length;
+  const sel = recipe.mesh.clips;
+  const cc = document.getElementById('clip-count');
+  if (cc) cc.textContent = !sel ? `all ${total}` : `${sel.length} of ${total}`;
+}
+function renderClipBar(all: string[]) {
+  // a held weapon's own clips (Weapon_Fire…) move only the gun: exported, not previewed here
+  clipNames = all;
+  const visible = all.filter((n) => !n.startsWith('Weapon_'));
+  const cats = CLIP_CATEGORIES.filter((c) => c.id !== 'gun' && visible.some((n) => clipCategory(n) === c.id));
+  if (!cats.some((c) => c.id === clipCat)) clipCat = cats[0]?.id ?? 'move';
+  const exp = exported();
+  const box = $('clips');
+  box.classList.toggle('noexport', mode !== 'characters');
+  box.hidden = !visible.length;
+  const q = ($<HTMLInputElement>('clip-search').value ?? '').trim().toLowerCase();
+  // tabs
+  const tabs = $('clip-cats');
+  tabs.innerHTML = '';
+  for (const c of cats) {
+    const names = visible.filter((n) => clipCategory(n) === c.id);
+    const ticked = names.filter((n) => exp.has(n)).length;
+    const b = document.createElement('button');
+    b.className = c.id === clipCat && !q ? 'on' : '';
+    b.innerHTML = `${c.icon} ${c.label}<small>${mode === 'characters' && ticked !== names.length ? `${ticked}/` : ''}${names.length}</small>`;
+    b.addEventListener('click', () => {
+      clipCat = c.id;
+      try {
+        localStorage.setItem('bc.clipCat', c.id);
+      } catch {
+        /* private mode */
+      }
+      $<HTMLInputElement>('clip-search').value = '';
+      renderClipBar(clipNames);
+    });
+    tabs.appendChild(b);
+  }
+  // clips of the tab (or search hits across all of them)
+  const shown = q ? visible.filter((n) => n.toLowerCase().includes(q) || label(n).toLowerCase().includes(q)) : visible.filter((n) => clipCategory(n) === clipCat);
+  const list = $('clip-list2');
+  list.innerHTML = '';
+  for (const n of shown) {
+    const el = document.createElement('div');
+    el.className = `clip${n === clipName ? ' on' : ''}${exp.has(n) ? '' : ' off'}`;
+    el.innerHTML = `<input type="checkbox" title="include in the export" ${exp.has(n) ? 'checked' : ''}><button data-clip="${n}">${label(n)}</button>`;
+    el.querySelector('input')!.addEventListener('change', (e) => {
+      const set = exported();
+      if ((e.target as HTMLInputElement).checked) set.add(n);
+      else set.delete(n);
+      setExported(set);
+      renderClipBar(clipNames);
+    });
+    el.querySelector('button')!.addEventListener('click', () => playClip(n));
+    list.appendChild(el);
+  }
+  // export: this tab (or these search hits) all / none, plus the total
+  const ex = $('clip-exp');
+  const ticked = clipNames.filter((n) => exp.has(n)).length;
+  ex.innerHTML = `export ${ticked === clipNames.length ? 'all' : ticked}/${clipNames.length} · <button data-x="all">☑ ${q ? 'these' : 'this tab'}</button><button data-x="none">☐ ${q ? 'these' : 'this tab'}</button><button data-x="reset">all clips</button>`;
+  ex.querySelectorAll<HTMLButtonElement>('button').forEach((bt) =>
+    bt.addEventListener('click', () => {
+      const set = exported();
+      if (bt.dataset.x === 'reset') clipNames.forEach((n) => set.add(n));
+      else for (const n of shown) bt.dataset.x === 'all' ? set.add(n) : set.delete(n);
+      setExported(set);
+      renderClipBar(clipNames);
+    }),
+  );
+  // the export selection belongs to the character recipe: other modes only browse
+  if (mode === 'characters') setExported(exported());
 }
 
 function playClip(name: string) {
@@ -160,7 +231,12 @@ function playClip(name: string) {
     const act = a.mixer.clipAction(c);
     act.reset().play();
   }
-  document.querySelectorAll<HTMLButtonElement>('#clips button').forEach((b) => b.classList.toggle('on', b.dataset.clip === name));
+  const cat = clipCategory(name);
+  if (cat !== clipCat && cat !== 'gun' && !$<HTMLInputElement>('clip-search').value) {
+    clipCat = cat;
+    renderClipBar(clipNames);
+  }
+  document.querySelectorAll<HTMLElement>('#clip-list2 .clip').forEach((el) => el.classList.toggle('on', el.querySelector('button')?.dataset.clip === name));
 }
 
 function clearStage() {
@@ -711,56 +787,8 @@ function buildUI() {
   });
   syncers.push(syncWeapon);
 
-  // ── which animations go in the export
-  const clipList = $('clip-list');
-  const clipFilter = $<HTMLInputElement>('clip-filter');
-  const allClipNames = () => (character?.clips ?? []).map((c) => c.name);
-  const renderClipPick = () => {
-    const names = allClipNames();
-    const sel = recipe.mesh.clips;
-    const f = clipFilter.value.trim().toLowerCase();
-    clipList.innerHTML = '';
-    for (const n of names) {
-      if (f && !n.toLowerCase().includes(f)) continue;
-      const l = document.createElement('label');
-      l.innerHTML = `<input type="checkbox" ${!sel || sel.includes(n) ? 'checked' : ''}> ${n}`;
-      l.querySelector('input')!.addEventListener('change', (e) => {
-        const on = (e.target as HTMLInputElement).checked;
-        const cur = new Set(recipe.mesh.clips ?? names);
-        if (on) cur.add(n);
-        else cur.delete(n);
-        recipe.mesh.clips = cur.size === names.length ? undefined : names.filter((x) => cur.has(x));
-        clipCount();
-      });
-      clipList.appendChild(l);
-    }
-    clipCount();
-  };
-  const clipCount = () => {
-    const total = allClipNames().length;
-    const sel = recipe.mesh.clips;
-    $('clip-count').textContent = !sel ? `all ${total}` : `${sel.length} of ${total}`;
-  };
-  clipFilter.addEventListener('input', renderClipPick);
-  $('clip-pick').addEventListener('toggle', renderClipPick);
-  $('clip-all').addEventListener('click', () => {
-    // with a filter: add the visible ones; without: everything
-    const f = clipFilter.value.trim().toLowerCase();
-    const names = allClipNames();
-    const cur = new Set(recipe.mesh.clips ?? names);
-    for (const n of names) if (!f || n.toLowerCase().includes(f)) cur.add(n);
-    recipe.mesh.clips = cur.size === names.length ? undefined : names.filter((x) => cur.has(x));
-    renderClipPick();
-  });
-  $('clip-none').addEventListener('click', () => {
-    const f = clipFilter.value.trim().toLowerCase();
-    const names = allClipNames();
-    const cur = new Set(recipe.mesh.clips ?? names);
-    for (const n of names) if (!f || n.toLowerCase().includes(f)) cur.delete(n);
-    recipe.mesh.clips = names.filter((x) => cur.has(x));
-    renderClipPick();
-  });
-  syncers.push(() => clipCount());
+  // animation search
+  $('clip-search').addEventListener('input', () => renderClipBar(clipNames));
 
   const propsIn = $<HTMLInputElement>('in-props');
   propsIn.addEventListener('change', () => (recipe.mesh.exportProps = propsIn.checked));

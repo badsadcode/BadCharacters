@@ -9,6 +9,7 @@ import type { Skeleton } from '../core/skeleton';
 import type { Character } from '../core/character';
 import { handWeaponFrame } from '../core/hold';
 import { embedGlb } from './embed';
+import { clipCategory } from '../core/categories';
 import type { Quat, V3 } from '../core/math';
 import type { Creature } from '../creatures/generate';
 
@@ -388,7 +389,7 @@ export function writeAnimations(json: any, bb: Buf, sk: Skeleton, clips: Clip[])
       for (const p of poses) out.push(...(p.trans?.[b.name] ?? rest));
       channel(sk.index[b.name], 'translation', out, 3);
     }
-    json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, ...(clip.travel ? { travel: clip.travel.map(r6) } : {}), ...(clip.info ? { props: roundInfo(clip.info) } : {}) } });
+    json.animations.push({ name: clip.name, samplers, channels, extras: { loop: clip.loop, category: clipCategory(clip.name), ...(clip.travel ? { travel: clip.travel.map(r6) } : {}), ...(clip.info ? { props: roundInfo(clip.info) } : {}) } });
   }
 }
 

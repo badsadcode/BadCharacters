@@ -47,7 +47,27 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 #canvas { width: 100%; height: 100%; display: block; }
 .hud { position: absolute; display: flex; gap: 8px; flex-wrap: wrap; }
 .hud.top { top: 12px; left: 12px; right: 12px; justify-content: space-between; pointer-events: none; align-items: flex-start; }
-#clips { flex-wrap: wrap; max-width: calc(100% - 330px); }
+#clips { max-width: calc(100% - 330px); }
+.anim { display: flex; flex-direction: column; gap: 6px; background: rgba(30, 26, 44, 0.85); border: 1px solid var(--line); border-radius: 10px; padding: 6px; backdrop-filter: blur(6px); }
+.anim .cats { display: flex; flex-wrap: wrap; gap: 4px; }
+.anim .cats button { background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 7px; padding: 4px 8px; font: 700 12px Nunito, sans-serif; cursor: pointer; }
+.anim .cats button.on { background: var(--accent); border-color: var(--accent); }
+.anim .cats button small { color: var(--dim); font-weight: 400; margin-left: 3px; }
+.anim .cats button.on small { color: #fff; opacity: 0.8; }
+.anim .cliprow { display: flex; gap: 8px; align-items: center; }
+.anim .cliprow input { flex: 1; min-width: 120px; max-width: 260px; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; }
+.anim .exp { font-size: 12px; color: var(--dim); display: flex; gap: 6px; align-items: center; }
+.anim .exp button { background: none; border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 2px 7px; font: 700 11.5px Nunito, sans-serif; cursor: pointer; }
+.anim .chips2 { display: flex; flex-wrap: wrap; gap: 4px; max-height: 128px; overflow-y: auto; }
+.anim .clip { display: flex; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.anim .clip input { margin: 0 2px 0 7px; accent-color: var(--accent); cursor: pointer; }
+.anim .clip button { background: none; border: 0; color: var(--text); padding: 5px 9px 5px 5px; font: 700 12.5px Nunito, sans-serif; cursor: pointer; }
+.anim .clip.on { border-color: var(--accent); background: var(--accent); }
+.anim .clip.off button { color: var(--dim); }
+.anim .clip.on button { color: #fff; }
+.anim.noexport .clip input, .anim.noexport .exp { display: none; }
+.mono { font: 700 12px 'JetBrains Mono', monospace; }
+
 .hud.top > * { pointer-events: auto; }
 .seg { display: flex; background: rgba(30, 26, 44, 0.85); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; backdrop-filter: blur(6px); }
 .seg button { background: none; border: 0; color: var(--text); padding: 7px 11px; font: 700 12.5px Nunito, sans-serif; cursor: pointer; border-right: 1px solid var(--line); }
