@@ -122,5 +122,8 @@ code { font: 12px 'JetBrains Mono', monospace; color: var(--accent2); }
 .clippick input[type='text'] { flex: 2; min-width: 0; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; font: inherit; }
 #clip-list { max-height: 240px; overflow: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; }
 #clip-list label { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.anim .layerbase { font-size: 12px; color: var(--dim); display: flex; gap: 4px; align-items: center; }
-.anim .layerbase select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px; font: inherit; }
+.anim .layerbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--dim); background: var(--panel2); border: 1px dashed var(--line); border-radius: 8px; padding: 6px 8px; }
+.anim .layerbar b { color: var(--text); }
+.anim .layerbar .lb-legs { display: flex; flex-wrap: wrap; gap: 4px; }
+.anim .layerbar .lb-legs button { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 3px 8px; font: 700 12px Nunito, sans-serif; cursor: pointer; }
+.anim .layerbar .lb-legs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }

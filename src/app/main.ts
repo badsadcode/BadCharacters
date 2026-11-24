@@ -166,7 +166,7 @@ function renderClipBar(all: string[]) {
   const exp = exported();
   const box = $('clips');
   box.classList.toggle('noexport', mode !== 'characters');
-  $('layer-wrap').hidden = clipCat !== 'layers' && !clipName.startsWith('Upper_');
+  syncLayerBar();
   box.hidden = !visible.length;
   const q = ($<HTMLInputElement>('clip-search').value ?? '').trim().toLowerCase();
   // tabs
@@ -227,21 +227,43 @@ function renderClipBar(all: string[]) {
   if (mode === 'characters') setExported(exported());
 }
 
+/** the full-body clip whose legs play under an upper-body layer in the preview */
+let layerBase = 'Walk';
+const LAYER_LEGS: [string, string][] = [['Idle', 'Standing'], ['Walk', 'Walk'], ['Run', 'Run'], ['Sprint', 'Sprint'], ['CrouchWalk', 'Crouch walk'], ['WalkBackward', 'Walk back'], ['StrafeLeft', 'Strafe']];
+/** the legs picker shows on the layers tab and while a layer plays */
+function syncLayerBar() {
+  const bar = $('layer-bar');
+  bar.hidden = clipCat !== 'layers' && !clipName.startsWith('Upper_');
+  if (bar.hidden) return;
+  const legs = $('layer-legs');
+  legs.innerHTML = '';
+  for (const [n, txt] of LAYER_LEGS) {
+    const b = document.createElement('button');
+    b.textContent = txt;
+    b.className = n === layerBase ? 'on' : '';
+    b.addEventListener('click', () => {
+      layerBase = n;
+      // nothing layered yet? start the first layer so the click always shows something
+      playClip(clipName.startsWith('Upper_') ? clipName : (clipNames.find((c) => c.startsWith('Upper_')) ?? clipName));
+      renderClipBar(clipNames);
+    });
+    legs.appendChild(b);
+  }
+}
 /** tracks an upper-body layer owns (the base clip's copies are dropped when previewing a layer) */
 const UPPER_TRACK = /^(Spine|Chest|UpperChest|Neck|Head|(Left|Right)(Shoulder|UpperArm|LowerArm|Hand|ThumbProximal))\./;
 const lowerHalves = new WeakMap<THREE.AnimationClip, THREE.AnimationClip>();
 function playClip(name: string) {
   if (mode === 'rig' && rigMode.beforePlay(name)) return;
   clipName = name;
-  // the "over …" picker only means something while a layer plays
-  $('layer-wrap').hidden = clipCat !== 'layers' && !clipName.startsWith('Upper_');
+  syncLayerBar();
   for (const a of actors) {
     a.mixer.stopAllAction();
     const c = a.clips.find((x) => x.name === name) ?? a.clips[0];
     if (!c) continue;
     // an upper-body layer plays over the chosen base clip's legs, exactly like an engine blend tree
     if (name.startsWith('Upper_')) {
-      const base = a.clips.find((x) => x.name === $<HTMLSelectElement>('layer-base').value) ?? a.clips.find((x) => x.name === 'Walk');
+      const base = a.clips.find((x) => x.name === layerBase) ?? a.clips.find((x) => x.name === 'Walk');
       if (base) {
         let lower = lowerHalves.get(base);
         if (!lower) {
@@ -812,7 +834,6 @@ function buildUI() {
 
   // animation search, and the base a layer plays over
   $('clip-search').addEventListener('input', () => renderClipBar(clipNames));
-  $('layer-base').addEventListener('change', () => clipName.startsWith('Upper_') && playClip(clipName));
   const layersIn = $<HTMLInputElement>('in-layers');
   layersIn.addEventListener('change', () => {
     recipe.mesh.upperLayers = layersIn.checked;
