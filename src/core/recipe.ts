@@ -53,6 +53,8 @@ export interface Style {
   section?: 'box';
   /** multiplies the ring-simplification tolerance (fewer rings = simpler blocks) */
   simplify?: number;
+  /** one clean taper per limb segment instead of the anatomical knee/calf/ankle profile */
+  straightLimbs?: boolean;
 }
 
 export const STYLES: Record<StyleId, Style> = {
@@ -110,28 +112,28 @@ export const STYLES: Record<StyleId, Style> = {
     blurb: 'Pure cubes, crisp edges, slim uniform limbs. Bends at knees and elbows.',
     headsTall: 5.2, headW: 0.46, headD: 0.46, arm: 1.12, leg: 1.12, torso: 1.02, definition: 0.12,
     legFrac: 0.54, armFrac: 0.48, neck: 0.06, hand: 1.0, foot: 1.0, roundness: 0, eyeLine: 0.45, faceScale: 1.2,
-    section: 'box', simplify: 4, raceBlend: 0.4, shading: 'flat',
+    section: 'box', simplify: 4, raceBlend: 0.4, shading: 'flat', straightLimbs: true,
   },
   voxelslim: {
     label: 'Voxel Slim',
     blurb: 'Realistic proportions built from slim rectangular blocks. Clean silhouettes for every race.',
     headsTall: 6.8, headW: 0.37, headD: 0.42, arm: 0.95, leg: 0.95, torso: 0.95, definition: 0.5,
     legFrac: 0.58, armFrac: 0.47, neck: 0.16, hand: 1.0, foot: 1.0, roundness: 0, eyeLine: 0.47, faceScale: 1.05,
-    section: 'box', simplify: 3, raceBlend: 0.35, shading: 'flat',
+    section: 'box', simplify: 3, raceBlend: 0.35, shading: 'flat', straightLimbs: true,
   },
   mannequin: {
     label: 'Mannequin',
     blurb: 'A wooden posing doll with ball joints at every bend.',
     headsTall: 7.2, headW: 0.34, headD: 0.42, arm: 0.86, leg: 0.9, torso: 0.92, definition: 1,
     legFrac: 0.6, armFrac: 0.47, neck: 0.3, hand: 0.95, foot: 0.95, roundness: 0.8, eyeLine: 0.48, faceScale: 0.9,
-    raceBlend: 0.45, joints: 'ball', shading: 'smooth', simplify: 5,
+    raceBlend: 0.45, joints: 'ball', shading: 'smooth', simplify: 5, straightLimbs: true,
   },
   figure: {
     label: 'Action Figure',
     blurb: 'Glossy toy plastic with peg joints. Batteries not included.',
     headsTall: 6.4, headW: 0.38, headD: 0.42, arm: 1.0, leg: 1.0, torso: 1.0, definition: 0.85,
     legFrac: 0.57, armFrac: 0.48, neck: 0.18, hand: 1.1, foot: 1.05, roundness: 0.4, eyeLine: 0.47, faceScale: 1.1,
-    raceBlend: 0.45, joints: 'peg', gloss: 0.32, shading: 'smooth',
+    raceBlend: 0.45, joints: 'peg', gloss: 0.32, shading: 'smooth', straightLimbs: true,
   },
 };
 

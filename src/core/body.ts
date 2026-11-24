@@ -358,6 +358,43 @@ export function buildBody(rc: CharacterRecipe, sk: Skeleton): PartMap {
       }
     }
   }
+  // straight limbs (newer styles): replace the anatomical bead-and-bulb profile (pinched knee, bulging
+  // calf, pinched ankle: the "fancy table leg" look) with one clean taper per segment.
+  // Ring positions, tags and skin weights are untouched, so bending and clothing behave the same.
+  if (st.straightLimbs) {
+    const taper = (part: Part, along: (r: Ring) => number, segs: [string, number][], depth: number) => {
+      const at = (tag: string) => along(part.rings.find((r) => r.tag === tag)!);
+      const keys = segs.map(([tag, rad]) => [at(tag), rad] as [number, number]);
+      const radiusAt = (x: number) => {
+        if (x <= keys[0][0]) return keys[0][1];
+        for (let i = 0; i < keys.length - 1; i++) if (x <= keys[i + 1][0]) return lerp(keys[i][1], keys[i + 1][1], (x - keys[i][0]) / (keys[i + 1][0] - keys[i][0]));
+        return keys[keys.length - 1][1];
+      };
+      part.rings = part.rings.map((r) => {
+        const x = along(r);
+        // the hidden root ring inside the torso / the end ring inside the foot or hand keep their tuck
+        const tuck = r.tag === 'top' ? 0.85 : 1;
+        const a = radiusAt(x) * tuck;
+        return { ...r, a, b: a * depth, fb: 0, bb: 0 };
+      });
+    };
+    for (const s of ['L', 'R'] as const) {
+      const leg = parts[`leg.${s}`];
+      const hipY = leg.rings[0].c[1];
+      const thigh = d.thighR;
+      const knee = lerp(d.thighR, d.ankleR, 0.42);
+      const ankle = Math.max(d.ankleR, d.thighR * 0.5);
+      taper(leg, (r) => hipY - r.c[1], [['thighTop', thigh], ['knee', knee], ['ankle', ankle], ['end', ankle * 1.02]], 1);
+      const arm = parts[`arm.${s}`];
+      const root = arm.rings[0].c;
+      const am = s === 'L' ? d.armL : d.armR;
+      const upper = Math.max(d.upperArmR, d.deltR * 0.88) * am;
+      const elbow = lerp(d.upperArmR, d.wristR, 0.4) * am;
+      const wrist = Math.max(d.wristR, d.upperArmR * 0.55) * am ** 0.8;
+      taper(arm, (r) => Math.hypot(r.c[0] - root[0], r.c[1] - root[1], r.c[2] - root[2]), [['shoulder', upper], ['elbow', elbow], ['wrist', wrist], ['end', wrist * 0.96]], 0.92);
+    }
+  }
+
   // visible joints (Mannequin: wooden balls, Action Figure: toy pegs). Each is skinned 100% to the
   // child bone and centred on the pivot, so it turns in place and never drifts off the joint.
   if (st.joints) {
