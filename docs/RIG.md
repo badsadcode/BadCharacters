@@ -76,6 +76,8 @@ Plain child nodes (not skin joints) for attaching items at runtime:
 | `Crouch`, `CrouchWalk` | ✅ | feet stay planted (hip drop solved from leg lengths) |
 | `ClimbUp`, `ClimbDown` | ✅ | wall climb facing +Z; Down is Up played backwards |
 | `ClimbLeft`, `ClimbRight` | ✅ | ledge shimmy |
+| `RockClimbUp`, `RockClimbDown` | ✅ | rock wall, facing +Z: arms spread wide to holds, knees turned out, opposite hand and foot together; Down is Up backwards |
+| `RockClimbLeft`, `RockClimbRight` | ✅ | traversing a rock wall sideways, spread wide |
 | `LadderUp`, `LadderDown` | ✅ | hands on rungs; Down is Up backwards |
 | `Swim` | ✅ | front crawl, body horizontal, flutter kick |
 | `Craft` | ✅ | generic hammering at a bench |

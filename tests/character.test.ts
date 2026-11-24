@@ -134,7 +134,7 @@ describe('animation', () => {
     expect(clips.map((c) => c.name)).toEqual([
       'Idle', 'Walk', 'Run', 'Jump', 'Wave', 'Punch', 'Crouch', 'CrouchWalk', 'ClimbUp', 'ClimbDown', 'ClimbLeft', 'ClimbRight',
       'LadderUp', 'LadderDown', 'Swim', 'Craft', 'BowShoot', 'CrossbowShoot', 'RifleAim', 'RifleReady', 'ZombieWalk',
-      'Sprint', 'Vault', 'ClimbOver', 'Slide', 'Float', 'Dive', 'SwimUnderwater', 'RestPose',
+      'Sprint', 'Vault', 'ClimbOver', 'Slide', 'Float', 'Dive', 'SwimUnderwater', 'RockClimbUp', 'RockClimbDown', 'RockClimbLeft', 'RockClimbRight', 'RestPose',
     ]);
   });
   it('a swinging foot hangs off the shin instead of folding back toward the knee', () => {

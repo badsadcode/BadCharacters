@@ -340,6 +340,75 @@ export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
   const climbLeft: Clip = { name: 'ClimbLeft', duration: shimmyT, loop: true, sample: shimmy(1) };
   const climbRight: Clip = { name: 'ClimbRight', duration: shimmyT, loop: true, sample: shimmy(-1) };
 
+  /**
+   * Rock climbing, facing the wall (+Z): wide and frogged. Hands reach up and OUT for holds and
+   * pull down with bent elbows, knees turn out to the sides, feet step high with the toes on the
+   * wall. Opposite hand and foot move together. Played backwards = climbing down.
+   */
+  const rockT = 2.1;
+  /**
+   * a frogged climbing leg: lift the thigh, turn the knee OUT (rotation about the vertical, so a
+   * raised knee points sideways instead of into the wall), spread it, bend the knee; toes to the wall
+   */
+  const frogLeg = (s: number, abd: number, th: number, kn: number, turn = 0.6 * th): [Quat, Quat, Quat] => [
+    qChain(qz(s * abd * DEG), qy(s * turn * DEG), qx(-th * DEG)),
+    qx(kn * DEG),
+    qx(-(kn - th - 18) * DEG),
+  ];
+  const rockPose = (t: number): Pose => {
+    const ph = (TAU * t) / rockT;
+    const rot: Record<string, Quat> = {};
+    // each limb: 0 = low (loaded, pulling / pushing), 1 = high (just reached the next hold)
+    const reach = (p: number) => 0.5 + 0.5 * sin(p);
+    const hand = (s: number, p: number) => {
+      const u = reach(p);
+      // holds are on the wall just in front of the chest, not out at arm's length
+      return armTo(s, [s * lerp(0.82, 0.55, u), lerp(0.25, 1, u), lerp(0.3, 0.16, u)], lerp(85, 18, u));
+    };
+    setArms(rot, hand(1, ph), hand(-1, ph + Math.PI));
+    const foot = (s: number, p: number) => {
+      const u = reach(p);
+      return frogLeg(s, lerp(24, 42, u), lerp(14, 72, u), lerp(24, 112, u));
+    };
+    setLegs(rot, foot(1, ph + Math.PI), foot(-1, ph));
+    // hips shift over the loaded (low) foot and stay tight to the wall
+    rot.Hips = qChain(qz(-5 * sin(ph) * DEG), qy(-4 * sin(ph) * DEG));
+    rot.Spine = qx(-4 * DEG);
+    rot.Chest = qz(4 * sin(ph) * DEG);
+    // look up at the reaching hand
+    rot.Head = qChain(qx(-26 * DEG), qy(-14 * sin(ph) * DEG));
+    const drop = plant(lerp(14, 72, 0.5), lerp(24, 112, 0.5)).drop * 0.45;
+    return { rot, hips: [-0.03 * legLen * sin(ph), -drop + 0.04 * legLen * sin(2 * ph), 0.06 * legLen] };
+  };
+  const rockUp: Clip = { name: 'RockClimbUp', duration: rockT, loop: true, sample: rockPose };
+  const rockDown: Clip = { name: 'RockClimbDown', duration: rockT, loop: true, sample: (t) => rockPose(rockT - t) };
+
+  /** traversing sideways on a rock wall, spread wide; dir +1 = to the character's left (+X) */
+  const rockSideT = 1.9;
+  const rockSide = (dir: number) => (t: number): Pose => {
+    const ph = (TAU * t) / rockSideT;
+    const rot: Record<string, Quat> = {};
+    const hand = (s: number) => {
+      const lead = s === dir;
+      const r = sin(ph + (lead ? 0 : Math.PI)); // +1 = stretched out to the side, -1 = pulled in
+      return armTo(s, [s * (0.62 + (lead ? 0.28 : 0.12) * r), 0.62 - 0.12 * pos(r), 0.26], 38 - 18 * pos(r) + 22 * pos(-r));
+    };
+    setArms(rot, hand(1), hand(-1));
+    const step = (s: number) => {
+      const lead = s === dir;
+      const lift = pos(sin(ph + (lead ? 0 : Math.PI) - 0.5));
+      return frogLeg(s, 26 + (lead ? 22 : 8) * lift, 20 + 40 * lift, 34 + 58 * lift);
+    };
+    setLegs(rot, step(1), step(-1));
+    rot.Hips = qz(dir * 5 * sin(ph) * DEG);
+    rot.Spine = qx(-3 * DEG);
+    rot.Head = qChain(qx(-14 * DEG), qy(dir * 28 * DEG));
+    const drop = plant(30, 45).drop * 0.5;
+    return { rot, hips: [dir * 0.05 * legLen * sin(ph), -drop + 0.02 * legLen * sin(2 * ph), 0.06 * legLen] };
+  };
+  const rockLeft: Clip = { name: 'RockClimbLeft', duration: rockSideT, loop: true, sample: rockSide(1) };
+  const rockRight: Clip = { name: 'RockClimbRight', duration: rockSideT, loop: true, sample: rockSide(-1) };
+
   /** ladder: hands closer together on the rungs, knees higher. Backwards = down. */
   const ladderT = 1.2;
   const ladderPose = (t: number): Pose => {
@@ -680,7 +749,7 @@ export function buildClips(sk: Skeleton, opts: ClipOptions = {}): Clip[] {
     },
   };
 
-  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot, rifleAim, rifleReady, zombieWalk, sprint, vault, climbOver, slide, float, dive, swimUnderwater];
+  const extra = [crouch, crouchWalk, climbUp, climbDown, climbLeft, climbRight, ladderUp, ladderDown, swim, craft, bowShoot, crossbowShoot, rifleAim, rifleReady, zombieWalk, sprint, vault, climbOver, slide, float, dive, swimUnderwater, rockUp, rockDown, rockLeft, rockRight];
 
   const tpose: Clip = {
     name: 'RestPose',
