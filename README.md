@@ -45,6 +45,22 @@ observer, abyssal crab, giant isopod, hatcher, rift ray, lantern skate.
   with axes matching Swimmer 1:1
 - Sliders: length, mouth gape, teeth, fins/arms, glow spots, blotches, scars, seven colours
 
+## Rig my model (bring your own GLB)
+
+The **🦴 Rig my model** mode skins *your* humanoid model with our skeleton and animations:
+
+1. Drop in a `.glb` standing in a T- or A-pose (any units, any facing: there's a height field and a turn option).
+2. Markers are auto-placed on chin, neck, groin, shoulders, elbows, wrists, knees, ankles and balls of the feet.
+   Drag them where they belong; *Mirror* moves both sides together.
+3. Press ▶ or pick any clip to preview, then **📦 Export GLB**.
+
+You get your mesh, materials, textures and shape keys untouched, plus the same 25-bone Unity-named skeleton,
+sockets and all 29 clips as a generated character. Skin weights are automatic (distance to each bone relative
+to the thickness of that body part, soft blending at joints, smoothing across the surface, UV seams welded so
+nothing tears). Tests strip the skeletons off our own characters, re-rig them and check that nearly every
+vertex lands on the generator's bone or its direct neighbour. Long coats, capes and tails may need touch-ups
+in Blender.
+
 ## How it works (short version)
 
 Every body part is a **loft of rounded-box cross-sections** (superellipses). One exponent slides
@@ -70,7 +86,7 @@ what your engine gets.
 
 ```bash
 npm run dev                                       # the app
-npm test                                          # 304 tests: every style × theme and race validates clean, polygon budgets, hats/skirts enclose what they cover, feet on floor, animation sanity
+npm test                                          # 700+ tests: every style × theme and race validates clean, polygon budgets, hats/skirts enclose what they cover, feet on floor, animation sanity
 npm run cli -- export blocky explorer 42 out/     # one character → GLB + recipe
 npm run cli -- samples out/samples                # a sample per style
 ```

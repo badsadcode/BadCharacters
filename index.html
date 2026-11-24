@@ -20,6 +20,7 @@
         <div class="seg mode" id="mode">
           <button data-mode="characters" class="on" title="Humanoid characters">🧍 Characters</button>
           <button data-mode="creatures" title="Creatures of the abyss">🦈 Creatures</button>
+          <button data-mode="rig" title="Rig your own GLB model with our skeleton and animations">🦴 Rig my model</button>
         </div>
         <div class="actions">
           <a class="btn" href="./devlog.html" title="The (mostly true) story of how this was built">📓 Devlog</a>
@@ -105,6 +106,33 @@
           <div class="row"><label>Detail</label><select id="c-detail"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
           <div class="row"><label>Shading</label><select id="c-shading"><option value="flat">Flat / faceted</option><option value="smooth">Smooth</option></select></div>
           <p class="hint">Front is +Z, identity bone rests. "Solitude profile" writes a ready-to-paste <code>CreatureProfile</code> for Solitude's Swimmer.</p>
+        </section>
+      </aside>
+
+      <aside class="panel left" id="left-rig" hidden>
+        <section>
+          <h2>Your model</h2>
+          <label class="drop" id="rig-drop">
+            <input id="rig-file" type="file" accept=".glb,model/gltf-binary" hidden />
+            <b>📂 Choose a .glb</b><span>or drop it on the viewport</span>
+          </label>
+          <p class="hint" id="rig-info">A humanoid standing in a T- or A-pose, arms away from the body. One self-contained <code>.glb</code>; your materials and textures are kept exactly as they are.</p>
+          <div class="row"><label>Height</label><input id="rig-height" type="number" min="0.1" max="20" step="0.01" /><output>m</output></div>
+          <div class="row"><label>Facing</label><select id="rig-yaw"><option value="0">Already faces front (+Z)</option><option value="180">Faces away (turn 180°)</option><option value="90">Faces right (turn 90°)</option><option value="270">Faces left (turn 270°)</option></select></div>
+        </section>
+        <section>
+          <h2>Markers</h2>
+          <p class="hint">Drag the balls onto the joints: <span style="color:#ffe14a">●</span> centre, <span style="color:#ff5c8a">●</span> left side, <span style="color:#5cd6ff">●</span> right side. The model's left is on <em>your</em> right when it faces you.</p>
+          <div class="row"><label>Mirror</label><input id="rig-mirror" type="checkbox" checked /><span class="hint" style="margin:0">move both sides together</span></div>
+          <div class="btnrow">
+            <button class="btn" id="rig-auto" title="Guess the marker positions again">🎯 Auto-place</button>
+            <button class="btn accent" id="rig-go" title="Skin the model and play an animation">▶ Rig &amp; preview</button>
+          </div>
+          <p class="hint" id="rig-hover">&nbsp;</p>
+        </section>
+        <section>
+          <h2>What you get</h2>
+          <p class="hint">Your mesh, materials and textures, plus our 25-bone humanoid skeleton (Unity <code>HumanBodyBones</code> names), automatic skin weights, sockets and every animation. Export with <b>📦 Export GLB</b>. Tricky spots (long coats, capes, tails, very loose clothing) may need touch-ups in Blender.</p>
         </section>
       </aside>
 

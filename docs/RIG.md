@@ -122,3 +122,16 @@ Honest status: the files pass the Khronos glTF validator with zero errors and wa
 load and animate in three.js (the viewer renders the exported GLB itself). **Godot 4: confirmed**
 by Tom, with generated characters walking on Solitude's title screen (skinning and baked clips
 intact). Unity and Unreal have not been tried yet; please report anything odd.
+
+## Auto-rigged imports (🦴 Rig my model)
+
+An imported GLB rigged in the app follows the same contract as a generated character: the same 25
+bones, names, identity rest rotations, sockets and clips. Differences:
+
+- Geometry is baked into world space (a skinned mesh's own node transform is ignored by the glTF
+  spec), scaled to the chosen height, turned to face +Z, centred, feet on y = 0.
+- Materials, textures, images, samplers and morph targets are carried over unchanged. Any skin or
+  animations the file already had are replaced.
+- `ThumbProximal` exists but owns no vertices (the hand bone takes the whole hand).
+- `scenes[0].extras.badcharacters.source` is `"auto-rigged import"` and `markers` holds the joint
+  markers used, so a rig can be reproduced.

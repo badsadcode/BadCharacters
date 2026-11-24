@@ -81,7 +81,7 @@
         <div class="cta">
           <a class="btn" href="./index.html">🎲 Make a character</a>
           <a class="btn ghost" href="#day1">📖 Read the log</a>
-          <a class="btn ghost" href="#day5">🆕 Latest: Day 5</a>
+          <a class="btn ghost" href="#day6">🆕 Latest: Day 6</a>
         </div>
         <div class="stats">
           <div class="stat"><b>8</b><small>body styles</small></div>
@@ -432,6 +432,35 @@
         </figure>
         <p>The sneaky part: every outfit still fits. The segmented body keeps the same "attachment points" as the old one, so all 94 garments, the hats and the armour just follow along. The soldier's trousers even get little hinges at the knees. Nobody asked for that. It's charming anyway.</p>
         <p>And, as promised, nothing old changed. Every existing character is still byte-for-byte identical.</p>
+      </article>
+
+      <div class="day" id="day6"><span class="badge">DAY 6</span><hr /></div>
+
+      <article class="entry">
+        <div class="time">🏃 PARKOUR</div>
+        <h2>Sprinting, vaulting, and a foot that finally behaves</h2>
+        <p>Tom asked for sprinting, vaulting, climbing over walls, floating, diving and a crouch slide. All arrived. Then Tom looked at the running animation and circled a foot in red. Every trailing foot had been carefully held perfectly level with the ground while the leg swung up behind, which meant the ankle folded backwards toward the knee. "It doesn't work like that on humans." It does not. Feet now hang off the shin like feet do, toes pointing down and back, and only go flat when they land.</p>
+        <p>
+          <span class="pill">🏃 Sprint</span>
+          <span class="pill">🧱 Vault</span>
+          <span class="pill">🧗 Climb Over</span>
+          <span class="pill">🛝 Slide</span>
+          <span class="pill">🛟 Float</span>
+          <span class="pill">🤿 Dive</span>
+          <span class="pill">🐠 Swim Underwater</span>
+        </p>
+      </article>
+
+      <article class="entry">
+        <div class="time">🦴 RIG MY MODEL</div>
+        <h2>Bring your own body</h2>
+        <p>Tom has his own models, and asked if they could use our animations. Now they can. The new <strong>🦴 Rig my model</strong> tab takes any humanoid <code>.glb</code> standing in a T- or A-pose. It guesses where the joints are by slicing the model like a loaf of bread and looking for clues (two legs below the crotch, the skinniest bit of neck, arms peeling away from the torso at the armpits), drops coloured balls on them, and lets you drag the balls to the right spots.</p>
+        <figure>
+          <img src="./devlog/rigger.webp" alt="Left: a model with no skeleton and coloured marker balls on its joints. Right: the same model walking after rigging." loading="lazy" />
+          <figcaption>Left: a model with no bones and an opinion about where its elbows are. Right: the same model, walking, a quarter of a second later.</figcaption>
+        </figure>
+        <p>Press play and it builds our skeleton inside the model, works out which bone moves which bit of skin, and every one of our 29 animations just works on it. Your materials, textures and shape keys come out exactly as they went in.</p>
+        <p>How do we know the skinning is any good? We cheated, scientifically: we took our own generated characters, ripped their skeletons out, ran them through the rigger and compared. It puts nearly every vertex on the same bone the generator chose, or on the bone right next to it, and a test checks that every time.</p>
       </article>
     </main>
 

@@ -15,6 +15,7 @@ import { solitudeProfile } from '../creatures/solitude';
 import { PRESETS } from '../core/presets';
 import { RaceId, RACES, SHAPE_SLIDERS } from '../core/races';
 import { PATTERNS, PatternId } from '../core/patterns';
+import { createRigMode } from './rigmode';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -24,7 +25,7 @@ let character: Character;
 let clipName = 'Idle';
 const toggles = { skeleton: false, wire: false, sockets: false, turn: true };
 let lineup = false;
-let mode: 'characters' | 'creatures' = 'characters';
+let mode: 'characters' | 'creatures' | 'rig' = 'characters';
 let creature: CreatureRecipe = randomCreature('megalodon', 1);
 
 /** the viewer always shows hand props so you can judge the animations; export follows the recipe */
@@ -88,7 +89,11 @@ function loadGlb(bytes: Uint8Array): Promise<GLTF> {
 
 /** The viewer shows the EXPORTED GLB, never an in-memory approximation of it. */
 async function makeActor(ch: Exportable): Promise<Actor> {
-  const gltf = await loadGlb(exportGlb(ch));
+  return makeActorFromBytes(exportGlb(ch));
+}
+
+async function makeActorFromBytes(glb: Uint8Array): Promise<Actor> {
+  const gltf = await loadGlb(glb);
   const root = gltf.scene;
   const meshes: THREE.SkinnedMesh[] = [];
   const sockets: THREE.Object3D[] = [];
@@ -142,6 +147,7 @@ function renderClipBar(names: string[]) {
 }
 
 function playClip(name: string) {
+  if (mode === 'rig' && rigMode.beforePlay(name)) return;
   clipName = name;
   for (const a of actors) {
     a.mixer.stopAllAction();
@@ -356,7 +362,7 @@ function changed(frame = false) {
   requestAnimationFrame(() => {
     pending = false;
     if (mode === 'creatures') rebuildCreature(frame);
-    else rebuild(frame);
+    else if (mode === 'characters') rebuild(frame);
   });
 }
 
@@ -408,13 +414,25 @@ const creatureSyncers: (() => void)[] = [];
 function syncCreature() {
   creatureSyncers.forEach((s) => s());
 }
-function setMode(m: 'characters' | 'creatures') {
+function setMode(m: 'characters' | 'creatures' | 'rig') {
+  if (mode === 'rig' && m !== 'rig') rigMode.leave();
   mode = m;
   document.querySelectorAll<HTMLButtonElement>('#mode button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
-  $('left').hidden = m === 'creatures';
+  $('left').hidden = m !== 'characters';
   $('left-creatures').hidden = m !== 'creatures';
+  $('left-rig').hidden = m !== 'rig';
   $('btn-solitude').hidden = m !== 'creatures';
-  if (m === 'creatures') {
+  for (const id of ['btn-random', 'btn-lineup', 'btn-save']) $(id).hidden = m === 'rig';
+  ($('file-load').closest('label') ?? $('file-load')).hidden = m === 'rig';
+  if (m === 'rig') {
+    ++building;
+    lineup = true; // no turntable while placing markers
+    stage.rotation.y = 0;
+    clearStage();
+    renderClipBar([]);
+    $('morphs').style.display = 'none';
+    rigMode.enter();
+  } else if (m === 'creatures') {
     syncCreature();
     rebuildCreature(true);
   } else {
@@ -761,6 +779,7 @@ function buildUI() {
     }
   });
   $('btn-export').addEventListener('click', () => {
+    if (mode === 'rig') return rigMode.export();
     if (mode === 'creatures') {
       const glb = exportGlb(generateCreature(creature));
       download(new Blob([glb as BlobPart], { type: 'model/gltf-binary' }), `${slug(creature.name)}.glb`);
@@ -773,7 +792,7 @@ function buildUI() {
     toast(`Exported ${slug(recipe.name)}.glb (${(glb.length / 1024).toFixed(0)} KB)`);
   });
   window.addEventListener('keydown', (e) => {
-    if ((e.target as HTMLElement).tagName === 'INPUT') return;
+    if ((e.target as HTMLElement).tagName === 'INPUT' || mode === 'rig') return;
     if (e.key === 'r') surprise();
     if (e.key === 'l') buildLineup();
   });
@@ -854,6 +873,27 @@ function loop() {
   renderer.render(scene, camera);
 }
 
+const rigMode = createRigMode({
+  scene,
+  camera,
+  controls,
+  canvas,
+  show: async (glb) => {
+    const a = await makeActorFromBytes(glb);
+    clearStage();
+    actors = [a];
+    stage.add(a.root);
+    scene.add(a.helper);
+    renderClipBar(a.clips.map((c) => c.name));
+    applyToggles();
+    return a.clips.map((c) => c.name);
+  },
+  play: (c) => playClip(c),
+  toast,
+  download,
+  stats: (t) => ($('stats').textContent = t),
+});
+
 buildUI();
 syncAll();
 resize();
@@ -866,4 +906,4 @@ resize();
 }
 loop();
 // for automated screenshots / debugging
-Object.assign(window, { __bc: { get recipe() { return recipe; }, get actors() { return actors; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, showCreatures, buildBestiary, setMode, toggles, applyToggles, stage, camera, controls } });
+Object.assign(window, { __bc: { get recipe() { return recipe; }, get actors() { return actors; }, set: (r: CharacterRecipe) => { recipe = r; syncAll(); return rebuild(true); }, playClip, buildLineup, showRow, showCreatures, buildBestiary, setMode, toggles, applyToggles, stage, camera, controls, rigMode } });
