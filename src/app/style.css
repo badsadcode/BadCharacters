@@ -127,3 +127,5 @@ code { font: 12px 'JetBrains Mono', monospace; color: var(--accent2); }
 .anim .layerbar .lb-legs { display: flex; flex-wrap: wrap; gap: 4px; }
 .anim .layerbar .lb-legs button { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 3px 8px; font: 700 12px Nunito, sans-serif; cursor: pointer; }
 .anim .layerbar .lb-legs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.subhead { margin: 10px 0 2px; font: 700 11px Nunito, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--line); padding-bottom: 2px; }

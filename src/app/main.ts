@@ -629,7 +629,15 @@ function buildUI() {
 
   // fine proportion sliders
   const shp = $('shape-sliders');
-  for (const [key, label] of SHAPE_SLIDERS) {
+  let group = '';
+  for (const [key, label, grp] of SHAPE_SLIDERS) {
+    if (grp !== group) {
+      group = grp;
+      const h = document.createElement('div');
+      h.className = 'subhead';
+      h.textContent = grp;
+      shp.appendChild(h);
+    }
     syncers.push(
       slider(shp, label, -1, 1, 0.01, () => recipe.body.shape?.[key] ?? 0, (v) => (recipe.body.shape = { ...(recipe.body.shape ?? {}), [key]: v }), (v) => (v > 0 ? '+' : '') + v.toFixed(2)),
     );

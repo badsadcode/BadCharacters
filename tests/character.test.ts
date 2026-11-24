@@ -399,3 +399,32 @@ describe("Boxy style (Noor's bevelled rectangular anatomy)", () => {
     }
   });
 });
+
+describe('body shape sliders', () => {
+  it('every slider at its extremes still builds a valid, grounded character', () => {
+    const keys = ['glutes', 'bust', 'elbowSplit', 'upperArms', 'forearms', 'thighs', 'calves', 'kneeSplit', 'footWidth', 'joints'] as const;
+    for (const v of [-1, 1]) {
+      const r = randomRecipe(4, 'realistic', 'base', 'human');
+      r.body.shape = Object.fromEntries(keys.map((k) => [k, v]));
+      const ch = generateCharacter(r);
+      for (const p of ch.primitives) expect(p.mesh.positions.every((x: number) => Number.isFinite(x))).toBe(true);
+      const d = ch.skeleton.dims;
+      expect(d.kneeY).toBeGreaterThan(d.ankleY);
+      expect(d.kneeY).toBeLessThan(d.hipY);
+      expect(d.upperArmLen).toBeGreaterThan(0);
+      expect(d.foreArmLen).toBeGreaterThan(0);
+    }
+  });
+  it('the sliders actually change the body', () => {
+    const base = randomRecipe(4, 'realistic', 'base', 'human');
+    const dims = (sh: Record<string, number>) => generateCharacter({ ...base, body: { ...base.body, shape: sh } }).skeleton.dims;
+    const d0 = dims({});
+    expect(dims({ thighs: 1 }).thighR).toBeGreaterThan(d0.thighR * 1.2);
+    expect(dims({ calves: 1 }).calfR).toBeGreaterThan(d0.calfR * 1.2);
+    expect(dims({ upperArms: 1 }).upperArmR).toBeGreaterThan(d0.upperArmR * 1.2);
+    expect(dims({ forearms: -1 }).foreArmR).toBeLessThan(d0.foreArmR * 0.8);
+    expect(dims({ kneeSplit: 1 }).kneeY).toBeGreaterThan(d0.kneeY);
+    expect(dims({ elbowSplit: 1 }).upperArmLen).toBeGreaterThan(d0.upperArmLen);
+    expect(dims({ glutes: 1 }).butt).toBeGreaterThan(d0.butt);
+  });
+});

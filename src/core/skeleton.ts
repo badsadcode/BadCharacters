@@ -140,12 +140,12 @@ export function computeDims(rc: CharacterRecipe): Dims {
   const hipHD = u * T * (lerp(0.098, 0.108, g) + 0.035 * f) * lerp(1, 0.85, 1 - st.definition) * k('hips', 0.12);
   const shoulderHW = u * T * (lerp(0.19, 0.162, g) + 0.025 * m + 0.015 * f) * R(race.shoulders) * k('shoulders', 0.22);
 
-  const thighR = u * L * (def(0.07, 0.082) + 0.018 * m + 0.035 * f + 0.008 * g);
+  const thighR = u * L * (def(0.07, 0.082) + 0.018 * m + 0.035 * f + 0.008 * g) * k('thighs', 0.25);
   const hipJX = Math.max(hipHW - thighR + 0.006 * u, thighR * 0.96);
   hipHW = Math.max(hipHW, hipJX + thighR - 0.004 * u);
 
   const ankleY = 0.075 * legLen;
-  const kneeY = ankleY + (hipY - ankleY) * 0.48;
+  const kneeY = ankleY + (hipY - ankleY) * (0.48 + 0.06 * sv(sh, 'kneeSplit'));
   const legAvg = 0.06;
 
   const armLen = bodyRest * st.armFrac * race.armFrac * k('armLength', 0.15);
@@ -177,30 +177,30 @@ export function computeDims(rc: CharacterRecipe): Dims {
     hipHW,
     hipHD,
     belly: Math.max(0, u * T * (0.075 * f ** 1.2 + 0.05 * race.belly + 0.05 * sv(sh, 'belly'))),
-    breast: Math.max(0, u * T * g * (0.032 + 0.03 * f) * Math.min(1, 0.4 + st.definition) * k('chest', 0.8)),
-    pecs: Math.max(0, u * T * m * (1 - g) * 0.02 * k('chest', 0.8)),
-    butt: u * T * (0.012 + 0.018 * g + 0.02 * f) * st.definition,
+    breast: Math.max(0, u * T * g * (0.032 + 0.03 * f) * Math.min(1, 0.4 + st.definition) * k('chest', 0.8) * k('bust', 0.9)),
+    pecs: Math.max(0, u * T * (m * (1 - g) * 0.02 * k('chest', 0.8) + 0.02 * (1 - g) * sv(sh, 'bust'))),
+    butt: Math.max(0, u * T * (0.012 + 0.018 * g + 0.02 * f + 0.03 * sv(sh, 'glutes')) * st.definition),
     hipJX,
     kneeY,
     ankleY,
     thighR,
-    midThighR: u * L * (def(legAvg, 0.07) + 0.02 * m + 0.03 * f + 0.006 * g),
-    kneeR: u * L * (def(legAvg, 0.047) + 0.006 * m + 0.012 * f),
-    calfR: u * L * (def(legAvg, 0.055) + 0.014 * m + 0.014 * f),
-    ankleR: u * L * (def(legAvg, 0.034) + 0.004 * m + 0.006 * f),
+    midThighR: u * L * (def(legAvg, 0.07) + 0.02 * m + 0.03 * f + 0.006 * g) * k('thighs', 0.3),
+    kneeR: u * L * (def(legAvg, 0.047) + 0.006 * m + 0.012 * f) * k('joints', 0.2),
+    calfR: u * L * (def(legAvg, 0.055) + 0.014 * m + 0.014 * f) * k('calves', 0.3),
+    ankleR: u * L * (def(legAvg, 0.034) + 0.004 * m + 0.006 * f) * k('joints', 0.2),
     footLen: u * 0.27 * st.foot * lerp(1, 0.92, g) * Math.max(1, L * 0.85) * R(race.foot) * k('footSize', 0.3),
-    footHW: u * 0.27 * st.foot * 0.2 * Math.max(1, L * 0.9) * Math.sqrt(R(race.foot)) * k('footSize', 0.2),
+    footHW: u * 0.27 * st.foot * 0.2 * Math.max(1, L * 0.9) * Math.sqrt(R(race.foot)) * k('footSize', 0.2) * k('footWidth', 0.3),
     armDir,
-    upperArmLen: (armLen - handLen) * 0.53,
-    foreArmLen: (armLen - handLen) * 0.47,
+    upperArmLen: (armLen - handLen) * (0.53 + 0.05 * sv(sh, 'elbowSplit')),
+    foreArmLen: (armLen - handLen) * (0.47 - 0.05 * sv(sh, 'elbowSplit')),
     handLen,
     handHW: Math.max(handLen * 0.27, u * A * (def(0.042, 0.029) + 0.004 * m) * 1.3 * handK),
     handHT: Math.max(handLen * 0.11, u * A * (def(0.042, 0.029) + 0.004 * m) * 0.75 * Math.sqrt(handK)),
     deltR,
-    upperArmR: u * A * (def(0.042, 0.046) + 0.02 * m + 0.02 * f - 0.005 * g),
-    elbowR: u * A * (def(0.042, 0.036) + 0.006 * m + 0.01 * f),
-    foreArmR: u * A * (def(0.042, 0.042) + 0.012 * m + 0.01 * f - 0.004 * g),
-    wristR: u * A * (def(0.042, 0.029) + 0.004 * m + 0.004 * f),
+    upperArmR: u * A * (def(0.042, 0.046) + 0.02 * m + 0.02 * f - 0.005 * g) * k('upperArms', 0.3),
+    elbowR: u * A * (def(0.042, 0.036) + 0.006 * m + 0.01 * f) * k('joints', 0.2),
+    foreArmR: u * A * (def(0.042, 0.042) + 0.012 * m + 0.01 * f - 0.004 * g) * k('forearms', 0.3),
+    wristR: u * A * (def(0.042, 0.029) + 0.004 * m + 0.004 * f) * k('joints', 0.2),
     // box-section styles have true corners: describe them as (nearly) perfect boxes so hats and
     // shells size themselves to enclose the corners, not a rounded approximation
     n: st.section === 'box' ? 60 : lerp(10, 2.2, roundness),
